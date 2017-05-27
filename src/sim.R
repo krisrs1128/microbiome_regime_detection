@@ -30,8 +30,8 @@ sim_x <- function(a, eps, x0 = NULL) {
   X
 }
 
-sim_eps <- function(n, p, k, sigma0) {
-  lambda_sim <- sim_lambda_z(p, k)
+sim_eps <- function(n, p, k, sigma0, mu_lambda, sigma_lambda) {
+  lambda_sim <- sim_lambda_z(p, k, mu_lambda, sigma_lambda)
 
   eps <- matrix(0, n, p)
   for (i in seq_len(n)) {
@@ -45,8 +45,8 @@ sim_eps <- function(n, p, k, sigma0) {
   )
 }
 
-sim_lambda_z <- function(p, k) {
-  Lambda <- matrix(rnorm(p * k), p, k)
+sim_lambda_z <- function(p, k, mu_lambda, sigma_lambda) {
+  Lambda <- matrix(rnorm(p * k, mu_lambda, sigma_lambda), p, k)
 
   Z <- matrix(0, p, k)
   z <- sample(seq_len(k), p, replace = TRUE)
@@ -67,14 +67,14 @@ params <- list(
   n = 50,
   p = 200,
   k = 4,
-  mu_lambda = 1,
+  mu_lambda = 2,
   sigma_lambda = 1,
-  sigma0 = 0.5,
+  sigma0 = 1,
   a = rbeta(50, 3, 1)
 )
 
 ## ---- simulate-epsilon ----
-eps_res <- sim_eps(params$n, params$p, params$k, params$sigma0)
+eps_res <- do.call(sim_eps, params[setdiff(names(params), "a")])
 mapping <- setNames(eps_res$z, paste0("V", seq_len(params$p)))
 eps_df <- as_data_frame(eps_res$eps) %>%
   mutate(time = row_number()) %>%
