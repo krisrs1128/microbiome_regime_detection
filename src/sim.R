@@ -14,6 +14,22 @@ library("tidyr")
 theme_set(ggscaffold::min_theme())
 
 ## ---- utils ----
+sim_x <- function(a, eps, x0 = NULL) {
+  n <- nrow(eps)
+  p <- ncol(eps)
+
+  X <- matrix(0, n, p)
+  if (is.null(x0)) {
+    X[1, ] <- rnorm(p)
+  }
+
+  for (i in seq_len(n - 1)) {
+    X[i + 1, ] <- a * X[i, ] + eps[i + 1, ]
+  }
+
+  X
+}
+
 sim_eps <- function(n, p, k, sigma0) {
   lambda_sim <- sim_lambda_z(p, k)
 
@@ -48,14 +64,16 @@ sim_lambda_z <- function(p, k) {
 ## ---- parameters ----
 ## 100 times, 30 tracts, 4 tract-clusters
 params <- list(
-  n = 100,
-  p = 50,
+  n = 50,
+  p = 200,
   k = 4,
   mu_lambda = 1,
-  sigma_lambda = 2,
-  sigma0 = 0.5
+  sigma_lambda = 1,
+  sigma0 = 0.5,
+  a = rbeta(50, 3, 1)
 )
 
+## ---- simulate-epsilon ----
 eps_res <- sim_eps(params$n, params$p, params$k, params$sigma0)
 mapping <- setNames(eps_res$z, paste0("V", seq_len(params$p)))
 eps_df <- as_data_frame(eps_res$eps) %>%
@@ -63,7 +81,24 @@ eps_df <- as_data_frame(eps_res$eps) %>%
   gather(key = tract, value = value, -time) %>%
   mutate(k = mapping[tract])
 
-ggplot(eps_df) +
+p <- ggplot(eps_df) +
+  geom_line(
+    aes(x = time, y = value, group = tract),
+    size = 0.3, alpha = 0.7
+  ) +
+  facet_wrap(~ k)
+
+image(cor(eps_res$eps[, order(eps_res$z)]))
+
+## ---- simulate-x ----
+X <- sim_x(params$a, eps_res$eps)
+
+X_df <- as_data_frame(X) %>%
+  mutate(time = row_number()) %>%
+  gather(key = tract, value = value, -time) %>%
+  mutate(k = mapping[tract])
+
+ggplot(X_df) +
   geom_line(
     aes(x = time, y = value, group = tract),
     size = 0.3, alpha = 0.7
