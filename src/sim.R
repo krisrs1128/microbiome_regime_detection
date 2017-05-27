@@ -1,0 +1,71 @@
+#! /usr/bin/env Rscript
+
+## File description -------------------------------------------------------------
+## Simulate data similar to that described in https://arxiv.org/abs/1505.01164
+## Main difference is we don't have situations like "homes within a tract". So,
+## we just model clustered census tracts.
+
+## ---- libraries ----
+library("plyr")
+library("dplyr")
+library("ggplot2")
+library("tibble")
+library("tidyr")
+theme_set(ggscaffold::min_theme())
+
+## ---- utils ----
+sim_eps <- function(n, p, k, sigma0) {
+  lambda_sim <- sim_lambda_z(p, k)
+
+  eps <- matrix(0, n, p)
+  for (i in seq_len(n)) {
+    eps[i, ] <- lambda_sim$lambda_z %*% rnorm(k)
+  }
+
+  list(
+    "eps" = eps + matrix(rnorm(n * p, 0, sigma0), n, p), ## add \tilde{eps} contribution
+    "lambda" = lambda_sim$lambda,
+    "z" = lambda_sim$z
+  )
+}
+
+sim_lambda_z <- function(p, k) {
+  Lambda <- matrix(rnorm(p * k), p, k)
+
+  Z <- matrix(0, p, k)
+  z <- sample(seq_len(k), p, replace = TRUE)
+  for (i in seq_len(p)) {
+    Z[i, z[i]] <- 1
+  }
+
+  list(
+    "lambda_z" = Lambda * Z,
+    "lambda" = Lambda,
+    "z" = z
+  )
+}
+
+## ---- parameters ----
+## 100 times, 30 tracts, 4 tract-clusters
+params <- list(
+  n = 100,
+  p = 50,
+  k = 4,
+  mu_lambda = 1,
+  sigma_lambda = 2,
+  sigma0 = 0.5
+)
+
+eps_res <- sim_eps(params$n, params$p, params$k, params$sigma0)
+mapping <- setNames(eps_res$z, paste0("V", seq_len(params$p)))
+eps_df <- as_data_frame(eps_res$eps) %>%
+  mutate(time = row_number()) %>%
+  gather(key = tract, value = value, -time) %>%
+  mutate(k = mapping[tract])
+
+ggplot(eps_df) +
+  geom_line(
+    aes(x = time, y = value, group = tract),
+    size = 0.3, alpha = 0.7
+  ) +
+  facet_wrap(~ k)
