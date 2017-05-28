@@ -65,13 +65,13 @@ sim_lambda_z <- function(p, k, mu_lambda, sigma_lambda) {
 ## ---- parameters ----
 ## 100 times, 30 tracts, 4 tract-clusters
 params <- list(
-  n = 25,
-  p = 100,
+  n = 100,
+  p = 200,
   k = 3,
-  mu_lambda = 2,
-  sigma_lambda = 1,
+  mu_lambda = 1,
+  sigma_lambda = 0.8,
   sigma0 = 1,
-  a = rbeta(100, 3, 1)
+  a = rbeta(200, 4, 1)
 )
 
 ## ---- simulate-epsilon ----
@@ -111,13 +111,11 @@ stan_data <- list(
   "K" = params$k,
   "n" = params$p,
   "T" = params$n,
-  x = X
+  "x" = t(X),
+  "alpha" = c(0.4, 0.4, 0.4)
 )
 
-#stan_model("tsv.stan")
-#fit <- stan("tsv.stan", data = stan_data, chains = 1)
-
-fit <- vb(stan_model("tsv.stan"), stan_data, adapt_engaged = FALSE, eta = 0.1)
+fit <- vb(stan_model("ts_cluster.stan"), stan_data, iter = 1000, adapt_engaged = FALSE, eta = 1)
 
 estimates <- extract(fit)
 plot(params$a, colMeans(estimates$a))
