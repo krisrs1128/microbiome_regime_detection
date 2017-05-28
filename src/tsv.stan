@@ -15,7 +15,7 @@ parameters {
   real sigma0;
   real mu_lambda;
   real sigma_lambda;
-  matrix[n, K] beta; // instead of z, we consider mixing proportions
+  vector[K] beta[n]; // instead of z, we consider mixing proportions
 
   vector[n] a; // markov dynamics
 }
@@ -23,7 +23,7 @@ parameters {
 transformed parameters {
   matrix[n, K] theta;
   for (i in 1:n) {
-    theta[i] = inv_logit(beta[i]);
+    theta[i] = to_row_vector(softmax(beta[i]));
   }
 }
 

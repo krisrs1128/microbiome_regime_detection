@@ -71,7 +71,7 @@ params <- list(
   mu_lambda = 2,
   sigma_lambda = 1,
   sigma0 = 1,
-  a = rbeta(50, 3, 1)
+  a = rbeta(100, 3, 1)
 )
 
 ## ---- simulate-epsilon ----
@@ -117,7 +117,7 @@ stan_data <- list(
 #stan_model("tsv.stan")
 #fit <- stan("tsv.stan", data = stan_data, chains = 1)
 
-fit <- vb(stan_model("tsv.stan"), stan_data, adapt_engag3ed = FALSE, eta = 0.1)
+fit <- vb(stan_model("tsv.stan"), stan_data, adapt_engaged = FALSE, eta = 0.1)
 
 estimates <- extract(fit)
 plot(params$a, colMeans(estimates$a))
