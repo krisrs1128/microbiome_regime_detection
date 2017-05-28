@@ -11,6 +11,7 @@ library("dplyr")
 library("ggplot2")
 library("tibble")
 library("tidyr")
+library("rstan")
 theme_set(ggscaffold::min_theme())
 
 ## ---- utils ----
@@ -64,9 +65,9 @@ sim_lambda_z <- function(p, k, mu_lambda, sigma_lambda) {
 ## ---- parameters ----
 ## 100 times, 30 tracts, 4 tract-clusters
 params <- list(
-  n = 50,
-  p = 200,
-  k = 4,
+  n = 25,
+  p = 100,
+  k = 3,
   mu_lambda = 2,
   sigma_lambda = 1,
   sigma0 = 1,
@@ -98,9 +99,36 @@ X_df <- as_data_frame(X) %>%
   gather(key = tract, value = value, -time) %>%
   mutate(k = mapping[tract])
 
-ggplot(X_df) +
+p <- ggplot(X_df) +
   geom_line(
     aes(x = time, y = value, group = tract),
     size = 0.3, alpha = 0.7
   ) +
   facet_wrap(~ k)
+
+## ---- fit-model ----
+stan_data <- list(
+  "K" = params$k,
+  "n" = params$p,
+  "T" = params$n,
+  x = X
+)
+
+#stan_model("tsv.stan")
+#fit <- stan("tsv.stan", data = stan_data, chains = 1)
+
+fit <- vb(stan_model("tsv.stan"), stan_data, adapt_engag3ed = FALSE, eta = 0.1)
+
+estimates <- extract(fit)
+plot(params$a, colMeans(estimates$a))
+theta_hat <- apply(estimates$theta, c(2, 3), mean)
+
+table(
+  truth = eps_res$z,
+  estimates = apply(theta_hat, 1, which.max)
+)
+
+names(estimates)
+mean(estimates$mu_lambda)
+mean(estimates$sigma_lambda)
+mean(estimates$sigma0)
