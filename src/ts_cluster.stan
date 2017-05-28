@@ -7,7 +7,6 @@ data {
   int<lower=1> n; // num census tracts
   int<lower=1> T; // num timepoints
   vector[T] x[n]; // census tract dynamics
-  vector<lower=0>[K] alpha; // mixing proportions prior
 }
 
 parameters {
@@ -28,10 +27,6 @@ model {
 
   for (k in 1:K) {
     eta[k] ~ normal(0, 1);
-  }
-
-  for (i in 1:n) {
-    theta[i] ~ dirichlet(alpha);
   }
 
   for (t in 1:(T - 1)) {

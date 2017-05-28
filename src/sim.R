@@ -16,42 +16,42 @@ theme_set(ggscaffold::min_theme())
 
 ## ---- utils ----
 sim_x <- function(a, eps, x0 = NULL) {
-  n <- nrow(eps)
-  p <- ncol(eps)
+  T <- nrow(eps)
+  n <- ncol(eps)
 
-  X <- matrix(0, n, p)
+  X <- matrix(0, T, n)
   if (is.null(x0)) {
-    X[1, ] <- rnorm(p)
+    X[1, ] <- rnorm(n)
   }
 
-  for (i in seq_len(n - 1)) {
+  for (i in seq_len(T - 1)) {
     X[i + 1, ] <- a * X[i, ] + eps[i + 1, ]
   }
 
   X
 }
 
-sim_eps <- function(n, p, k, sigma0, mu_lambda, sigma_lambda) {
+sim_eps <- function(T, n, k, sigma0, mu_lambda, sigma_lambda) {
   lambda_sim <- sim_lambda_z(p, k, mu_lambda, sigma_lambda)
 
-  eps <- matrix(0, n, p)
-  for (i in seq_len(n)) {
+  eps <- matrix(0, T, n)
+  for (i in seq_len(T)) {
     eps[i, ] <- lambda_sim$lambda_z %*% rnorm(k)
   }
 
   list(
-    "eps" = eps + matrix(rnorm(n * p, 0, sigma0), n, p), ## add \tilde{eps} contribution
+    "eps" = eps + matrix(rnorm(T * n, 0, sigma0), T, n), ## add \tilde{eps} contribution
     "lambda" = lambda_sim$lambda,
     "z" = lambda_sim$z
   )
 }
 
-sim_lambda_z <- function(p, k, mu_lambda, sigma_lambda) {
-  Lambda <- matrix(rnorm(p * k, mu_lambda, sigma_lambda), p, k)
+sim_lambda_z <- function(n, k, mu_lambda, sigma_lambda) {
+  Lambda <- matrix(rnorm(n * k, mu_lambda, sigma_lambda), n, k)
 
-  Z <- matrix(0, p, k)
-  z <- sample(seq_len(k), p, replace = TRUE)
-  for (i in seq_len(p)) {
+  Z <- matrix(0, n, k)
+  z <- sample(seq_len(k), n, replace = TRUE)
+  for (i in seq_len(n)) {
     Z[i, z[i]] <- 1
   }
 
@@ -65,13 +65,13 @@ sim_lambda_z <- function(p, k, mu_lambda, sigma_lambda) {
 ## ---- parameters ----
 ## 100 times, 30 tracts, 4 tract-clusters
 params <- list(
-  n = 100,
-  p = 200,
-  k = 3,
+  T = 50,
+  n = 2000,
+  k = 20,
   mu_lambda = 1,
   sigma_lambda = 0.8,
   sigma0 = 1,
-  a = rbeta(200, 4, 1)
+  a = rbeta(200, 3, 1)
 )
 
 ## ---- simulate-epsilon ----
@@ -89,7 +89,7 @@ p <- ggplot(eps_df) +
   ) +
   facet_wrap(~ k)
 
-image(cor(eps_res$eps[, order(eps_res$z)]))
+image(cor(eps_res$eps[, order(eps_res$z[1:500])]))
 
 ## ---- simulate-x ----
 X <- sim_x(params$a, eps_res$eps)
@@ -109,13 +109,12 @@ p <- ggplot(X_df) +
 ## ---- fit-model ----
 stan_data <- list(
   "K" = params$k,
-  "n" = params$p,
-  "T" = params$n,
-  "x" = t(X),
-  "alpha" = c(0.4, 0.4, 0.4)
+  "T" = params$T,
+  "n" = params$n,
+  "x" = t(X)
 )
 
-fit <- vb(stan_model("ts_cluster.stan"), stan_data, iter = 1000, adapt_engaged = FALSE, eta = 1)
+fit <- vb(stan_model("ts_cluster.stan"), stan_data, iter = 1000)
 
 estimates <- extract(fit)
 plot(params$a, colMeans(estimates$a))
@@ -126,7 +125,6 @@ table(
   estimates = apply(theta_hat, 1, which.max)
 )
 
-names(estimates)
 mean(estimates$mu_lambda)
 mean(estimates$sigma_lambda)
 mean(estimates$sigma0)
