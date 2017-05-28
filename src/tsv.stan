@@ -10,10 +10,19 @@ data {
 }
 
 parameters {
-  real eps[T, n]; // clustered innovations
+  vector[T] eps[n]; // clustered innovations
   real lambda[n, K]; // latent factor loadings
-  real[T] eta[K]; // latent factor scores
+  vector[T] eta[K]; // latent factor scores
   real sigma0;
   real mu_lambda;
   real sigma_lambda;
+  simplex[K] theta[n]; // instead of z, we consider mixing proportions
+}
+
+model {
+  for (i in 1:n) {
+    for (k in 1:K) {
+      target += theta[i, k] * normal_lpdf(eps[i] | lambda[i, k] * eta[k], sigma0)
+    }
+  }
 }
