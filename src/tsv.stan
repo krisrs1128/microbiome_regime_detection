@@ -1,4 +1,4 @@
-## File description -------------------------------------------------------------
+### File description -------------------------------------------------------------
 ## Fit a simplified variant of the time series clustering model described in
 ## https://arxiv.org/abs/1505.01164
 
@@ -6,25 +6,18 @@ data {
   int<lower=1> K; // num topics
   int<lower=1> n; // num census tracts
   int<lower=1> T; // num timepoints
-  vector[n] x[T]; // census tract dynamics
+  vector[T] x[n]; // census tract dynamics
 }
 
 parameters {
-  vector[n] lambda[K]; // latent factor loadings
+  real lambda[n, K]; // latent factor loadings
   vector[T] eta[K]; // latent factor scores
   real sigma0;
   real mu_lambda;
   real sigma_lambda;
-  vector[K] beta[n]; // instead of z, we consider mixing proportions
+  simplex[K] theta[n]; // instead of z, we consider mixing proportions
 
   vector[n] a; // markov dynamics
-}
-
-transformed parameters {
-  matrix[n, K] theta;
-  for (i in 1:n) {
-    theta[i] = to_row_vector(softmax(beta[i]));
-  }
 }
 
 model {
@@ -33,8 +26,10 @@ model {
   }
 
   for (t in 1:(T - 1)) {
-    for (k in 1:K) {
-      target += theta[, k] * normal_lpdf(x[t + 1] | a .* x[t] + eta[k][t] * lambda[k], sigma0);
+    for (i in 1:n) {
+      for (k in 1:K) {
+        target += theta[i, k] * normal_lpdf(x[i][t + 1] | a[i] * x[i][t] + lambda[i, k] * eta[k][t], sigma0);
+      }
     }
   }
 }
