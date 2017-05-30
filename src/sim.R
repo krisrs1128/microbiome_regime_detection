@@ -30,8 +30,13 @@ sim_x <- function(a, eps, x0 = NULL) {
   X
 }
 
+<<<<<<< Updated upstream
 sim_eps <- function(n, p, k, sigma0, mu_lambda, sigma_lambda) {
   lambda_sim <- sim_lambda_z(p, k, mu_lambda, sigma_lambda)
+=======
+sim_eps <- function(T, n, k, sigma0, mu_lambda, sigma_lambda) {
+  lambda_sim <- sim_lambda_z(n, k, mu_lambda, sigma_lambda)
+>>>>>>> Stashed changes
 
   eps <- matrix(0, n, p)
   for (i in seq_len(n)) {
@@ -64,18 +69,18 @@ sim_lambda_z <- function(p, k, mu_lambda, sigma_lambda) {
 ## ---- parameters ----
 ## 100 times, 30 tracts, 4 tract-clusters
 params <- list(
-  n = 50,
-  p = 200,
+  T = 100,
+  n = 500,
   k = 4,
-  mu_lambda = 2,
-  sigma_lambda = 1,
+  mu_lambda = 3,
+  sigma_lambda = 2,
   sigma0 = 1,
-  a = rbeta(50, 3, 1)
+  a = rbeta(500, 5, 1)
 )
 
 ## ---- simulate-epsilon ----
 eps_res <- do.call(sim_eps, params[setdiff(names(params), "a")])
-mapping <- setNames(eps_res$z, paste0("V", seq_len(params$p)))
+mapping <- setNames(eps_res$z, paste0("V", seq_len(params$n)))
 eps_df <- as_data_frame(eps_res$eps) %>%
   mutate(time = row_number()) %>%
   gather(key = tract, value = value, -time) %>%
@@ -104,3 +109,27 @@ ggplot(X_df) +
     size = 0.3, alpha = 0.7
   ) +
   facet_wrap(~ k)
+
+## ---- fit-model ----
+stan_data <- list(
+  "K" = params$k,
+  "T" = params$T,
+  "n" = params$n,
+  "x" = t(X)
+)
+
+fit <- vb(stan_model("ts_cluster.stan"), stan_data, iter = 2000)
+
+estimates <- extract(fit)
+plot(params$a, colMeans(estimates$a))
+theta_hat <- apply(estimates$theta, c(2, 3), mean)
+
+table(
+  truth = eps_res$z,
+  estimates = apply(theta_hat, 1, which.max)
+)
+
+names(estimates)
+mean(estimates$mu_lambda)
+mean(estimates$sigma_lambda)
+mean(estimates$sigma0)
