@@ -9,6 +9,7 @@ library("proxy")
 library("phyloseq")
 library("grid")
 library("vegan")
+library("dendextend")
 theme_set(ggscaffold::min_theme(list(
                         "legend_position" = "right",
                         "border_size" = 0.8
@@ -109,7 +110,7 @@ combined_heatmap <- function(mx) {
 centroid_plot <- function(mx) {
   ggplot(mx) +
     geom_point(
-      aes(x = time, y = scaled, col = ind), size = 0.1, alpha = 0.2
+      aes(x = time, y = scaled, col = ind), size = 0.2, alpha = 0.2
     ) +
     geom_point(
       aes(x = time, y = centroid), size = 0.7
@@ -184,5 +185,3 @@ mx <- join_sources(x, taxa, samples, mix_tree$label[leaf_ix])
 sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 combined_heatmap(mx)
 centroid_plot(mx)
-
-## ---- study-clusters ----
