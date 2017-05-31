@@ -106,6 +106,21 @@ combined_heatmap <- function(mx) {
   grid.draw(rbind(ggplotGrob(p1), ggplotGrob(p2), size = "last"))
 }
 
+centroid_plot <- function(mx) {
+  ggplot(mx) +
+    geom_point(
+      aes(x = time, y = scaled, col = ind), size = 0.1, alpha = 0.2
+    ) +
+    geom_point(
+      aes(x = time, y = centroid), size = 0.7
+    ) +
+    geom_point(
+      aes(x = time, y = centroid, group = rsv, col = ind), size = 0.4
+    ) +
+    scale_color_brewer(palette = "Set1") +
+    facet_wrap(~cluster)
+}
+
 ## ---- data ----
 download.file("https://github.com/krisrs1128/treelapse/raw/master/data/abt.rda", "../data/abt.rda")
 abt <- get(load("../data/abt.rda")) %>%
@@ -149,6 +164,7 @@ mix_dendro <- reorder(as.dendrogram(mix_tree), -colMeans(x))
 mx <- join_sources(x, taxa, samples, mix_dendro, h = 0.5)
 sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 combined_heatmap(mx)
+centroid_plot(mx)
 
 ## ---- heatmap-extremes ----
 alpha <- 0
@@ -158,6 +174,7 @@ mix_dendro <- reorder(as.dendrogram(mix_tree), -colMeans(x))
 mx <- join_sources(x, taxa, samples, mix_dendro, h = 0.2)
 sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 combined_heatmap(mx)
+centroid_plot(mx)
 
 alpha <- 1
 D_mix <- alpha * D_jaccard + (1 - alpha) * D_euclidean
@@ -166,17 +183,6 @@ mix_dendro <- reorder(as.dendrogram(mix_tree), -colMeans(x))
 mx <- join_sources(x, taxa, samples, mix_tree$label[leaf_ix])
 sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 combined_heatmap(mx)
+centroid_plot(mx)
 
 ## ---- study-clusters ----
-ggplot(mx) +
-  geom_point(
-    aes(x = time, y = scaled, col = ind), size = 0.1, alpha = 0.2
-  ) +
-  geom_point(
-    aes(x = time, y = centroid), size = 0.7
-  ) +
-  geom_point(
-    aes(x = time, y = centroid, group = rsv, col = ind), size = 0.4
-  ) +
-  scale_color_brewer(palette = "Set1") +
-  facet_wrap(~cluster)
