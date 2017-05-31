@@ -41,20 +41,28 @@ taxa_labels <- function(taxa) {
   taxa
 }
 
-join_sources <- function(x, taxa, samples, rsv_order) {
-  mx <- melted_counts(x) %>%
+join_sources <- function(x, taxa, samples, dendro, h = 0.5) {
+  leaf_ix <- order.dendrogram(dendro)
+  leaf_order <- labels(dendro)[leaf_ix]
+  cluster <- data.frame("cluster" = cutree(dendro, h = h)) %>%
+    rownames_to_column(var = "rsv")
+
+  cluster <- cluster %>%
+    left_join(data_frame(rsv = leaf_order, leaf_ix = leaf_ix)) %>%
+    arrange(cluster, leaf_ix)
+
+  melted_counts(x) %>%
     left_join(taxa) %>%
-    left_join(samples)
-  mx$rsv <- factor(mx$rsv, levels = rsv_order)
-  mx %>%
-    arrange(rsv)
+    left_join(samples) %>%
+    left_join(cluster)
 }
 
 combined_heatmap <- function(mx) {
   p1 <- ggplot(mx) +
-    geom_tile(aes(x = rsv, y = sample, fill = scaled)) +
-    facet_grid(ind ~ ., scales = "free_y", space = "free_y") +
-    scale_fill_gradient(low = "white", high = "#0a0a0a") +
+    geom_tile(aes(x = leaf_ix, y = sample, fill = scaled)) +
+    facet_grid(ind ~ cluster, scales = "free", space = "free") +
+    scale_fill_gradient(low = "white", high = "black") +
+    scale_x_continuous(expand = c(0, 0)) +
     theme(
       plot.margin = unit(c(0, 0, 0, 0), "null"),
       axis.title = element_blank(),
@@ -66,16 +74,18 @@ combined_heatmap <- function(mx) {
   rep_ix <- rep(1:10, nrow(unique_mx))
   inv_rep_ix <- rep(seq_len(nrow(unique_mx)), each = 10)
   rsvs <- data_frame(
-    "rsv" = unique_mx$rsv[inv_rep_ix],
+    "leaf_ix" = unique_mx$leaf_ix[inv_rep_ix],
+    "cluster" = unique_mx$cluster[inv_rep_ix],
     "y" = rep_ix,
     "label" = unique_mx$label[inv_rep_ix],
     "dummy" = 1
   )
 
   p2 <- ggplot(rsvs) +
-    geom_tile(aes(x = rsv, y = y, fill = label)) +
+    geom_tile(aes(x = leaf_ix, y = y, fill = label)) +
     scale_fill_brewer(palette = "Set2", guide = guide_legend(nrow = 8)) +
-    facet_grid(dummy ~ ., scales = "free", space = "free") +
+    scale_x_continuous(expand = c(0, 0)) +
+    facet_grid(dummy ~ cluster, scales = "free", space = "free") +
     theme(
       panel.border = element_blank(),
       axis.title = element_blank(),
@@ -90,8 +100,8 @@ combined_heatmap <- function(mx) {
 
 ## ---- data ----
 download.file("https://github.com/krisrs1128/treelapse/raw/master/data/abt.rda", "../data/abt.rda")
-abt <- get(load("../data/abt.rda"))
-  ## filter_taxa(function(x) { var(x) > 5 }, TRUE)
+abt <- get(load("../data/abt.rda")) %>%
+  filter_taxa(function(x) { var(x) > 5 }, TRUE)
 
 x <- t(get_taxa(abt))
 
@@ -127,21 +137,26 @@ taxa <- abt %>%
   tax_table %>%
   taxa_labels
 
-leaf_ix <- order.dendrogram(reorder(as.dendrogram(mix_tree), -colMeans(x)))
-mx <- join_sources(x, taxa, samples, mix_tree$label[leaf_ix])
+mix_dendro <- reorder(as.dendrogram(mix_tree), -colMeans(x))
+mx <- join_sources(x, taxa, samples, mix_dendro, h = 0.5)
+sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 combined_heatmap(mx)
 
 ## ---- heatmap-extremes ----
 alpha <- 0
 D_mix <- alpha * D_jaccard + (1 - alpha) * D_euclidean
-mix_tree <- hclust(D_mix)
-leaf_ix <- order.dendrogram(reorder(as.dendrogram(mix_tree), -colMeans(x)))
-mx <- join_sources(x, taxa, samples, mix_tree$label[leaf_ix])
+mix_tree <- hclust(D_mix, method = "complete")
+mix_dendro <- reorder(as.dendrogram(mix_tree), -colMeans(x))
+mx <- join_sources(x, taxa, samples, mix_dendro, h = 0.2)
+sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 combined_heatmap(mx)
 
 alpha <- 1
 D_mix <- alpha * D_jaccard + (1 - alpha) * D_euclidean
 mix_tree <- hclust(D_mix)
-leaf_ix <- order.dendrogram(reorder(as.dendrogram(mix_tree), -colMeans(x_bin)))
+mix_dendro <- reorder(as.dendrogram(mix_tree), -colMeans(x))
 mx <- join_sources(x, taxa, samples, mix_tree$label[leaf_ix])
+sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 combined_heatmap(mx)
+
+## ---- study-clusters ----
