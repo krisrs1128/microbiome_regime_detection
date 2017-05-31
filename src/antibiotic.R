@@ -49,12 +49,20 @@ join_sources <- function(x, taxa, samples, dendro, h = 0.5) {
 
   cluster <- cluster %>%
     left_join(data_frame(rsv = leaf_order, leaf_ix = leaf_ix)) %>%
-    arrange(cluster, leaf_ix)
+    arrange(leaf_ix)
+  cluster$cluster <- factor(cluster$cluster, levels = unique(cluster$cluster))
 
-  melted_counts(x) %>%
+  mx <- melted_counts(x) %>%
     left_join(taxa) %>%
     left_join(samples) %>%
     left_join(cluster)
+
+  mx %>%
+    group_by(sample, cluster) %>%
+    mutate(
+      centroid = median(scaled),
+      centroid_prob = mean(value)
+    )
 }
 
 combined_heatmap <- function(mx) {
@@ -160,3 +168,15 @@ sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 combined_heatmap(mx)
 
 ## ---- study-clusters ----
+ggplot(mx) +
+  geom_point(
+    aes(x = time, y = scaled, col = ind), size = 0.1, alpha = 0.2
+  ) +
+  geom_point(
+    aes(x = time, y = centroid), size = 0.7
+  ) +
+  geom_point(
+    aes(x = time, y = centroid, group = rsv, col = ind), size = 0.4
+  ) +
+  scale_color_brewer(palette = "Set1") +
+  facet_wrap(~cluster)
