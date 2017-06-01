@@ -312,13 +312,12 @@ plot_hmm <- do.call(rbind, plot_hmm) %>%
   left_join(samples)
 plot_hmm$rsv <- factor(plot_hmm$rsv, levels = mix_tree$label)
 
-ggplot(plot_hmm %>%
-       filter(state_prob == "S1")) +
-  geom_tile(
-    aes(x = rsv, y = sample, fill = prob)
-  ) +
-  scale_fill_gradient(low = "white", high = "black") +
-  facet_grid(ind + state_prob ~ ., scale = "free_y") +
-  theme(
-    axis.text = element_blank()
-  )
+for (state in paste0("S", 1:K)) {
+  p <- ggplot(plot_hmm %>% filter_(sprintf("state_prob == '%s'", state))) +
+    geom_tile(aes(x = rsv, y = sample, fill = prob)) +
+    scale_fill_gradient(low = "white", high = "black") +
+    facet_grid(ind ~ ., scale = "free_y") +
+    theme(axis.text = element_blank()) +
+    ggtitle(sprintf("State %s", state))
+  print(p)
+}
