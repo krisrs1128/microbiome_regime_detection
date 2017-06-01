@@ -10,6 +10,8 @@ library("phyloseq")
 library("grid")
 library("vegan")
 library("dendextend")
+library("depmixS4")
+library("abind")
 theme_set(ggscaffold::min_theme(list(
                         "legend_position" = "right",
                         "border_size" = 0.8
@@ -66,11 +68,10 @@ join_sources <- function(x, taxa, samples, dendro, h = 0.5) {
     )
 }
 
-combined_heatmap <- function(mx) {
+combined_heatmap <- function(mx, fill_type = "bw") {
   p1 <- ggplot(mx) +
     geom_tile(aes(x = leaf_ix, y = sample, fill = scaled)) +
     facet_grid(ind ~ cluster, scales = "free", space = "free") +
-    scale_fill_gradient(low = "white", high = "black") +
     scale_x_continuous(expand = c(0, 0)) +
     theme(
       plot.margin = unit(c(0, 0, 0, 0), "null"),
@@ -78,8 +79,14 @@ combined_heatmap <- function(mx) {
       axis.text = element_blank()
     )
 
+  if (fill_type == "bw") {
+    p1 <- p1 + scale_fill_gradient(low = "white", high = "black")
+  } else if (fill_type == "gradient2"){
+    p1 <- p1 + scale_fill_gradient2(high = "#48b987", low = "#b94e48")
+  }
+
   unique_mx <- mx %>%
-    filter(sample == "D1")
+    filter(sample == mx$sample[1])
   rep_ix <- rep(1:10, nrow(unique_mx))
   inv_rep_ix <- rep(seq_len(nrow(unique_mx)), each = 10)
   rsvs <- data_frame(
@@ -170,18 +177,147 @@ centroid_plot(mx)
 ## ---- heatmap-extremes ----
 alpha <- 0
 D_mix <- alpha * D_jaccard + (1 - alpha) * D_euclidean
-mix_tree <- hclust(D_mix, method = "complete")
-mix_dendro <- reorder(as.dendrogram(mix_tree), -colMeans(x))
-mx <- join_sources(x, taxa, samples, mix_dendro, h = 0.2)
+tree <- hclust(D_mix, method = "complete")
+dendro <- reorder(as.dendrogram(tree), -colMeans(x))
+mx <- join_sources(x, taxa, samples, dendro, h = 0.2)
 sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 combined_heatmap(mx)
 centroid_plot(mx)
 
 alpha <- 1
 D_mix <- alpha * D_jaccard + (1 - alpha) * D_euclidean
-mix_tree <- hclust(D_mix)
-mix_dendro <- reorder(as.dendrogram(mix_tree), -colMeans(x))
-mx <- join_sources(x, taxa, samples, mix_tree$label[leaf_ix])
+tree <- hclust(D_mix)
+dendro <- reorder(as.dendrogram(tree), -colMeans(x))
+mx <- join_sources(x, taxa, samples, dendro)
 sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 combined_heatmap(mx)
 centroid_plot(mx)
+
+## ---- innovations ----
+diff_x <- apply(x_scaled, 2, diff)
+tree <- hclust(dist(t(diff_x)))
+dendro <- reorder(as.dendrogram(tree), -var(diff_x))
+mx <- join_sources(diff_x, taxa, samples, dendro, h = 0.15)
+sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
+combined_heatmap(mx, "gradient2")
+
+## ---- innovations-bin ----
+diff_x <- apply(x_bin, 2, diff)
+tree <- hclust(dist(t(diff_x), method = "Jaccard"))
+dendro <- reorder(as.dendrogram(tree), -var(diff_x))
+mx <- join_sources(diff_x, taxa, samples, dendro, h = 0.985)
+sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
+combined_heatmap(mx, "gradient2")
+
+## ---- pacf ----
+pacfs <- t(apply(x_scaled, 2, function(x) { pacf(x, plot = FALSE)$acf[, 1, 1] }))
+pacfs <- pacfs %>%
+  data.frame %>%
+  rownames_to_column("rsv") %>%
+  gather(lag, "value", -rsv) %>%
+  as_data_frame() %>%
+  mutate(lag = as.integer(gsub("X", "", lag))) %>%
+  left_join(taxa)
+
+ggplot(pacfs) +
+  geom_line(
+    aes(x = lag, y = value, group = rsv, col = label),
+    alpha = 0.2, size = 0.4
+  ) +
+  scale_fill_brewer(palette = "Set2") +
+  facet_wrap(~label)
+
+## ---- time-pairs ----
+x_pairs <- x_scaled
+x_offset <- rbind(x_scaled[-1, ], NA)
+colnames(x_offset) <- paste0(colnames(x_offset), "_next")
+x_pairs <- cbind(x_scaled, x_offset) %>%
+  data.frame() %>%
+  rownames_to_column("sample") %>%
+  gather(rsv, "value", -sample) %>%
+  mutate(
+    next_val = ifelse(grepl("_next", rsv), "post", "pre"),
+    rsv = gsub("_next", "", rsv)
+  ) %>%
+  spread(next_val, value) %>%
+  as_data_frame() %>%
+  left_join(samples) %>%
+  left_join(taxa)
+
+ggplot(x_pairs %>% filter(time >= 10, time <= 20)) +
+  geom_abline(slope = 1, size = 1, alpha = 0.3) +
+  geom_point(
+    aes(x = pre, y = post, col = label),
+    alpha = 0.2, size = 0.2
+  ) +
+  coord_fixed() +
+  scale_color_brewer(palette = "Set2") +
+  facet_grid(ind~time)
+
+## ---- hmm ----
+i <- 100
+df <- data.frame(y = x_scaled[, i] + runif(nrow(x_scaled), 0, 0.001))
+msp <- depmix(y ~ 1, nstates = 5, data = df, emcontrol = em.control(classification = "soft"))
+fm <- fit(msp)
+
+plot_hmm <- cbind(df, fm@posterior) %>%
+  rownames_to_column("sample") %>%
+  left_join(samples) %>%
+  gather(state_prob, prob, S1, S2, S3, S4)
+
+ggplot(plot_hmm) +
+  geom_line(aes(x = time, y = y, col = ind), size = 0.4, alpha = 0.3) +
+  geom_point(aes(x = time, y = y, col = ind, size = prob)) +
+  facet_grid(state_prob ~ .) +
+  scale_size_continuous(range = c(0.05, 2)) +
+  scale_color_brewer(palette = "Set1")
+
+## ---- parallel-hmm ----
+plot_hmm <- list()
+K <- 4
+
+## Loop over every RSV and fit an HMM
+for (i in seq_len(ncol(x_scaled))) {
+  if (i %% 10 == 0) {
+    cat(sprintf("HMM on rsv %s\n", i))
+  }
+
+  df <- data_frame(
+    "sample" = rownames(x_scaled),
+    "y" = x_scaled[, i] + runif(nrow(x_scaled), 0, 0.005),
+    "rsv" = colnames(x_scaled)[i]
+  )
+
+  msp <- depmix(
+    y ~ 1,
+    nstates = K,
+    data = df,
+    emcontrol = em.control(classification = "soft")
+  )
+  fm <- try(fit(msp, verbose = FALSE))
+
+  if (class(fm) != "try-error") {{
+    ## try to align states across rsvs, naive approach just sorts by emission mean
+    state_order <- c(1, 1 + order(summary(fm)[, 1], decreasing = TRUE))
+    ordered_posterior <- fm@posterior[, state_order]
+    colnames(ordered_posterior) <- c("state", paste0("S", seq_len(K)))
+
+    plot_hmm[[i]] <- cbind(df, ordered_posterior) %>%
+      gather(state_prob, prob, starts_with("S", ignore.case = FALSE)) %>%
+      as_data_frame
+  }
+}
+
+plot_hmm <- do.call(rbind, plot_hmm) %>%
+  left_join(samples)
+plot_hmm$rsv <- factor(plot_hmm$rsv, levels = mix_tree$label)
+
+for (state in paste0("S", 1:K)) {
+  p <- ggplot(plot_hmm %>% filter_(sprintf("state_prob == '%s'", state))) +
+    geom_tile(aes(x = rsv, y = sample, fill = prob)) +
+    scale_fill_gradient(low = "white", high = "black") +
+    facet_grid(ind ~ ., scale = "free_y") +
+    theme(axis.text = element_blank()) +
+    ggtitle(sprintf("State %s", state))
+  print(p)
+}
