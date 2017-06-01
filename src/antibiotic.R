@@ -66,11 +66,10 @@ join_sources <- function(x, taxa, samples, dendro, h = 0.5) {
     )
 }
 
-combined_heatmap <- function(mx) {
+combined_heatmap <- function(mx, fill_type = "bw") {
   p1 <- ggplot(mx) +
     geom_tile(aes(x = leaf_ix, y = sample, fill = scaled)) +
     facet_grid(ind ~ cluster, scales = "free", space = "free") +
-    scale_fill_gradient(low = "white", high = "black") +
     scale_x_continuous(expand = c(0, 0)) +
     theme(
       plot.margin = unit(c(0, 0, 0, 0), "null"),
@@ -78,8 +77,14 @@ combined_heatmap <- function(mx) {
       axis.text = element_blank()
     )
 
+  if (fill_type == "bw") {
+    p1 <- p1 + scale_fill_gradient(low = "white", high = "black")
+  } else if (fill_type == "gradient2"){
+    p1 <- p1 + scale_fill_gradient2(high = "#48b987", low = "#b94e48")
+  }
+
   unique_mx <- mx %>%
-    filter(sample == "D1")
+    filter(sample == mx$sample[1])
   rep_ix <- rep(1:10, nrow(unique_mx))
   inv_rep_ix <- rep(seq_len(nrow(unique_mx)), each = 10)
   rsvs <- data_frame(
@@ -170,18 +175,38 @@ centroid_plot(mx)
 ## ---- heatmap-extremes ----
 alpha <- 0
 D_mix <- alpha * D_jaccard + (1 - alpha) * D_euclidean
-mix_tree <- hclust(D_mix, method = "complete")
-mix_dendro <- reorder(as.dendrogram(mix_tree), -colMeans(x))
-mx <- join_sources(x, taxa, samples, mix_dendro, h = 0.2)
+tree <- hclust(D_mix, method = "complete")
+dendro <- reorder(as.dendrogram(tree), -colMeans(x))
+mx <- join_sources(x, taxa, samples, dendro, h = 0.2)
 sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 combined_heatmap(mx)
 centroid_plot(mx)
 
 alpha <- 1
 D_mix <- alpha * D_jaccard + (1 - alpha) * D_euclidean
-mix_tree <- hclust(D_mix)
-mix_dendro <- reorder(as.dendrogram(mix_tree), -colMeans(x))
-mx <- join_sources(x, taxa, samples, mix_tree$label[leaf_ix])
+tree <- hclust(D_mix)
+dendro <- reorder(as.dendrogram(tree), -colMeans(x))
+mx <- join_sources(x, taxa, samples, dendro)
 sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 combined_heatmap(mx)
 centroid_plot(mx)
+
+## ---- innovations ----
+diff_x <- apply(x_scaled, 2, diff)
+tree <- hclust(dist(t(diff_x)))
+dendro <- reorder(as.dendrogram(tree), -var(diff_x))
+mx <- join_sources(diff_x, taxa, samples, dendro, h = 0.15)
+sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
+combined_heatmap(mx, "gradient2") 
+
+## ---- innovations-bin ----
+diff_x <- apply(x_bin, 2, diff)
+tree <- hclust(dist(t(diff_x), method = "Jaccard"))
+dendro <- reorder(as.dendrogram(tree), -var(diff_x))
+mx <- join_sources(diff_x, taxa, samples, dendro, h = 0.985)
+sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
+combined_heatmap(mx, "gradient2") 
+
+## ---- pacf ----
+head(x_scaled)
+pacfs <- apply(x_scaled, 1, pacf, plot = FALSE)
