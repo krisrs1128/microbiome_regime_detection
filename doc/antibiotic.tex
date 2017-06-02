@@ -1,0 +1,69 @@
+\documentclass{article}
+\usepackage{natbib}
+
+\title{Hierarchical Clustering + HMM Experiments}
+\author{Kris Sankaran}
+
+\begin{document}
+\maketitle
+
+These are notes on basic approaches to clustering bacteria. The
+three views we consider here are,
+
+\begin{itemize}
+\item Hierarchically clustering counts of bacteria, using a few different
+  distances, with branches sorted according to abundance. We can then interpret
+  the associated heatmaps.
+\item Computing the PACF for each bacterial time series. This motivates our
+  clustering of the innovations (first-order differences) instead of the raw counts.
+\item In addition to clustering bacteria, we can try to cluster the time points.
+  For this, we run an HMM on each time series.
+\end{itemize}
+
+
+Our motivation comes from two places,
+\begin{itemize}
+  \item Applying Latent Dirichlet Allocation on samples seems like a useful
+    exercise. Can we carry that way of thinking\footnote{At some point these
+      notes should include LDA applied to all the bacteria.} across to the
+    bacteria (the transposed matrix)?
+  \item A footnote in \citep{ren2015achieving}, presents a probabilistic time
+    series clustering model as the unified alternative to first clustering home
+    sales across census tracts and then running a kalman filter within each
+    cluster. The hope is that some simple exploratory analysis in our setting
+    might motivate similar types of unified models.
+\end{itemize}
+
+There's really nothing too surprising in what follows. We use the antibiotics
+data set as our case study, since we are so familiar with it, though it should
+be straightforwards to rerun the code on the cleanout phyloseq object. There are
+a few points we've learned in this analysis which might be worth keeping in mind
+/ thinking through in follow-up work,
+
+\begin{itemize}
+\item Choosing an appropriate distance in hierarchical clustering is
+  complicated. We get quite different when using (mixtures of) Euclidean and
+  Jaccard distances, which offer somewhat different interpretations. Finding a
+  way of simplifying the choice or interpretation would be useful.
+\item While taxonomic classification is related to the clustering results,
+  limiting attention to just taxonomy would miss out on a lot of interesting
+  covariation.
+\item The cluster sizes resulting from cutting the hierarchical clustering tree
+  are highly imbalanced, which makes interpretation somewhat difficult.
+\item Looking at the means in each cluster is misleading, due to the hurdle
+  (zero point mass + continuous) nature of the counts.
+\item The PACFs of the bacterial time series suggests that the processes are
+  more or less markov, and that clustering innovations might be more informative
+  than clustering raw counts.
+\item Applying HMMs to the counts is trickier than it might seem at first,
+  because (1) label-switching makes it difficult to compare results across
+  bacteria without some sort of alignment procedure and (2) running HMM on the
+  full collection is not appropriate, because different bacteria have very
+  different scales, so different bacteria get marked as coming from different
+  regimes even if they have similar shapes.
+\end{itemize}
+
+\bibliographystyle{plain}
+\bibliography{antibiotic.bib}
+\end{document}
+
