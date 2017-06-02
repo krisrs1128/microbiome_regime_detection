@@ -1,5 +1,6 @@
 \documentclass{article}
 \usepackage{natbib}
+\usepackage{graphicx}
 
 \title{Hierarchical Clustering + HMM Experiments}
 \author{Kris Sankaran}
@@ -52,6 +53,8 @@ a few points we've learned in this analysis which might be worth keeping in mind
   are highly imbalanced, which makes interpretation somewhat difficult.
 \item Looking at the means in each cluster is misleading, due to the hurdle
   (zero point mass + continuous) nature of the counts.
+\item Visually navigating hierarchical clustering results is cumbersome, and it
+  might be interesting to develop some interactive alternatives.
 \item The PACFs of the bacterial time series suggests that the processes are
   more or less markov, and that clustering innovations might be more informative
   than clustering raw counts.
@@ -63,7 +66,70 @@ a few points we've learned in this analysis which might be worth keeping in mind
   regimes even if they have similar shapes.
 \end{itemize}
 
+\section{Hierarchical clustering}
+
+\subsection{Euclidean Distance}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/heatmap-euclidean}
+  \caption{\label{fig:heatmap-euclidean} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/centroid-euclidean-conditional}
+  \caption{\label{fig:centroid-euclidean-conditional} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/centroid-euclidean-presence}
+  \caption{\label{fig:centroid-euclidean-conditional} }
+\end{figure}
+
+
+\subsection{Jaccard Distance}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/heatmap-jaccard}
+  \caption{\label{fig:heatmap-jaccard} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/centroid-jaccard-conditional}
+  \caption{\label{fig:centroid-jaccard-conditional} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/centroid-jaccard-presence}
+  \caption{\label{fig:centroid-jaccard-conditional} }
+\end{figure}
+
+\subsection{Mixture Distance}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/heatmap-mix}
+  \caption{\label{fig:heatmap-mix} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/centroid-mix-conditional}
+  \caption{\label{fig:centroid-mix-conditional} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/centroid-mix-presence}
+  \caption{\label{fig:centroid-mix-conditional} }
+\end{figure}
+
 \bibliographystyle{plain}
-\bibliography{antibiotic.bib}
+\bibliography{antibiotic}
 \end{document}
 
