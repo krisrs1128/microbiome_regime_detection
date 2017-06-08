@@ -8,13 +8,15 @@ library("tidyverse")
 library("proxy")
 library("phyloseq")
 library("grid")
+library("gridExtra")
 library("vegan")
+library("ape")
 library("dendextend")
 library("depmixS4")
 library("abind")
 theme_set(ggscaffold::min_theme(list(
                         "legend_position" = "right",
-                        "border_size" = 0.8
+                        "border_size" = 0.2
                       ))
           )
 figure_dir <- file.path("..", "doc", "figure")
@@ -83,7 +85,7 @@ combined_heatmap <- function(mx, fill_type = "bw") {
   if (fill_type == "bw") {
     p1 <- p1 + scale_fill_gradient(low = "white", high = "black")
   } else if (fill_type == "gradient2"){
-    p1 <- p1 + scale_fill_gradient2(high = "#48b987", low = "#b94e48")
+    p1 <- p1 + scale_fill_gradient2(high = "#32835f", low = "#833256")
   }
 
   unique_mx <- mx %>%
@@ -112,13 +114,18 @@ combined_heatmap <- function(mx, fill_type = "bw") {
       plot.margin = unit(c(0, 0, 0, 0), "null")
     )
 
-  grid.draw(rbind(ggplotGrob(p1), ggplotGrob(p2), size = "last"))
+  arrangeGrob(rbind(ggplotGrob(p1), ggplotGrob(p2), size = "last"))
 }
 
 centroid_plot <- function(mx) {
   centroid_data <- mx %>%
     group_by(sample, cluster) %>%
-    summarise(time = time[1], ind = ind[1], centroid = centroid[1], centroid_prob = centroid_prob[1])
+    summarise(
+      time = time[1],
+      ind = ind[1],
+      centroid = centroid[1],
+      centroid_prob = centroid_prob[1]
+    )
 
   p1 <- ggplot(mx) +
     geom_point(
@@ -201,13 +208,12 @@ mix_dendro <- reorder(as.dendrogram(mix_tree), -colMeans(x))
 mx <- join_sources(x, taxa, samples, mix_dendro, h = 0.5)
 sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 
-
-## 4.5, 6.5 and 4, 6.5
+## save figures into list
 all_plots <- list()
 all_plots[["heatmap-mix"]] <- combined_heatmap(mx)
 p <- centroid_plot(mx)
-all_plots["centroid-mix-conditional"] <- p$conditional
-all_plots["centroid-mix-presence"] <- p$presence
+all_plots[["centroid-mix-conditional"]] <- p$conditional
+all_plots[["centroid-mix-presence"]] <- p$presence
 
 ## ---- heatmap-extremes ----
 alpha <- 0
@@ -218,8 +224,8 @@ mx <- join_sources(x, taxa, samples, dendro, h = 0.2)
 sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 all_plots[["heatmap-euclidean"]] <- combined_heatmap(mx)
 p <- centroid_plot(mx)
-all_plots["centroid-euclidean-conditional"] <- p$conditional
-all_plots["centroid-euclidean-presence"] <- p$presence
+all_plots[["centroid-euclidean-conditional"]] <- p$conditional
+all_plots[["centroid-euclidean-presence"]] <- p$presence
 
 alpha <- 1
 D_mix <- alpha * D_jaccard + (1 - alpha) * D_euclidean
@@ -229,8 +235,8 @@ mx <- join_sources(x, taxa, samples, dendro, h = 0.9)
 sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 all_plots[["heatmap-jaccard"]] <- combined_heatmap(mx)
 p <- centroid_plot(mx)
-all_plots["centroid-jaccard-conditional"] <- p$conditional
-all_plots["centroid-jaccard-presence"] <- p$presence
+all_plots[["centroid-jaccard-conditional"]] <- p$conditional
+all_plots[["centroid-jaccard-presence"]] <- p$presence
 
 ## ---- innovations ----
 diff_x <- apply(x_scaled, 2, diff)
@@ -240,8 +246,8 @@ mx <- join_sources(diff_x, taxa, samples, dendro, h = 0.15)
 sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 all_plots[["heatmap-innovations"]] <- combined_heatmap(mx, "gradient2")
 p <- centroid_plot(mx)
-all_plots["centroid-innovations-conditional"] <- p$conditional
-all_plots["centroid-innovations-presence"] <- p$presence
+all_plots[["centroid-innovations-conditional"]] <- p$conditional
+all_plots[["centroid-innovations-presence"]] <- p$presence
 
 ## ---- innovations-bin ----
 diff_x <- apply(x_bin, 2, diff)
@@ -251,8 +257,8 @@ mx <- join_sources(diff_x, taxa, samples, dendro, h = 0.985)
 sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 all_plots[["heatmap-innovations-bin"]] <- combined_heatmap(mx, "gradient2")
 p <- centroid_plot(mx)
-all_plots["centroid-innovations-bin-conditional"] <- p$conditional
-all_plots["centroid-innovations-bin-presence"] <- p$presence
+all_plots[["centroid-innovations-bin-conditional"]] <- p$conditional
+all_plots[["centroid-innovations-bin-presence"]] <- p$presence
 
 ## ---- pacf ----
 pacfs <- t(apply(x_scaled, 2, function(x) { pacf(x, plot = FALSE)$acf[, 1, 1] }))
@@ -302,13 +308,13 @@ all_plots[["pacf_pairs"]] <- ggplot(x_pairs %>% filter(time >= 10, time <= 20)) 
 ## ---- hmm ----
 i <- 100
 df <- data.frame(y = x_scaled[, i] + runif(nrow(x_scaled), 0, 0.001))
-msp <- depmix(y ~ 1, nstates = 5, data = df, emcontrol = em.control(classification = "soft"))
+msp <- depmix(y ~ 1, nstates = 4, data = df, emcontrol = em.control(classification = "soft"))
 fm <- fit(msp)
 
 plot_hmm <- cbind(df, fm@posterior) %>%
   rownames_to_column("sample") %>%
   left_join(samples) %>%
-  gather(state_prob, prob, S1, S2, S3, S4)
+  gather(state_prob, prob, starts_with("S", ignore.case = FALSE))
 
 all_plots[["hmm-example"]] <- ggplot(plot_hmm) +
   geom_line(aes(x = time, y = y, col = ind), size = 0.4, alpha = 0.3) +
@@ -318,60 +324,93 @@ all_plots[["hmm-example"]] <- ggplot(plot_hmm) +
   scale_color_brewer(palette = "Set1")
 
 ## ---- parallel-hmm ----
-## plot_hmm <- list()
-## K <- 4
+plot_hmm <- list()
+K <- 4
 
-## ## Loop over every RSV and fit an HMM
-## for (i in seq_len(ncol(x_scaled))) {
-##   if (i %% 10 == 0) {
-##     cat(sprintf("HMM on rsv %s\n", i))
-##   }
+## Loop over every RSV and fit an HMM
+for (i in seq_len(ncol(x_scaled))) {
+  if (i %% 10 == 0) {
+    cat(sprintf("HMM on rsv %s\n", i))
+  }
 
-##   df <- data_frame(
-##     "sample" = rownames(x_scaled),
-##     "y" = x_scaled[, i] + runif(nrow(x_scaled), 0, 0.005),
-##     "rsv" = colnames(x_scaled)[i]
-##   )
+  df <- data_frame(
+    "sample" = rownames(x_scaled),
+    "y" = x_scaled[, i] + runif(nrow(x_scaled), 0, 0.005),
+    "rsv" = colnames(x_scaled)[i]
+  )
 
-##   msp <- depmix(
-##     y ~ 1,
-##     nstates = K,
-##     data = df,
-##     emcontrol = em.control(classification = "soft")
-##   )
-##   fm <- try(fit(msp, verbose = FALSE))
+  msp <- depmix(
+    y ~ 1,
+   nstates = K,
+    data = df,
+    emcontrol = em.control(classification = "soft")
+  )
+  fm <- try(fit(msp, verbose = FALSE))
 
-##   if (class(fm) != "try-error") {
-##     ## try to align states across rsvs, naive approach just sorts by emission mean
-##     state_order <- c(1, 1 + order(summary(fm)[, 1], decreasing = TRUE))
-##     ordered_posterior <- fm@posterior[, state_order]
-##     colnames(ordered_posterior) <- c("state", paste0("S", seq_len(K)))
+  if (class(fm) != "try-error") {
+    ## try to align states across rsvs, naive approach just sorts by emission mean
+    state_order <- c(1, 1 + order(summary(fm)[, 1], decreasing = TRUE))
+    ordered_posterior <- fm@posterior[, state_order]
+    colnames(ordered_posterior) <- c("state", paste0("S", seq_len(K)))
 
-##     plot_hmm[[i]] <- cbind(df, ordered_posterior) %>%
-##       gather(state_prob, prob, starts_with("S", ignore.case = FALSE)) %>%
-##       as_data_frame
-##   }
-## }
+    plot_hmm[[i]] <- cbind(df, ordered_posterior) %>%
+      gather(state_prob, prob, starts_with("S", ignore.case = FALSE)) %>%
+      as_data_frame
+  }
+}
 
-## plot_hmm <- do.call(rbind, plot_hmm) %>%
-##   left_join(samples)
-## plot_hmm$rsv <- factor(plot_hmm$rsv, levels = mix_tree$label)
+plot_hmm <- do.call(rbind, plot_hmm) %>%
+  left_join(samples)
+plot_hmm$rsv <- factor(plot_hmm$rsv, levels = mix_tree$label)
 
-## for (state in paste0("S", 1:K)) {
-##   all_plots[[sprintf("hmm-%s", state)]] <- ggplot(plot_hmm %>% filter_(sprintf("state_prob == '%s'", state))) +
-##     geom_tile(aes(x = rsv, y = sample, fill = prob)) +
-##     scale_fill_gradient(low = "white", high = "black") +
-##     facet_grid(ind ~ ., scale = "free_y") +
-##     theme(axis.text = element_blank()) +
-##     ggtitle(sprintf("State %s", state))
-## }
+for (state in paste0("S", 1:K)) {
+  all_plots[[sprintf("hmm-%s", state)]] <- ggplot(plot_hmm %>% filter_(sprintf("state_prob == '%s'", state))) +
+    geom_tile(aes(x = rsv, y = sample, fill = prob)) +
+    scale_fill_gradient(low = "white", high = "black") +
+    facet_grid(ind ~ ., scale = "free_y") +
+    theme(axis.text = element_blank()) +
+    ggtitle(sprintf("State %s", state))
+}
 
 ## write all the plots to file
 for (i in seq_along(all_plots)) {
+  cur_name <- paste0(names(all_plots)[i], ".png")
+  height <- 2.5
+  if (grepl("heatmap", cur_name)) {
+    height <- 1.5
+  } else if (grepl("centroid", cur_name)) {
+    height <- 4
+  }
+
   ggsave(
-    file.path(figure_dir, paste0(names(all_plots)[i], ".png")),
+    file.path(figure_dir, cur_name),
     all_plots[[i]],
     dpi = 450,
-    height = 3, width = 6.5
+    height = height, width = 6.5
   )
 }
+
+## ---- write-js ---
+js_data <- mx %>%
+  ungroup() %>%
+  arrange(leaf_ix) %>%
+  dplyr::select(sample, rsv, label, scaled) %>%
+  rename(
+    column = rsv,
+    row = sample,
+    value = scaled
+  )
+
+cat(sprintf("var data = %s;", jsonlite::toJSON(js_data)), file = "~/Desktop/100_days/june2/data.js")
+
+phy <- as.phylo(mix_dendro)
+phy_df <- data_frame(
+  parent = phy$edge[, 1],
+  child = phy$edge[, 2],
+  edge_length = phy$edge.length
+)
+phy_df <- rbind(
+  phy_df,
+  data_frame(parent = "", child = "621", edge_length = 0.1)
+)
+cat(sprintf("var tree = %s;", jsonlite::toJSON(phy_df)), file = "~/Desktop/100_days/june2/tree.js")

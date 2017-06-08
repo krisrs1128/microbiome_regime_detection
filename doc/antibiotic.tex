@@ -35,11 +35,13 @@ Our motivation comes from two places,
     might motivate similar types of unified models.
 \end{itemize}
 
-There's really nothing too surprising in what follows. We use the antibiotics
-data set as our case study, since we are so familiar with it, though it should
-be straightforwards to rerun the code on the cleanout phyloseq object. There are
-a few points we've learned in this analysis which might be worth keeping in mind
-/ thinking through in follow-up work,
+There's really nothing too surprising in what follows. We use the
+($\text{asinh}$ transformed) antibiotics data set as our case study, filtered to
+the $\sim 600$ most variable species. We use this data because we are so
+familiar with it, though it should be straightforwards to rerun everything on
+the cleanout phyloseq object. There are a few points we've learned in this
+analysis which might be worth keeping in mind / thinking through in follow-up
+smwork,
 
 \begin{itemize}
 \item Choosing an appropriate distance in hierarchical clustering is
@@ -68,13 +70,61 @@ a few points we've learned in this analysis which might be worth keeping in mind
 
 \section{Hierarchical clustering}
 
+We can begin to relate bacteria to one another using hierarchical clustering.
+There are a few decisions that must be made before we begin interpretation,
+
+\begin{itemize}
+  \item What distance should be used to compare bacterial time series?
+  \item What agglomoration strategy (complete, average, single link, ...) should we use?
+  \item What height should we cut the tree at, in order to inspect cluster centroids?
+\end{itemize}
+
+We won't invest too much effort into any of these decisions at this point,
+though it's good to keep in mind that they can make a difference. E.g., we could
+use a dynamic time warping distance...
+
 \subsection{Euclidean Distance}
+
+Figure \ref{fig:heatmap-euclidean} gives a heatmap of the (species filtered)
+antibiotic counts obtained using a hierarchical clustering with default
+(complete) link and a euclidean distance between pairs of series. Specifically,
+the rows correspond to samples, with three subjects separated into three
+horizontal blocks. Within each block, samples are sorted from top to bottom
+according to time.
+
+Each column is one species. Columns are sorted according to the leaves of the
+hierarchical clustering tree. We have reordered branches so that more abundant
+collections of bacteria are placed on the left at any split point.
+
+An indicator of the taxonomy for each column is given by the colors in the bar
+along the bottom. Notice that it is not entirely homogeneous -- there are
+bacteria with very similar time series but belogning to different parts of the
+tree. Further, the higher-order taxonomic labels clump together bacteria with
+very different time series shapes. That said, there are many cases where, at the
+borders of taxonomic labels, there seems to be some changes in the heatmap,
+though there is no cluster boundary drawn.
+
+The vertical lines within the heatmap correspond to the partition defined by
+splitting the tree at a prescpecified height, chosen arbitrarily (but with the
+general goal of obtaining $\sim 20$ clusters).
 
 \begin{figure}[ht]
   \centering
   \includegraphics[scale=0.15]{figure/heatmap-euclidean}
-  \caption{\label{fig:heatmap-euclidean} }
+  \caption{See the main text for a description of how this figure was
+    constructed.\label{fig:heatmap-euclidean} }
 \end{figure}
+
+In Figures \ref{fig:centroid-euclidean-conditional} and
+\ref{fig:centroid-euclidean-presence}, we display the centroids associated with
+each cluster. There are two figures because we wanted to avoid just plotting the
+means, since the means are thrown off by zero-inflation. Instead, Figure
+\ref{fig:centroid-euclidean-conditional} gives the means across all species in
+that cluster conditional on their being present in that sample. The raw RSV
+values are shown semitransparently in the background. Figure
+\ref{fig:centroid-euclidean-presence} shows instead the proportion of species
+that have nonzero counts within each cluster. This is the same hurdle-type
+decomposition we have studied in our prediction work from before.
 
 \begin{figure}[ht]
   \centering
@@ -85,11 +135,14 @@ a few points we've learned in this analysis which might be worth keeping in mind
 \begin{figure}[ht]
   \centering
   \includegraphics[scale=0.15]{figure/centroid-euclidean-presence}
-  \caption{\label{fig:centroid-euclidean-conditional} }
+  \caption{\label{fig:centroid-euclidean-presence} }
 \end{figure}
 
-
 \subsection{Jaccard Distance}
+
+Below, we regenerate the figures from the previous section, but for the Jaccard
+distance. The heatmap looks quite different, since similarities in shapes don't
+matter as much as similarities in presence / absence pattern.
 
 \begin{figure}[ht]
   \centering
@@ -127,6 +180,104 @@ a few points we've learned in this analysis which might be worth keeping in mind
   \centering
   \includegraphics[scale=0.15]{figure/centroid-mix-presence}
   \caption{\label{fig:centroid-mix-conditional} }
+\end{figure}
+
+\section{Time-series Analysis ideas}
+
+It's natural to consider time series analysis ideas in the context of the
+antibiotics study. We'll find that it might make more sense to do analysis on
+the differenced (rather than original count) time series.
+
+Figure \ref{fig:pacf} shows the partial autocorrelation function across all bacteria, separated into taxonomic groups.
+
+Figure \ref{fig:pacf_pairs} digs deeper into the order-1 associations, by
+plotting neighboring timepoints against each other (for a subset of times).
+
+Figures \ref{fig:heatmap-innovations} and \ref{fig:heatmap-innovations-bin} give
+heatmaps obtained by clustering the differenced and
+difference-in-presence-absence series, respectively. Figure
+\ref{fig:centroid-innovations-conditional} gives the centroids of the
+differenced series in this first scenario.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.1]{figure/pacf}
+  \caption{\label{fig:pacf} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.2]{figure/pacf_pairs}
+  \caption{\label{fig:pacf_pairs} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/heatmap-innovations}
+  \caption{\label{fig:heatmap-innovations}}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/heatmap-innovations-bin}
+  \caption{\label{fig:heatmap-innovations-bin}}
+\end{figure}
+
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/centroid-innovations-conditional}
+  \caption{\label{fig:centroid-innovations-conditional} }
+\end{figure}
+
+\section{Hidden Markov Models}
+
+Here we run HMMs on each bacterial time series individually. We arbitrarily set
+$K = 4$. An example run on a single bacteria is shown in figure
+\ref{fig:hmm-example}. Each row corresponds to a hidden HMM state, and the size
+of the point indicates the probability that sample comes from that state. The
+model essentially distinguishes between timepoints that have high and low / 0
+counts; this is not surprising considering the gaussian emmission structure.
+
+We can run the same analysis across all the bacteria. To view them together, we
+need some way of aligning the states with one another. A more sophisticated
+approach might try to align the time partitions; we instead naively align them
+according to the order of the means in the estimated gaussian emissions. The
+results are shown in Figure \ref{fig:hmm-S1} through \ref{fig:hmm-S4}. Each
+figure corresponds to a single hidden state. The rows and columns are samples
+and bacteria, as before. The shade is the probability that sample / bacteria
+combination is in that state. Evidently, state 1 is large outside of the
+antibiotics time courses and state 4 is associated with the antibiotics. States
+2 and 3 seem like they fit some residual noise.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/hmm-example}
+  \caption{\label{fig:hmm-example} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/hmm-S1}
+  \caption{\label{fig:hmm-S1} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/hmm-S2}
+  \caption{\label{fig:hmm-S2} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/hmm-S3}
+  \caption{\label{fig:hmm-S3} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.15]{figure/hmm-S4}
+  \caption{\label{fig:hmm-S4} }
 \end{figure}
 
 \bibliographystyle{plain}
