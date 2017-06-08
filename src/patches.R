@@ -38,6 +38,55 @@ x <- x %>%
   left_join(taxa) %>%
   left_join(samples)
 
+ggplot(x[1:100, ]) +
+  geom_point(aes(x = time, y = value, group = rsv)) +
+  facet_grid(ind ~ .)
+
+times_concat <- x %>%
+  group_by(ind) %>%
+  select(ind, time) %>%
+  unique() %>%
+  arrange(ind, time)
+
+times_concat$concat_time <- times_concat$time
+for (i in seq_len(nrow(times_concat) - 1)) {
+  if (times_concat$concat_time[i + 1] < times_concat$concat_time[i]) {
+    cur_diff <- times_concat$concat_time[i] - times_concat$concat_time[i + 1] + 1
+    times_concat$concat_time[(i + 1):nrow(times_concat)] <- cur_diff +
+      times_concat$concat_time[(i + 1):nrow(times_concat)]
+  }
+}
+
+x <- x %>%
+  left_join(times_concat) %>%
+  rename(
+    original_time = time,
+    time = concat_time
+  )
+
+split_rsvs <- dlply(x, .(rsv))
+eval_times <- seq(min(x$time), max(x$time), by = 1)
+x_interp <- matrix(0, nrow = length(split_rsvs), ncol = length(eval_times))
+rownames(x_interp) <- names(split_rsvs)
+for (i in seq_along(split_rsvs)) {
+  x_interp[i, ] <- approxfun(split_rsvs[[i]]$time, split_rsvs[[i]]$value)(eval_times)
+}
+
+x_interp <- x_interp %>%
+  matrix_to_df("rsv") %>%
+  gather(time, value, -rsv) %>%
+  mutate(time = as.integer(gsub("X", "", time))) %>%
+  x %>%
+  select(sample, ind, time, rsv) %>%
+  right_join(x_interp) %>%
+  left_join(taxa)
+
+x_mat <- x_interp %>%
+  select(time, rsv, value) %>%
+  spread(rsv, value) %>%
+  select(-time) %>%
+  as.matrix()
+
 ## ---- define-patches ----
 patch_length <- 10
 patch_times <- list()
