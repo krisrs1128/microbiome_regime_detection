@@ -38,95 +38,63 @@ x <- x %>%
   left_join(taxa) %>%
   left_join(samples)
 
-ggplot(x[1:100, ]) +
-  geom_point(aes(x = time, y = value, group = rsv)) +
-  facet_grid(ind ~ .)
+rsvs <- unique(x$rsv)
+inds <- unique(x$ind)
 
-times_concat <- x %>%
-  group_by(ind) %>%
-  select(ind, time) %>%
-  unique() %>%
-  arrange(ind, time)
+x_interp <- vector(mode = "list", length = length(inds))
+names(x_interp) <- inds
 
-times_concat$concat_time <- times_concat$time
-for (i in seq_len(nrow(times_concat) - 1)) {
-  if (times_concat$concat_time[i + 1] < times_concat$concat_time[i]) {
-    cur_diff <- times_concat$concat_time[i] - times_concat$concat_time[i + 1] + 1
-    times_concat$concat_time[(i + 1):nrow(times_concat)] <- cur_diff +
-      times_concat$concat_time[(i + 1):nrow(times_concat)]
+for (i in seq_along(inds)) {
+  cur_times <- x %>%
+    filter(ind == inds[i]) %>%
+    .[["time"]] %>%
+    unique()
+  time_grid <- seq(min(cur_times), max(cur_times), by = 1)
+  x_interp[[i]] <- matrix(0, nrow = length(rsvs), ncol = length(time_grid))
+  rownames(x_interp[[i]])<- rsvs
+  colnames(x_interp[[i]]) <- time_grid
+
+  for (j in seq_along(rsvs)) {
+    cat(sprintf("processing rsv %s\n", rsvs[j]))
+    cur_data <- x %>%
+      filter(ind == inds[i], rsv == rsvs[j]) %>%
+      select(time, value)
+    x_interp[[i]][j, ] <- approxfun(cur_data$time, cur_data$value)(time_grid)
   }
 }
 
-x <- x %>%
-  left_join(times_concat) %>%
-  rename(
-    original_time = time,
-    time = concat_time
-  )
-
-split_rsvs <- dlply(x, .(rsv))
-eval_times <- seq(min(x$time), max(x$time), by = 1)
-x_interp <- matrix(0, nrow = length(split_rsvs), ncol = length(eval_times))
-rownames(x_interp) <- names(split_rsvs)
-for (i in seq_along(split_rsvs)) {
-  x_interp[i, ] <- approxfun(split_rsvs[[i]]$time, split_rsvs[[i]]$value)(eval_times)
-}
-
-x_interp <- x_interp %>%
+x_interp_df <- x_interp %>%
   matrix_to_df("rsv") %>%
   gather(time, value, -rsv) %>%
-  mutate(time = as.integer(gsub("X", "", time))) %>%
-  x %>%
-  select(sample, ind, time, rsv) %>%
-  right_join(x_interp) %>%
+  separate(time, c("ind", "time"), sep = "\\.") %>%
   left_join(taxa)
 
-x_mat <- x_interp %>%
-  select(time, rsv, value) %>%
-  spread(rsv, value) %>%
-  select(-time) %>%
-  as.matrix()
-
 ## ---- define-patches ----
-patch_length <- 10
-patch_times <- list()
-times <- unique(x$time)
+patch_length <- 5
+patches <- list()
 
-for (i in seq_len(length(times) - patch_length)) {
-  patch_times[[i]] <- times[i:(i + patch_length - 1)]
-}
-
-patch_x <- list()
-for (i in seq_along(patch_times)) {
-  if (i %% 10 == 0) {
-    cat(sprintf("Generating patch %s / %s\n", i, length(patch_times)))
+for (i in seq_along(x_interp)) {
+  patches[[i]] <- list()
+  start_cols <- seq(1, ncol(x_interp[[i]]) - patch_length, by = ceiling(0.5 * patch_length))
+  for (j in seq_along(start_cols)) {
+    cur <- start_cols[j]
+    patches[[i]][[j]] <- x_interp[[i]][, cur:(cur + patch_length - 1)]
+    colnames(patches[[i]][[j]]) <- colnames(x_interp[[i]])[cur:(cur + patch_length - 1)]
   }
-  cur_times <- patch_times[[i]]
-  patch_x[[i]] <- x %>%
-    filter(time %in% cur_times) %>%
-    group_by(ind, rsv) %>%
-    summarise(
-      patch_start = cur_times[1],
-      patch_end = cur_times[length(cur_times)],
-      start_condition = condition[1],
-      end_condition = condition[length(condition)],
-      values = list(setNames(value, seq_along(value)))
-    )
 }
 
-patch_x <- x %>%
-  filter(time %in% cur_times) %>%
-  group_by(ind, rsv) %>%
-  nest(value)
+plot(patches[[1]][[1]][4, ])
+plot(patches[[1]][[2]][4, ])
+dimnames(patches[[1]][[1]])
+dimnames(patches[[1]][[2]])
 
-patch_x <- do.call(rbind, patch_x) %>%
-  rownames_to_column("patch_id") %>%
-  mutate(
-    patch_id = as.integer(patch_id)
-  )
+test <- do.call(rbind, patches[[1]])
+heatmap(test)
 
-patch_df <- unnest(patch_x, .sep = "_")
-patch_df$patch_ix <- rep(seq_len(patch_length), length.out = nrow(patch_df))
+centroids <- kmeans(test, 10)$centers
+plot(centroids[1, ])
+plot(centroids[2, ])
+plot(centroids[3, ])
 
 ## ---- pca ----
 patch_mat <- do.call(rbind, patch_x$values)
