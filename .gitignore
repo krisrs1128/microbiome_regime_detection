@@ -1,2 +1,5 @@
+*.pdf
+*.aux
+*.log
 data/*
 !data/README.md
