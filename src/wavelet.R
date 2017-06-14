@@ -7,8 +7,11 @@
 ## ---- libraries ----
 library("phyloseq")
 library("wavethresh")
-library("reshape2") library("tidyverse")
+library("reshape2")
+library("tidyverse")
 library("forcats")
+library("dendextend")
+source("data.R")
 theme_set(ggscaffold::min_theme())
 
 ## ---- utils ----
@@ -113,7 +116,63 @@ for (cur_ind in c("F", "D", "E")) {
 
 cluster_res$cluster$centers
 
+## ---- centroids ----
+z <- x
+dimnames(z) <- NULL
+mx <- z[time_mapping, ] %>%
+  melt(varnames = c("interp_time", "rsv")) %>%
+  mutate_at(vars(c("rsv")), funs(as_factor(as.character(.)))) %>%
+  left_join(aligned_partition) %>%
+  as_data_frame
+
+centroids <- mx %>%
+  group_by(interp_time, cluster) %>%
+  summarise(
+    condition = condition[1],
+    mean = mean(value),
+    sd = sd(value),
+    n_samp = n()
+  )
+
+ggplot(centroids) +
+  geom_line(aes(x = interp_time, y = mean, col = cluster)) +
+  geom_ribbon(aes(x = interp_time, ymin = mean - 1.96 * sd, ymax = mean + 1.96 * sd, fill = cluster), alpha = 0.1) +
+  facet_wrap(~cluster)
+
+ggplot(centroids) +
+  geom_line(aes(x = interp_time, y = mean, col = cluster)) +
+  geom_ribbon(aes(x = interp_time, ymin = mean - 10 / sqrt(n_samp), ymax = mean + 10 / sqrt(n_samp), fill = cluster), alpha = 0.4) +
+  facet_grid(cluster ~ ., scale = "free", space = "free")
+
 ## ---- denoising ----
 thresh_xwd <- threshold(detail_coefs$transforms[[11]], policy = "cv")
 plot(interpolate_dyadic(x[, 11]))
 points(wr(thresh_xwd), col = "red")
+
+x_thresh <- z[time_mapping, ]
+for (j in seq_len(ncol(x_thresh))) {
+  x_thresh[, j] <- wr(threshold(detail_coefs$transforms[[j]], policy = "cv"))
+}
+
+## ---- cluster ----
+samples <- sample_data(abt)[time_mapping] %>%
+  data.frame() %>%
+  rownames_to_column("sample")
+
+taxa <- abt %>%
+  tax_table %>%
+  taxa_labels
+
+colnames(x_thresh) <- colnames(x)
+rownames(x_thresh) <- samples$sample
+hclust_x <- hclust(dist(t(x_thresh)))
+
+dendro <- as.dendrogram(hclust_x)
+dendro <- reorder(dendro, -colMeans(x_thresh))
+joined_data <- join_sources(x_thresh, taxa, samples, dendro)
+
+ggplot(joined_data) +
+  geom_tile(aes(x = rsv, y = sample, fill = value)) +
+  scale_fill_gradient(low = "white", high = "black") +
+  scale_y_discrete(expand = c(0, 0)) +
+  facet_grid(ind ~ ., scales = "free", space = "free")
