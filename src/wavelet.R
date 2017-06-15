@@ -15,6 +15,13 @@ source("data.R")
 theme_set(ggscaffold::min_theme())
 
 ## ---- utils ----
+soft_thresh <- function(x, lambda) {
+  x[abs(x) < lambda] <- 0
+  x[x > lambda] <- x - lambda
+  x[x < lambda] <- x + lambda
+  x
+}
+
 interpolate_dyadic <- function(y) {
   n <- length(y)
   n_interp <- 2 ^ ceiling(log(n, 2))
@@ -22,16 +29,25 @@ interpolate_dyadic <- function(y) {
   f_y(seq(1, n, length.out = n_interp))
 }
 
-stacked_detail <- function(ywd, min_lev = 1, max_lev = NULL, scale_lev = FALSE) {
+stacked_detail <- function(ywd, min_lev = 0, max_lev = NULL, scale_lev = FALSE) {
   if (is.null(max_lev)) {
-    max_lev <- ywd$nlevel
+    max_lev <- ywd$nlevel 
   }
 
   n_interp <- length(ywd$D) + 1
-  stacked <- matrix(0, n_interp, max_lev - min_lev + 1)
-  for (l in min_lev:(max_lev - 1)) {
-    stacked[, l] <- rep(accessD(ywd, l), each = n_interp / 2 ^ l)
+  levs <- seq(min_lev, max_lev)
+  stacked <- list()
+  for (l in seq_along(levs)) {
+    stacked[[l]] <- rep(accessC(ywd, levs[l]), each = n_interp / 2 ^ l)
+    if (levs[l] != max_lev) {
+      stacked[[l]] <- cbind(
+        stacked[[l]],
+        rep(accessD(ywd, levs[l]), each = n_interp / 2 ^ l)
+      )
+    }
   }
+
+  stacked <- do.call(cbind, stacked)
   if (scale_lev) {
     stacked <- scale(stacked)
     stacked[is.na(stacked)] <- 0
@@ -40,21 +56,60 @@ stacked_detail <- function(ywd, min_lev = 1, max_lev = NULL, scale_lev = FALSE) 
   stacked
 }
 
-detail_array <- function(y, ...) {
-  n <- nrow(y)
+concat_coef <- function(ywd, min_lev = 0, max_lev = NULL, scale_lev = FALSE) {
+  if (is.null(max_lev)) {
+    max_lev <- ywd$nlevel
+  }
+  concat <- list()
+  levs <- seq(min_lev, max_lev)
+  for (l in seq_along(levs)) {
+    if (levs[l] == max_lev) {
+      concat[[l]] <- unlist(list("C" = accessC(ywd, levs[l])))
+    } else {
+      concat[[l]] <- unlist(list("D" = accessD(ywd, levs[l]), "C" = accessC(ywd, levs[l])))
+    }
+
+    if (scale_lev) {
+      concat[[l]] <- as.numeric(scale(concat[[l]]))
+    }
+    names(concat[[l]]) <- paste0("l", levs[l], "_", names(concat[[l]]))
+  }
+
+  do.call(c, concat)
+}
+
+wavelet_transforms <- function(y, ...) {
   p <- ncol(y)
-  D <- array(0, dim = c(2 ^ ceiling(log(n, 2)), p, ceiling(log(n, 2))))
   transforms <- list()
   for (j in seq_len(p)) {
     transforms[[j]] <- x[, j] %>%
       interpolate_dyadic %>%
-      wd(filter.number = 1, family = "DaubExPhase")
-    D[, j,] <- stacked_detail(transforms[[j]], ...)
+      wd(...)
   }
-  list("D" = D, "transforms" = transforms)
+
+  transforms
 }
 
-cluster_detail_array <- function(D, K = 8) {
+detail_array <- function(transforms, ...) {
+  n <- length(transforms[[1]]$D)
+  p <- length(transforms)
+  D <- array(0, dim = c(2 ^ ceiling(log(n, 2)), p, 2 * ceiling(log(n, 2))))
+  for (j in seq_len(p)) {
+    D[, j,] <- stacked_detail(transforms[[j]], ...)
+  }
+  D
+}
+
+concat_matrix <- function(transforms, ...) {
+  p <- length(transforms)
+  C <- list()
+  for (j in seq_len(p)) {
+    C[[j]] <- concat_coef(transforms[[j]], ...)
+  }
+ do.call(rbind, C)
+}
+
+cluster_detail_array <- function(D, K = 8, scale_clust = FALSE) {
   mdetail <- D %>%
     melt(varnames = c("interp_time", "rsv", "coef_level"))
 
@@ -66,6 +121,9 @@ cluster_detail_array <- function(D, K = 8) {
     select(starts_with("L")) %>%
     as.matrix
 
+  if (scale_clust) {
+    cluster_mat <- scale(cluster_mat)
+  }
   cluster_res <- kmeans(cluster_mat, centers = K)
 
   cluster_data <- data_frame(
@@ -79,21 +137,35 @@ cluster_detail_array <- function(D, K = 8) {
   list("partition" = cluster_data, "cluster" = cluster_res)
 }
 
+replace_coefs <- function(ywd, w, L = 8) {
+  for (l in 0:L) {
+    lev_label <- sprintf("l%s_", l)
+    D_coefs <- w[grep(paste0(lev_label, "D"), names(w))]
+    C_coefs <- w[grep(paste0(lev_label, "C"), names(w))]
+
+    coef_order <- order(as.numeric(str_extract(names(C_coefs), "[0-9]+$")))
+    if (l < 8) ywd <- putD(ywd, l, D_coefs[coef_order])
+    ywd <- putC(ywd, l, C_coefs[coef_order])
+  }
+  ywd
+}
+
+
 ## ---- data ----
 abt <- get(load("../../data/abt.rda")) %>%
   filter_taxa(function(x) { var(x) > 50}, prune = TRUE) %>%
   transform_sample_counts(asinh)
+x <- t(get_taxa(abt))
+n <- nsamples(abt)
 
 time_mapping <- seq(1, n, length.out = 256)
 dup_sample_data <- sample_data(abt)[round(time_mapping), ]
 dup_sample_data$interp_time <- 1:256
 
 ## ---- dwt ----
-x <- t(get_taxa(abt))
-n <- nsamples(abt)
-
-detail_coefs <- detail_array(x, scale_lev = TRUE)
-cluster_res <- cluster_detail_array(detail_coefs$D, K = 4)
+xwd <- wavelet_transforms(x, family = "DaubExPhase", filter.number = 1)
+D <- detail_array(xwd)
+cluster_res <- cluster_detail_array(D, K = 4, scale_clust = TRUE)
 
 aligned_partition <- cluster_res$partition %>%
   left_join(dup_sample_data) %>%
@@ -145,13 +217,9 @@ ggplot(centroids) +
   facet_grid(cluster ~ ., scale = "free", space = "free")
 
 ## ---- denoising ----
-thresh_xwd <- threshold(detail_coefs$transforms[[11]], policy = "cv")
-plot(interpolate_dyadic(x[, 11]))
-points(wr(thresh_xwd), col = "red")
-
 x_thresh <- z[time_mapping, ]
 for (j in seq_len(ncol(x_thresh))) {
-  x_thresh[, j] <- wr(threshold(detail_coefs$transforms[[j]], policy = "cv"))
+  x_thresh[, j] <- wr(threshold(transforms[[j]], policy = "cv"))
 }
 
 ## ---- cluster ----
@@ -176,3 +244,42 @@ ggplot(joined_data) +
   scale_fill_gradient(low = "white", high = "black") +
   scale_y_discrete(expand = c(0, 0)) +
   facet_grid(ind ~ ., scales = "free", space = "free")
+
+## ---- ts-features ----
+xwd_thresh <- lapply(xwd, threshold, policy = "cv")
+C <- concat_matrix(xwd_thresh)
+clust_C <- hclust(dist(scale(C)))
+
+K <- 4
+M <- data.frame(
+  "cluster" = as_factor(as.character(cutree(clust_C, K))),
+  C
+) %>%
+  as_data_frame %>%
+  gather(coefficient, value, -cluster) %>%
+  group_by(cluster, coefficient) %>%
+  summarise(value = mean(value)) %>%
+  spread(coefficient, value) %>%
+  ungroup
+
+centroids <- matrix(0, nrow = K, ncol = length(xwd[[1]]$D) + 1)
+for (k in seq_len(K)) {
+  centroids[k, ] <- wr(replace_coefs(xwd[[1]], unlist(M[k, -1])))
+}
+
+ggplot(melt(centroids, varnames = c("wv_cluster", "interp_time"))) +
+  geom_line(aes(x = interp_time, y = value, col = as.factor(wv_cluster))) +
+  facet_wrap(~wv_cluster)
+
+mx$wv_cluster <- as_factor(as.character(cutree(clust_C, K)))
+centroids_wv <- mx %>%
+  group_by(interp_time, wv_cluster) %>%
+  summarise(
+    mean = mean(value),
+    sd = sd(value)
+  )
+
+ggplot(centroids_wv) +
+  geom_line(aes(x = interp_time, y = mean, col = wv_cluster)) +
+  geom_ribbon(aes(x = interp_time, ymin = mean - 1.96 * sd, ymax = mean + 1.96 * sd, fill = wv_cluster), alpha = 0.1) +
+  facet_wrap(~wv_cluster)
