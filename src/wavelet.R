@@ -15,6 +15,10 @@ source("data.R")
 theme_set(ggscaffold::min_theme())
 
 ## ---- utils ----
+save_fig <- function(fname, p, output_dir = "../../doc/figure/") {
+  ggsave(file.path(output_dir, fname), p)
+}
+
 soft_thresh <- function(x, lambda) {
   x[abs(x) < lambda] <- 0
   x[x > lambda] <- x - lambda
@@ -187,6 +191,9 @@ for (cur_ind in c("F", "D", "E")) {
 }
 
 cluster_res$cluster$centers
+for (i in seq_along(p)) {
+  save_fig(sprintf("wavelet_time_cluster-%d.png", i), p[[i]])
+}
 
 ## ---- centroids ----
 z <- x
@@ -206,15 +213,17 @@ centroids <- mx %>%
     n_samp = n()
   )
 
-ggplot(centroids) +
+p <- ggplot(centroids) +
   geom_line(aes(x = interp_time, y = mean, col = cluster)) +
   geom_ribbon(aes(x = interp_time, ymin = mean - 1.96 * sd, ymax = mean + 1.96 * sd, fill = cluster), alpha = 0.1) +
   facet_wrap(~cluster)
+save_fig("wavelet_centroids-sd.png", p)
 
-ggplot(centroids) +
+p <- ggplot(centroids) +
   geom_line(aes(x = interp_time, y = mean, col = cluster)) +
   geom_ribbon(aes(x = interp_time, ymin = mean - 10 / sqrt(n_samp), ymax = mean + 10 / sqrt(n_samp), fill = cluster), alpha = 0.4) +
   facet_grid(cluster ~ ., scale = "free", space = "free")
+save_fig("wavelet_centroids-n.png", p)
 
 ## ---- denoising ----
 x_thresh <- z[time_mapping, ]
@@ -239,11 +248,12 @@ dendro <- as.dendrogram(hclust_x)
 dendro <- reorder(dendro, -colMeans(x_thresh))
 joined_data <- join_sources(x_thresh, taxa, samples, dendro)
 
-ggplot(joined_data) +
+p <- ggplot(joined_data) +
   geom_tile(aes(x = rsv, y = sample, fill = value)) +
   scale_fill_gradient(low = "white", high = "black") +
   scale_y_discrete(expand = c(0, 0)) +
   facet_grid(ind ~ ., scales = "free", space = "free")
+save_fig("stsacked_wavelet_hclust.png", p)
 
 ## ---- ts-features ----
 xwd_thresh <- lapply(xwd, threshold, policy = "cv")
@@ -267,9 +277,10 @@ for (k in seq_len(K)) {
   centroids[k, ] <- wr(replace_coefs(xwd[[1]], unlist(M[k, -1])))
 }
 
-ggplot(melt(centroids, varnames = c("wv_cluster", "interp_time"))) +
+p <- ggplot(melt(centroids, varnames = c("wv_cluster", "interp_time"))) +
   geom_line(aes(x = interp_time, y = value, col = as.factor(wv_cluster))) +
   facet_wrap(~wv_cluster)
+save_fig("concat_wavelet_hclust_reconstruction.png", p)
 
 mx$wv_cluster <- as_factor(as.character(cutree(clust_C, K)))
 centroids_wv <- mx %>%
@@ -279,7 +290,8 @@ centroids_wv <- mx %>%
     sd = sd(value)
   )
 
-ggplot(centroids_wv) +
+p <- ggplot(centroids_wv) +
   geom_line(aes(x = interp_time, y = mean, col = wv_cluster)) +
   geom_ribbon(aes(x = interp_time, ymin = mean - 1.96 * sd, ymax = mean + 1.96 * sd, fill = wv_cluster), alpha = 0.1) +
   facet_wrap(~wv_cluster)
+save_fig("concat_wavelet_hclust_averages.png", p)
