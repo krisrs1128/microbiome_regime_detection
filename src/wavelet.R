@@ -11,6 +11,7 @@ library("reshape2")
 library("tidyverse")
 library("forcats")
 library("dendextend")
+library("stringr")
 source("data.R")
 theme_set(ggscaffold::min_theme())
 
@@ -253,7 +254,7 @@ p <- ggplot(joined_data) +
   scale_fill_gradient(low = "white", high = "black") +
   scale_y_discrete(expand = c(0, 0)) +
   facet_grid(ind ~ ., scales = "free", space = "free")
-save_fig("stsacked_wavelet_hclust.png", p)
+save_fig("stacked_wavelet_hclust.png", p)
 
 ## ---- ts-features ----
 xwd_thresh <- lapply(xwd, threshold, policy = "cv")
