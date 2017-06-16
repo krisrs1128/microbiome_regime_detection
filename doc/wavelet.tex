@@ -1,0 +1,248 @@
+\documentclass{article}
+\usepackage{natbib}
+\usepackage{graphicx}
+\input{preamble.tex}
+
+\title{Wavelets for Bacterial Clustering and Regime Detection}
+\author{Kris Sankaran}
+
+\begin{document}
+\maketitle
+
+These notes summarize some thoughts on applying wavelet methods to the
+time series data in the microbiome. The results we have obtained so far have
+been somewhat disappointing, but it's at least worth documenting the overall
+process, along with some of the basic commands you can use to apply wavelets in
+R.
+
+\section{Wavelets review and practical tips}
+
+From a statistical perspective, wavelets can be used to automatically featurize
+complex structure in time series. More formally, a family of wavelets are an
+orthonormal basis for functions, analogous to the Fourier basis (indeed,
+periodicgrams are often used to featurize frequency features in time series).
+Two important differences are that (1) wavelets are localized, meaning they can
+represent some pattern that appears within a particular time interval and (2)
+many functions have sparse representations in the wavelet basis, even if they
+are not smooth -- in this sense sparsity is a more natural statistical
+assumption than smoothness \citep{johnstone2011gaussian}.
+
+We'll be using a Haar basis throughout, since they're easiest to interpret. Two
+example basis functions are available in figures \ref{fig:wavelet-1} and
+\ref{fig:wavelet-2}. Note that they are both localized around specific time
+windows. Also, they have different scales -- the first is more likely to ``pick
+up'' jumps in the time series around its small window. Since there are wavelet
+basis functions with many different centers and scales, and since they are
+sometimes redundant, the basis is called overcomplete. One goal of wavelet
+analysis is identify a sparse subset of basis elements that can well-approximate
+the original function. While this is often used for denoising, we will try to
+use the resulting basis elements for scientific understanding.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.5\textwidth]{figure/wavelet-1}
+  \caption{\label{fig:wavelet-1}}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.5\textwidth]{figure/wavelet-2}
+  \caption{\label{fig:wavelet-2}}
+\end{figure}
+
+
+The wavelet transform of $y$ provides the coefficients of $y$ with respect to
+the wavelet basis. For a discrete wavelet transform (i.e., $y \in \reals^{n}$),
+this means $y = AW$ for a wide (overcomplete) wavelet basis matrix $W$ and
+coefficients $A$. While this description is useful for understanding wavelets
+from a statistical point of view, this description is usually avoided, because
+the pyramid algorithm provides an efficient dynamic programming-ish approach to
+calculating the transform coefficients without ever constructing the (large)
+matrix containing all the wavelet basis elements.
+
+More concretely, what is the wavelet transfom of a sequence $y_{1}, \dots,
+y_{n}$? We construct two sets of coefficients, called the mother and father
+wavelet coefficients. These are particularly simple to describe in the Haar
+wavelet case; we follow the exposition of \citep{nason2010wavelet}. The first
+set (those at finest scale) of mother coefficients are the differences between
+neighboring points $y_{2k +1} - y_{2k}$ for all $k$. Note that this is not just
+the differenced sequence -- we are only taking the difference between even / odd
+pairs, not all pairs. Intuitively, it makes sense that these can be a useful
+feature for describing the structure of my time series. The associated father
+wavelets at this level are defined as the parallel pairwise sums $y_{2k + 1} +
+y_{2k}$. Note that the original sequence can be constructed from these two
+statistics -- this forms the basic idea of the inverse wavelet transform. At the
+next scale (coarser level), instead of considering adjacent pairs, the two
+halves of sequences of length 4 are compared. Generally, at the $l^{th}$ level,
+we consider the difference (and sum) in averages between adjacent sequences of
+length $2^{l - 1}$. The fact that these statistics can be computed from the
+statistics at the previous level is the basic insight needed to derive the
+pyramid algorithm.
+
+\subsection{Implementation}
+
+There are a few R packages for working with wavelets in R, including
+\texttt{wmtsa}, \texttt{wavethresh}, and \texttt{wavelets}. I have found the
+\texttt{wavethresh} package easiest to work with, partly because it is applied
+in \citep{nason2010wavelet} and also because it doesn't have so many features
+that it becomes confusing. The main functions in this package to know about are,
+
+\begin{enumerate}
+  \item \texttt{wd} This computes the discrete wavelet transform of a sequence.
+    You can specify different wavelet basis here. The result is an object of class
+    \texttt{wd.object}, which has a nice \texttt{plot} method showing the
+    coefficients at different centers and scales.
+  \item \texttt{wr} Given a wavelet transform object, this recovers the original
+    sequence. It can be especially useful to use this after applying \texttt{threshold}.
+  \item \texttt{accessC} This gives the father wavelet coefficients across levels.
+  \item \texttt{accessD} This gives the mother wavelet coefficients across levels.
+  \item \texttt{putC} You can manually change the father wavelet coefficients
+    with this. Note that the smallest level is 0 and the largest is 1 more than
+    the number in of mother wavelet levels.
+  \item \texttt{putD} This does the same for mother wavelet coefficients.
+\end{enumerate}
+
+One annoying thing about the \texttt{wavethresh} package is that \texttt{wd}
+fails on sequences whose lengths are not multiples of 2. There are two typical
+ways around this,
+
+\begin{enumerate}
+\item Zero-padding: Add extra zeros to the end of your sequence until the length
+  is a multiple of 2.
+\item Interpolation: Use \texttt{approxfun} to interpolate original sequence
+  onto a grid whose length is a multiple of 2. This is the approach used in this
+  note. While it is nice for working with sequences that aren't sampled evenly
+  over time, this does complicate bookeeping with joining to sample-specific
+  data down the road. It's doable though -- you just need to build a map between
+  the original and interpolated time points, assigning interpolated times to
+  their nearest observed time.
+\end{enumerate}
+
+\section{Clustering denoised series}
+
+One very simple idea is to use wavelets as a preprocessing step for clustering.
+There is nothing particularly wavelet-specific about this idea -- any kind of
+smoothing might be useful for preprocessing. However, wavelet denoising might be
+more appropriate for the antibiotics data set\footnote{We subset to subject F.}
+we study here, because the antibiotic perturbations are relatively localized and
+extreme. The heatmap created by sorting bacteria (along columns) according to
+their positions on a hierarchical clustering tree are shown in Figure
+\ref{fig:stacked_wavelet_hclust}. Rows are sorted according to time.
+
+The two antibiotics time courses are relatively clear here, though they were
+already clear from a hierarchical clustering on the raw data (see our separate
+note on this). The main difference is that there is less between-timepoint
+variation for individual series, which reflects the denoising effect. However,
+between neighboring RSVs, there is still sometimes very large variation. It is
+unclear whether this is the nature of the data or if could be groupings with
+more consistency between neighboring RSVs.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figure/stacked_wavelet_hclust}
+  \caption{\label{fig:stacked_wavelet_hclust} }
+\end{figure}
+
+
+\section{Clustering wavelet coefficients}
+
+Alternatively, we could do clustering in the wavelet space, after thresholding
+with the same thresholds as above. It's unclear a priori whether this is better
+than clustering the denoised series. The analog to Figure
+\ref{fig:stacked_wavelet_hclust} is shown in Figure
+\ref{fig:hclust_heatmap_coefs}.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figure/hclust_heatmap_coefs}
+  \caption{\label{fig:hclust_heatmap_coefs} }
+\end{figure}
+
+We can invert the centroids in the coefficient space to see their associated
+series. This is displayed in Figure
+\ref{fig:concat_wavelet_hclust_reconstruction}. Alternatively, we can just use
+the cluster assignments for each bacteria, and average series for bacteria
+within each cluster. This approach is shown in Figure
+\ref{fig:concat_wavelet_hclust_averages}. The approach in
+\ref{fig:concat_wavelet_hclust_reconstruction} seems to yield much more
+interpretable series. We see three types of recovery (including failure to
+recover), along with a centroid that seems to thrive during the time courses.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figure/concat_wavelet_hclust_reconstruction}
+  \caption{\label{fig:concat_wavelet_hclust_reconstruction} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figure/concat_wavelet_hclust_averages}
+  \caption{\label{fig:concat_wavelet_hclust_averages} }
+\end{figure}
+
+In both of the above figures, we computed the confidence bands by taking 1.96
+times the standard deviation either in the coefficient space or in the observed
+data space.
+
+\section{Regime detection?}
+
+Our ultimate goal is not simply a partition of bacteria into groups with similar
+behavior (across all time). Rather, we would like a joint partitioning across
+both time and bacteria, specifying different dynamic regimes within which
+different groups of bacteria have different types of behavior.
+
+A nonstandard approach to this problem using wavelets might try to see whether,
+at a particular timepoint, any coefficients at a given scale are large. The idea
+is that large peaks at different positions in the time series might have similar
+coefficient profiles, when paying attention to scale only and not location.
+
+To this end, we consider a bacteria $\times$ samples $\times$ wavelet-scales
+cube of coefficients. The last dimension is somewhat artificial -- for any
+timepoint, we fill in the coefficients at every scale that cover the specified
+timepoint, so even though the coefficient may only appear a few times in the
+original decomposition, it is repeated many times in this cube.
+
+From this cube, we can cluster the cells on the bacteria $\times$ samples face.
+The results using $k$-means with $K = 4$ after normalizing the coefficients
+within each cell is shown in Figure \ref{fig:wavelet_time_cluster-1}. We don't
+find the results particularly informative; the fact that all of the timepoints
+in the second half of sampling are assigned to one block is confusing. Then
+again, there are many steps in this procedure that could be tuned ($K$,
+normalization approach, identification of similar coefficient profiles), and we
+haven't invested that much effort here.
+
+To interpret the centroids, we can't make reconstructions from the wavelet
+space, like in the prevoius section, because we have lost all the location
+information associated with basis elements. Instead, we simply average within
+clusters. Alternatively, we could interpret the size of each scale as the degree
+of variation at that scale across bacteria and timepoints. The associated
+centroids are shown in \ref{fig:wavelet_centroids-sd} and
+\ref{fig:wavelet_centroids-n} -- the only difference in the figures is that in
+the first, we show the SD along with the centroids, while in the second we draw
+a band with width proportional to $\frac{1}{\sqrt{n_{clust, t}}}$, where
+$n_{clust, t}$ is the number of bacteria assigned to that cluter at the
+associated time $t$.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figure/wavelet_time_cluster-1}
+  \caption{\label{fig:wavelet_time_cluster-1} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figure/wavelet_centroids-sd}
+  \caption{\label{fig:wavelet_centroids-sd} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figure/wavelet_centroids-n}
+  \caption{\label{fig:wavelet_centroids-n} }
+\end{figure}
+
+\bibliographystyle{plainnat}
+\bibliography{wavelet.bib}
+
+
+\end{document}
