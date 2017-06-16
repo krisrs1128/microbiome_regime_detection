@@ -16,11 +16,11 @@ source("data.R")
 theme_set(ggscaffold::min_theme())
 
 scale_fill_discrete <- function(...) {
-  scale_fill_brewer(palette = "Set2", ...)
+  scale_fill_brewer(palette = "Set1", ...)
 }
 
 scale_color_discrete <- function(...) {
-  scale_color_brewer(palette = "Set2", ...)
+  scale_color_brewer(palette = "Set1", ...)
 }
 
 ## ---- utils ----
@@ -44,7 +44,7 @@ interpolate_dyadic <- function(y) {
 
 stacked_detail <- function(ywd, min_lev = 0, max_lev = NULL, scale_lev = FALSE) {
   if (is.null(max_lev)) {
-    max_lev <- ywd$nlevel 
+    max_lev <- ywd$nlevel
   }
 
   n_interp <- length(ywd$D) + 1
@@ -135,7 +135,9 @@ cluster_detail_array <- function(D, K = 8, scale_clust = FALSE) {
     as.matrix
 
   if (scale_clust) {
-    cluster_mat <- scale(cluster_mat)
+    for (j in seq_len(ncol(cluster_mat))) {
+      cluster_mat[, j] <- cluster_mat[, j] / max(cluster_mat[, j])
+    }
   }
   cluster_res <- kmeans(cluster_mat, centers = K)
 
@@ -189,7 +191,6 @@ cur_ind <- "F"
 p <- list()
 p[[cur_ind]] <- ggplot(aligned_partition %>% filter(ind == cur_ind)) +
   geom_tile(aes(x = rsv, y = -interp_time, fill = cluster)) +
-  scale_fill_brewer(palette = "Set2") +
   scale_y_continuous(expand = c(0, 0)) +
   facet_grid(condition ~ ., scales = "free") +
   theme(
@@ -258,7 +259,7 @@ dendro <- reorder(dendro, -colMeans(x_thresh))
 joined_data <- join_sources(x_thresh, taxa, samples, dendro)
 
 p <- ggplot(joined_data) +
-  geom_tile(aes(x = rsv, y = sample, fill = value)) +
+  geom_tile(aes(x = rsv, y = time, fill = value)) +
   scale_fill_gradient(low = "white", high = "black") +
   scale_y_discrete(expand = c(0, 0))
 save_fig("stacked_wavelet_hclust.png", p)
@@ -266,28 +267,70 @@ save_fig("stacked_wavelet_hclust.png", p)
 ## ---- ts-features ----
 xwd_thresh <- lapply(xwd, threshold, policy = "cv")
 C <- concat_matrix(xwd_thresh)
+rownames(C) <- colnames(x)
 clust_C <- hclust(dist(scale(C)))
 
 K <- 4
-M <- data.frame(
+centroid_data <- data.frame(
   "cluster" = as_factor(as.character(cutree(clust_C, K))),
   C
 ) %>%
   as_data_frame %>%
   gather(coefficient, value, -cluster) %>%
   group_by(cluster, coefficient) %>%
-  summarise(value = mean(value)) %>%
-  spread(coefficient, value) %>%
+  summarise(
+    mean = mean(value),
+    sd = sd(value)
+  ) %>%
   ungroup
 
+M <- centroid_data %>%
+  select(-sd) %>%
+  spread(coefficient, mean)
+S <- centroid_data %>%
+  select(-mean) %>%
+  spread(coefficient, sd)
+
 centroids <- matrix(0, nrow = K, ncol = length(xwd[[1]]$D) + 1)
+centroid_upper <- matrix(0, nrow = K, ncol = length(xwd[[1]]$D) + 1)
+centroid_lower <- matrix(0, nrow = K, ncol = length(xwd[[1]]$D) + 1)
 for (k in seq_len(K)) {
   centroids[k, ] <- wr(replace_coefs(xwd[[1]], unlist(M[k, -1])))
+  centroid_upper[k, ] <- wr(replace_coefs(xwd[[1]], unlist(M[k, -1] + 1.96 * S[k, -1])))
+  centroid_lower[k, ] <- wr(replace_coefs(xwd[[1]], unlist(M[k, -1] - 1.96 * S[k, -1])))
 }
 
-p <- ggplot(melt(centroids, varnames = c("wv_cluster", "interp_time"))) +
-  geom_line(aes(x = interp_time, y = value, col = as.factor(wv_cluster))) +
-  facet_wrap(~wv_cluster)
+m_centroids <- melt(
+  centroids,
+  varnames = c("wv_cluster", "interp_time"),
+  value.name = "mean"
+)
+m_upper <- centroid_upper %>%
+  melt(
+    varnames = c("wv_cluster", "interp_time"),
+    value.name = "upper"
+  )
+m_lower <- centroid_lower %>%
+  melt(
+    varnames = c("wv_cluster", "interp_time"),
+    value.name = "lower"
+  )
+
+m_centroids <- m_centroids %>%
+  left_join(m_upper) %>%
+  left_join(m_lower) %>%
+  mutate(
+    wv_cluster = as_factor(as.character(wv_cluster))
+  )
+
+p <- ggplot(m_centroids) +
+  geom_line(aes(x = interp_time, y = mean, col = wv_cluster)) +
+  geom_ribbon(
+    aes(x = interp_time, ymin = lower, ymax = upper, fill = wv_cluster),
+    alpha = 0.2
+  ) +
+  facet_wrap(~wv_cluster) +
+  coord_cartesian(ylim = c(0, 7.5))
 save_fig("concat_wavelet_hclust_reconstruction.png", p)
 
 mx$wv_cluster <- as_factor(as.character(cutree(clust_C, K)))
@@ -300,9 +343,20 @@ centroids_wv <- mx %>%
 
 p <- ggplot(centroids_wv) +
   geom_line(aes(x = interp_time, y = mean, col = wv_cluster)) +
-  geom_ribbon(aes(x = interp_time, ymin = mean - 1.96 * sd, ymax = mean + 1.96 * sd, fill = wv_cluster), alpha = 0.1) +
-  facet_wrap(~wv_cluster)
+  geom_ribbon(aes(x = interp_time, ymin = mean - 1.96 * sd, ymax = mean + 1.96 * sd, fill = wv_cluster), alpha = 0.2) +
+  facet_wrap(~wv_cluster) +
+  coord_cartesian(ylim = c(0, 7.5))
 save_fig("concat_wavelet_hclust_averages.png", p)
+
+dendro <- as.dendrogram(clust_C)
+dendro <- reorder(dendro, -colMeans(x_thresh))
+joined_data <- join_sources(x_thresh, taxa, samples, dendro)
+
+p <- ggplot(joined_data) +
+  geom_tile(aes(x = rsv, y = time, fill = value)) +
+  scale_fill_gradient(low = "white", high = "black") +
+  scale_y_discrete(expand = c(0, 0))
+save_fig("hclust_heatmap_coefs.png", p)
 
 ## ---- background-figures ----
 png("../doc/figure/wavelet-1.png")
