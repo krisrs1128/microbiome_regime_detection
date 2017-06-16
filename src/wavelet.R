@@ -228,7 +228,7 @@ save_fig("wavelet_centroids-n.png", p)
 ## ---- denoising ----
 x_thresh <- z[time_mapping, ]
 for (j in seq_len(ncol(x_thresh))) {
-  x_thresh[, j] <- wr(threshold(transforms[[j]], policy = "cv"))
+  x_thresh[, j] <- wr(threshold(xwd[[j]], policy = "cv"))
 }
 
 ## ---- cluster ----
