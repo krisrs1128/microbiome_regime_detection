@@ -15,8 +15,16 @@ library("stringr")
 source("data.R")
 theme_set(ggscaffold::min_theme())
 
+scale_fill_discrete <- function(...) {
+  scale_fill_brewer(palette = "Set2", ...)
+}
+
+scale_color_discrete <- function(...) {
+  scale_color_brewer(palette = "Set2", ...)
+}
+
 ## ---- utils ----
-save_fig <- function(fname, p, output_dir = "../../doc/figure/") {
+save_fig <- function(fname, p, output_dir = "../doc/figure/") {
   ggsave(file.path(output_dir, fname), p)
 }
 
@@ -142,14 +150,14 @@ cluster_detail_array <- function(D, K = 8, scale_clust = FALSE) {
   list("partition" = cluster_data, "cluster" = cluster_res)
 }
 
-replace_coefs <- function(ywd, w, L = 8) {
+replace_coefs <- function(ywd, w, L = 5) {
   for (l in 0:L) {
     lev_label <- sprintf("l%s_", l)
     D_coefs <- w[grep(paste0(lev_label, "D"), names(w))]
     C_coefs <- w[grep(paste0(lev_label, "C"), names(w))]
 
     coef_order <- order(as.numeric(str_extract(names(C_coefs), "[0-9]+$")))
-    if (l < 8) ywd <- putD(ywd, l, D_coefs[coef_order])
+    if (l < 5) ywd <- putD(ywd, l, D_coefs[coef_order])
     ywd <- putC(ywd, l, C_coefs[coef_order])
   }
   ywd
@@ -160,12 +168,13 @@ replace_coefs <- function(ywd, w, L = 8) {
 abt <- get(load("../../data/abt.rda")) %>%
   filter_taxa(function(x) { var(x) > 50}, prune = TRUE) %>%
   transform_sample_counts(asinh)
+abt <- prune_samples(sample_data(abt)$ind == "F", abt)
 x <- t(get_taxa(abt))
 n <- nsamples(abt)
 
-time_mapping <- seq(1, n, length.out = 256)
+time_mapping <- seq(1, n, length.out = 64)
 dup_sample_data <- sample_data(abt)[round(time_mapping), ]
-dup_sample_data$interp_time <- 1:256
+dup_sample_data$interp_time <- 1:64
 
 ## ---- dwt ----
 xwd <- wavelet_transforms(x, family = "DaubExPhase", filter.number = 1)
@@ -176,20 +185,19 @@ aligned_partition <- cluster_res$partition %>%
   left_join(dup_sample_data) %>%
   arrange(ind, rsv, time)
 
+cur_ind <- "F"
 p <- list()
-for (cur_ind in c("F", "D", "E")) {
-  p[[cur_ind]] <- ggplot(aligned_partition %>% filter(ind == cur_ind)) +
-    geom_tile(aes(x = rsv, y = -interp_time, fill = cluster)) +
-    scale_fill_brewer(palette = "Set2") +
-    scale_y_continuous(expand = c(0, 0)) +
-    facet_grid(condition ~ ., scales = "free") +
-    theme(
-      panel.spacing = unit(0, "lines"),
-      axis.text.x = element_blank(),
-      panel.border = element_rect(fill = "transparent", size = 0.5)
-    ) +
-    ggtitle(sprintf("Subject %s", cur_ind))
-}
+p[[cur_ind]] <- ggplot(aligned_partition %>% filter(ind == cur_ind)) +
+  geom_tile(aes(x = rsv, y = -interp_time, fill = cluster)) +
+  scale_fill_brewer(palette = "Set2") +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_grid(condition ~ ., scales = "free") +
+  theme(
+    panel.spacing = unit(0, "lines"),
+    axis.text.x = element_blank(),
+    panel.border = element_rect(fill = "transparent", size = 0.5)
+  ) +
+  ggtitle(sprintf("Subject %s", cur_ind))
 
 cluster_res$cluster$centers
 for (i in seq_along(p)) {
@@ -252,8 +260,7 @@ joined_data <- join_sources(x_thresh, taxa, samples, dendro)
 p <- ggplot(joined_data) +
   geom_tile(aes(x = rsv, y = sample, fill = value)) +
   scale_fill_gradient(low = "white", high = "black") +
-  scale_y_discrete(expand = c(0, 0)) +
-  facet_grid(ind ~ ., scales = "free", space = "free")
+  scale_y_discrete(expand = c(0, 0))
 save_fig("stacked_wavelet_hclust.png", p)
 
 ## ---- ts-features ----
@@ -296,3 +303,11 @@ p <- ggplot(centroids_wv) +
   geom_ribbon(aes(x = interp_time, ymin = mean - 1.96 * sd, ymax = mean + 1.96 * sd, fill = wv_cluster), alpha = 0.1) +
   facet_wrap(~wv_cluster)
 save_fig("concat_wavelet_hclust_averages.png", p)
+
+## ---- background-figures ----
+png("../doc/figure/wavelet-1.png")
+plot(GenW(n = 64, family = "DaubExPhase", filter = 1)[, 36])
+dev.off()
+png("../doc/figure/wavelet-2.png")
+plot(GenW(n = 64, family = "DaubExPhase", filter = 1)[, 60])
+dev.off()
