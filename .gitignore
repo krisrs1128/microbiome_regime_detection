@@ -1,5 +1,7 @@
 *.pdf
 *.aux
 *.log
+*.bbl
+*.blg
 data/*
 !data/README.md
