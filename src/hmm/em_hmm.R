@@ -78,6 +78,18 @@ two_step_marginal <- function(pi, lik, alpha, beta) {
 ## M-step: Optimize emission parameters based on expected sufficient statistics.
 ################################################################################
 
+likelihood <- function(Y, theta) {
+  K <- length(theta)
+  time_len <- nrow(Y)
+  n <- ncol(Y)
+
+  lik <- array(dim = c(time_len, K, n))
+  for (k in seq_len(K)) {
+    lik[, k, ] <- dnorm(Y, theta[[k]]$mu, theta[[k]]$sigma)
+  }
+  lik
+}
+
 expected_njk <- function(xi) {
   apply(xi, c(1, 2), sum) # sum over times and samples
 }
@@ -108,5 +120,5 @@ expected_gaussian_param <- function(Y, gamma) {
 }
 
 hmm_em <- function(Y, K) {
-
+  
 }
