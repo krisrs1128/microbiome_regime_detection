@@ -9,6 +9,15 @@
 ## via forwards backwards algorithm.
 ################################################################################
 
+normalize <- function(x, return_sum = FALSE) {
+  z <- sum(x)
+  if (return_sum) {
+    return (list("z" = z, "x" = x / z))
+  }
+
+  x / z
+}
+
 #' @examples
 #' pi <- matrix(c(0.25, 0.75, 0.75, 0.25), 2)
 #' lik <- matrix(runif(20), 10, 2)
@@ -63,12 +72,12 @@ backwards <- function(pi, lik) {
 two_step_marginal <- function(pi, lik, alpha, beta) {
   K <- nrow(pi)
   time_len <- nrow(lik)
-  xi <- array(0, dim = c(K, K, time_len - 1))
+  xi <- array(0, dim = c(time_len - 1, K, K))
   Z <- vector(length = time_len - 1)
   for (i in seq_len(time_len - 1)) {
-    xi[,, i] <- pi * (alpha[i, ] %*% t(lik[i + 1, ] * beta[i + 1, ]))
-    Z[i] <- sum(xi[,, i])
-    xi[,, i] <- xi[,, i] / Z[i]
+    xi[i,, ] <- pi * (alpha[i, ] %*% t(lik[i + 1, ] * beta[i + 1, ]))
+    Z[i] <- sum(xi[i,,])
+    xi[i,, ] <- xi[i,,] / Z[i]
   }
 
   list("xi" = xi, "Z" = Z)
@@ -78,20 +87,20 @@ two_step_marginal <- function(pi, lik, alpha, beta) {
 ## M-step: Optimize emission parameters based on expected sufficient statistics.
 ################################################################################
 
-likelihood <- function(Y, theta) {
+log_likelihood <- function(Y, theta) {
   K <- length(theta)
   time_len <- nrow(Y)
   n <- ncol(Y)
 
-  lik <- array(dim = c(time_len, K, n))
+  log_lik <- array(dim = c(time_len, K, n))
   for (k in seq_len(K)) {
-    lik[, k, ] <- dnorm(Y, theta[[k]]$mu, theta[[k]]$sigma)
+    log_lik[, k, ] <- dnorm(Y, theta[[k]]$mu, theta[[k]]$sigma, log = TRUE)
   }
-  lik
+  log_lik
 }
 
 expected_njk <- function(xi) {
-  apply(xi, c(1, 2), sum) # sum over times and samples
+  apply(xi, c(2, 3), sum) # sum over times and samples
 }
 
 expected_nj <- function(alpha, beta) {
@@ -152,14 +161,44 @@ initialize_states <- function(Y, K) {
 }
 
 hmm_em <- function(Y, K = 5, n_iter = 10) {
+  time_len <- nrow(Y)
+  n <- ncol(Y)
+
   init <- initialize_states(Y, K)
   theta <- init$theta
   pi <- init$n / rowSums(init$n)
+  p0 <- rep(1 / K, K)
 
-  for (i in seq_len(n_iter)) {
-    lik <- likelihood(Y, theta)
-    alpha <- forwards(pi, lik, p0)
-    
+  for (iter in seq_len(n_iter)) {
+    log_lik <- log_likelihood(Y, theta)
+    alpha <- array(dim = c(time_len, K, n))
+    beta <- array(dim = c(time_len, K, n))
+    gamma <- array(dim = c(time_len, K, n))
+    xi <- array(dim = c(time_len - 1, K, K, n))
+
+    ## E-step
+    for (i in seq_len(n)) {
+      alpha[,, i] <- forwards(pi, exp(log_lik[,, i]), p0)$alpha
+      beta[,, i] <- exp(backwards(pi, exp(log_lik[,, i])))
+      gamma[,, i] <- apply(alpha[,, i] * beta[,, i], 1, normalize)
+
+      xi[,,, i] <- two_step_marginal(
+        pi,
+        exp(log_lik[,, i]),
+        alpha[,, i],
+        beta[,, i]
+      )$xi
+    }
+
+    pi <- apply(expected_njk(xi), 1, normalize)
+    p0 <- normalize(rowSums(gamma[1,, ]))
+    theta <- expected_gaussian_param(Y, gamma)
   }
 
+  list(
+    "theta" = theta,
+    "gamma" = gamma,
+    "pi" = pi
+  )
 }
+
