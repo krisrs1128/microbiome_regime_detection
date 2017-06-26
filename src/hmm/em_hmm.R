@@ -29,7 +29,7 @@ forwards <- function(pi, lik, p0 = NULL) {
   alpha[1, ] <- alpha[1, ] / Z[1]
 
   for (i in seq(2, time_len)) {
-    alpha[i, ] <- lik[i, ] * (pi %*% alpha[i - 1, ])
+    alpha[i, ] <- lik[i, ] * (t(pi) %*% alpha[i - 1, ])
     Z[i] <- sum(alpha[i, ])
     alpha[i, ] <- alpha[i, ] / Z[i]
   }
