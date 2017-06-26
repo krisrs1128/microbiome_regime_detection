@@ -12,6 +12,7 @@
 ## ---- setup ----
 library("tidyverse")
 library("phyloseq")
+source("em_hmm.R")
 
 ## ---- simulate ----
 # underlying states
@@ -51,3 +52,10 @@ image(z[, perm_ix])
 image(y[, perm_ix])
 
 ## ---- hmm ----
+em_res <- hmm_em(y, K = 4)
+em_res$theta
+em_z <- apply(em_res$gamma, c(1, 3), which.max)
+table(em_z, z)
+image(em_z)
+dev.new()
+image(z)
