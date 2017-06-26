@@ -119,6 +119,47 @@ expected_gaussian_param <- function(Y, gamma) {
   theta
 }
 
-hmm_em <- function(Y, K) {
-  
+#' @examples
+#' z <- c(1, 1, 2, 1, 1, 3, 3, 3, 1)
+#' transition_counts(z)
+transition_counts <- function(z) {
+  modes <- sort(unique(z))
+  n <- matrix(0, nrow = length(modes), ncol = length(modes),
+              dimnames = list(modes, modes))
+  time_len <- length(z)
+
+  z <- as.character(z)
+  for (i in seq_len(time_len - 1)) {
+    n[z[i], z[i + 1]] <- n[z[i], z[i + 1]] + 1
+  }
+  n
+}
+
+initialize_states <- function(Y, K) {
+  y <- c(Y)
+  y_clust <- kmeans(y, K)
+
+  theta <- vector(mode = "list", length = K)
+  for (k in seq_len(K)) {
+    theta[[k]]$mu <- mean(y[y_clust$cluster == k])
+    theta[[k]]$sigma <- sd(y[y_clust$cluster == k])
+  }
+
+  list(
+    "theta" = theta,
+    "n" = transition_counts(y_clust$cluster)
+  )
+}
+
+hmm_em <- function(Y, K = 5, n_iter = 10) {
+  init <- initialize_states(Y, K)
+  theta <- init$theta
+  pi <- init$n / rowSums(init$n)
+
+  for (i in seq_len(n_iter)) {
+    lik <- likelihood(Y, theta)
+    alpha <- forwards(pi, lik, p0)
+    
+  }
+
 }
