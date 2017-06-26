@@ -53,6 +53,29 @@ backwards <- function(pi, lik) {
   log_beta
 }
 
+#' @examples
+#' pi <- matrix(c(0.25, 0.75, 0.75, 0.25), 2)
+#' lik <- matrix(runif(20), 10, 2)
+#' beta <- exp(backwards(pi, lik))
+#' alpha <- forwards(pi, lik)$alpha
+#' two_step_marginal(pi, lik, alpha, beta)
+#' @references Section 17.4.3.2 of "Machine Learning" by Murpy
+two_step_marginal <- function(pi, lik, alpha, beta) {
+  K <- nrow(pi)
+  time_len <- nrow(lik)
+  xi <- array(0, dim = c(K, K, time_len - 1))
+  Z <- vector(length = time_len - 1)
+  for (i in seq_len(time_len - 1)) {
+    xi[,, i] <- pi * (alpha[i, ] %*% t(lik[i + 1, ] * beta[i + 1, ]))
+    Z[i] <- sum(xi[,, i])
+    xi[,, i] <- xi[,, i] / Z[i]
+  }
+
+  list("xi" = xi, "Z" = Z)
+}
+
+
 ################################################################################
 ## M-step: Optimize emission parameters based on expected sufficient statistics.
 ################################################################################
+
