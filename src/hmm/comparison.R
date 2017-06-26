@@ -20,7 +20,7 @@ z <- cbind(
   c(rep(1, 10), rep(2, 4), rep(1, 6), rep(3, 10)),
   c(rep(2, 6), rep(1, 5), rep(4, 5), rep(1, 4), rep(4, 10)),
   c(rep(4, 3), rep(1, 10), rep(2, 5), rep(4, 5), rep(3, 7))
-)[, c(rep(1, 5), rep(2, 4), rep(3, 10))]
+)[rep(1:30, each = 40), c(1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 3)]
 image(z)
 n <- nrow(z)
 p <- ncol(z)
@@ -29,9 +29,9 @@ k <- length(unique(z))
 # parameters per state
 theta <- list(
   list("mu" = 0, "sigma" = 1),
-  list("mu" = 2, "sigma" = 1),
-  list("mu" = 0.2, "sigma" = 2),
-  list("mu" = -0.5, "sigma" = 0.5)
+  list("mu" = -3, "sigma" = 1),
+  list("mu" = 3, "sigma" = 1),
+  list("mu" = -1, "sigma" = 1)
 )
 
 # observed data
@@ -52,10 +52,14 @@ image(z[, perm_ix])
 image(y[, perm_ix])
 
 ## ---- hmm ----
-em_res <- hmm_em(y, K = 4)
+em_res <- hmm_em(y, K = 4, n_iter = 10)
 em_res$theta
 em_z <- apply(em_res$gamma, c(1, 3), which.max)
 table(em_z, z)
 image(em_z)
 dev.new()
 image(z)
+
+plot(y[, 2], col =  z[, 2])
+plot(y[, 2], col =  apply(em_res$gamma[,, 2], 1, which.max))
+em_res$theta
