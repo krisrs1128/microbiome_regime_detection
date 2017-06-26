@@ -9,10 +9,10 @@
 ## via forwards backwards algorithm.
 ################################################################################
 
-pi <- matrix(c(0.25, 0.75, 0.75, 0.25), 2)
-lik <- matrix(runif(20), 10, 2)
-forwards(pi, lik)
-
+#' @examples
+#' pi <- matrix(c(0.25, 0.75, 0.75, 0.25), 2)
+#' lik <- matrix(runif(20), 10, 2)
+#' forwards(pi, lik)
 forwards <- function(pi, lik, p0 = NULL) {
   K <- nrow(pi)
   time_len <- nrow(lik)
@@ -35,6 +35,22 @@ forwards <- function(pi, lik, p0 = NULL) {
   }
 
   list(alpha = alpha, Z = Z)
+}
+
+#' @examples
+#' pi <- matrix(c(0.25, 0.75, 0.75, 0.25), 2)
+#' lik <- matrix(runif(20), 10, 2)
+#' backwards(pi, lik)
+backwards <- function(pi, lik) {
+  K <- nrow(pi)
+  time_len <- nrow(lik)
+
+  log_beta <- matrix(0, time_len, K)
+  for (i in seq(time_len - 1, 1)) {
+    log_beta[i, ] <- log(pi %*% (lik[i, ] * exp(log_beta[i + 1])))
+  }
+
+  log_beta
 }
 
 ################################################################################
