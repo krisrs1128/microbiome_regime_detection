@@ -74,8 +74,45 @@ two_step_marginal <- function(pi, lik, alpha, beta) {
   list("xi" = xi, "Z" = Z)
 }
 
-
 ################################################################################
 ## M-step: Optimize emission parameters based on expected sufficient statistics.
 ################################################################################
 
+expected_transition_model <- function(alpha, beta, xi) {
+  gamma <- alpha * beta ## time x state x sample array
+  p0_hat <- apply(gamma[1,, ], 1, sum) / dim(alpha)[3]
+  pi_hat <- apply(xi, c(1, 2), sum)
+  pi_hat <- pi_hat / rowSums(pi_hat)
+
+  list(
+    "gamma" = gamma,
+    "pi_hat" = pi_hat,
+    "p0_hat" = p0_hat
+  )
+}
+
+expected_gaussian_param <- function(Y, gamma) {
+  K <- ncol(gamma)
+  ns <- vector(length = K)
+  y_sums <- vector(length = K)
+  yy_sums <- vector(length = K)
+  for (k in seq_len(K)) {
+    y_sums[k] <- sum(gamma[, k, ] * Y)
+    yy_sums[k] <- sum(gamma[, k, ] * (Y ^ 2))
+    ns[k] <- sum(gamma[, k, ])
+  }
+
+  mus <- y_sums / ns
+  sigmas <- vector(length = K)
+  for (k in seq_len(K)) {
+    sigmas[k] <- (yy_sums[k] - ns[k] * (mus[k] ^ 2)) / ns[k]
+  }
+  list(
+    "mus" = mus,
+    "sigmas" = sigmas
+  )
+}
+
+hmm_em <- function(Y, K) {
+
+}
