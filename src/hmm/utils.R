@@ -10,12 +10,14 @@ transition_counts <- function(z, modes = NULL) {
 
   n <- matrix(0, nrow = length(modes), ncol = length(modes),
               dimnames = list(modes, modes))
-  time_len <- length(z)
+  n_tilde <- table(head(z, -1), tail(z, -1))
 
-  z <- as.character(z)
-  for (i in seq_len(time_len - 1)) {
-    n[z[i], z[i + 1]] <- n[z[i], z[i + 1]] + 1
+  for (i in rownames(n_tilde)) {
+    for (j in colnames(n_tilde)) {
+      n[i, j] <- n_tilde[i, j]
+    }
   }
+
   n
 }
 
@@ -38,27 +40,13 @@ initialize_states <- function(y, L) {
 }
 
 ## ---- sampling-latent-states ----
-messages <- function(Pi, y, theta) {
+sample_z2 <- function(Pi, y, theta, msg) {
   time_len <- nrow(y)
-  modes <- colnames(Pi)
-  log_msg <- matrix(0, time_len, nrow(Pi),
-                    dimnames = list(1:time_len, modes))
-
-  for (i in seq(time_len - 1, 1)) {
-    log_y_dens <- multi_dmvnorm(y[i, ], theta)
-    for (k in modes) {
-      log_msg[i, k] <- lse(log(Pi[k, ]) + log_y_dens + log_msg[i + 1, ])
-    }
-  }
-  log_msg
-}
-
-sample_z <- function(Pi, y, theta, msg) {
-  time_len <- nrow(y)
+  logPi <- log(Pi)
   z <- rep(1, time_len)
   for (i in seq(2, time_len)) {
     log_y_dens <- multi_dmvnorm(y[i, ], theta)
-    log_f <- log(Pi[z[i - 1], ]) + log_y_dens + msg[i, ]
+    log_f <- logPi[z[i - 1], ] + log_y_dens + msg[i, ]
     z[i] <- sample(seq_along(log_f), 1, prob = exp(log_f - lse(log_f)))
   }
   z
@@ -110,21 +98,6 @@ sample_theta <- function(y, z, theta, lambda, n_iter) {
   }
 
   theta
-}
-
-## ---- math ----
-multi_dmvnorm <- function(yt, theta) {
-  modes <- names(theta)
-  y_dens <- setNames(seq_along(modes), modes)
-  for (l in modes) {
-    y_dens[l] <- dmvn(
-      yt,
-      theta[[l]]$mu,
-      theta[[l]]$sigma,
-      log = TRUE
-    )
-  }
-  y_dens
 }
 
 ## ---- toy-example ----
