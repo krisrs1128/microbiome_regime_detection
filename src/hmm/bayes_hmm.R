@@ -7,6 +7,10 @@
 ## author: sankaran.kris@gmail.com
 ## date: 06/27/2017
 
+## ---- libraries ----
+library("mvtnorm")
+library("MCMCpack")
+
 ## ---- sampling ----
 #' @examples
 #' K <- 20
@@ -36,7 +40,6 @@ block_sampler <- function(y, hyper = list(), lambda = list()) {
   Pi <- init$n / rowSums(init$n)
   z <- init$z
   theta <- init$theta
-  beta <- setNames(rep(0.1, L), 1:L)
 
   for (i in seq_len(hyper$n_iter)) {
     cat(sprintf("iteration %s\n", i))
@@ -58,7 +61,7 @@ merge_default_hyper <- function(opts = list()) {
     "n_iter" = 500,
     "theta_iter" = 2,
     "alpha" = setNames(rep(1, 4), seq_len(4)),
-    "kappa" = 1,
+    "kappa" = 1
   )
   modifyList(default_opts, opts)
 }
