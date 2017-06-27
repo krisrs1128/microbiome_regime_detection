@@ -16,7 +16,7 @@ Rcpp::sourceCpp("messages.cpp")
 ## ---- sampling ----
 #' @examples
 #' sim <- simulate_data()
-#' block_sampler(sim$y, list(K = 4, n_iter = 20))
+#' block_sampler(sim$y, list(K = 4, n_iter = 200))
 block_sampler <- function(y, hyper = list(), lambda = list()) {
   ## merge default opts
   hyper <- merge_default_hyper(hyper)
@@ -74,7 +74,7 @@ sample_pi <- function(z, alpha, kappa) {
 
   n <- transition_counts(z[, 1], modes)
   for (i in seq(2, ncol(z))) {
-    n <- n + transition_counts(z[, i])
+    n <- n + transition_counts(z[, i], modes)
   }
 
   Pi <- matrix(nrow = K, ncol = K, dimnames = list(modes, modes))
