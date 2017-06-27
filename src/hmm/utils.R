@@ -19,16 +19,16 @@ transition_counts <- function(z, modes = NULL) {
   n
 }
 
-initialize_states <- function(y, K) {
-  y_clust <- kmeans(y, K)
-  theta <- vector(mode = "list", length = K)
-  for (k in seq_len(K)) {
-    theta[[k]]$mu <- mean(y[y_clust$cluster == k, ])
-    theta[[k]]$sigma <- 0.75 * cov(y[y_clust$cluster == k, ])
+initialize_states <- function(y, L) {
+  y_clust <- kmeans(y, L)
+  theta <- setNames(vector(mode = "list", length = L), 1:L)
+  for (l in seq_len(L)) {
+    theta[[l]]$mu <- colMeans(y[y_clust$cluster == l, ])
+    theta[[l]]$sigma <- 0.75 * cov(y[y_clust$cluster == l, ])
   }
 
   list(
-    "z": y_clust$cluster,
+    "z" = y_clust$cluster,
     "theta" = theta,
     "n" = transition_counts(y_clust$cluster)
   )
@@ -43,7 +43,9 @@ messages <- function(Pi, y, theta) {
 
   for (i in seq(time_len - 1, 1)) {
     log_y_dens <- multi_dmvnorm(y[i, ], theta)
-    log_msg[i, ] <- log(Pi %*% exp(log_y_dens + log_msg[i + 1, ]))
+    for (k in modes) {
+      log_msg[i, k] <- lse(log(Pi[k, ]) + log_y_dens + log_msg[i + 1, ])
+    }
   }
   log_msg
 }
@@ -53,8 +55,8 @@ sample_z <- function(Pi, y, theta, msg) {
   z <- rep(1, time_len)
   for (i in seq(2, time_len)) {
     log_y_dens <- multi_dmvnorm(y[i, ], theta)
-    f <- exp(log(Pi[z[i - 1], ]) + log_y_dens + msg[i, ])
-    z[i] <- sample(seq_along(f), 1, prob = f / sum(f))
+    log_f <- log(Pi[z[i - 1], ]) + log_y_dens + msg[i, ]
+    z[i] <- sample(seq_along(log_f), 1, prob = exp(log_f - lse(log_f)))
   }
   z
 }
@@ -106,17 +108,22 @@ sample_theta <- function(y, z, theta, lambda, n_iter) {
   theta
 }
 
-## ---- probability-densities ----
+## ---- math ----
 multi_dmvnorm <- function(yt, theta) {
   modes <- names(theta)
   y_dens <- setNames(seq_along(modes), modes)
   for (l in modes) {
-    y_dens[l] <- mvtnorm::dmtvnorm(
-                            yt,
-                            theta[[l]]$mu,
-                            theta[[l]]$sigma,
-                            log = TRUE
-                          )
+    y_dens[l] <- dmvnorm(
+      yt,
+      theta[[l]]$mu,
+      theta[[l]]$sigma,
+      log = TRUE
+    )
   }
   y_dens
+}
+
+lse <- function(log_x) {
+  m <- max(log_x)
+  m + log(sum(exp(log_x - m)))
 }
