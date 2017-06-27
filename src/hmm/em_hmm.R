@@ -160,7 +160,7 @@ expected_njk <- function(log_xi) {
   log_njk <- matrix(nrow = K, ncol = K)
   for (j in seq_len(K)) {
     for (k in seq_len(K)) {
-      log_njk[j, k] <- lse(log_xi[, j, k,])
+      log_njk[j, k] <- lse(log_xi[, j, k, ])
     }
   }
 
@@ -220,7 +220,7 @@ hmm_em <- function(Y, K = 4, n_iter = 10) {
 
     pi <- normalize_rows(expected_njk(log_xi))
     p0 <- fitted_p0(as.matrix(log_gamma[1,, ]))
-    theta <- expected_gaussian_param(Y, log_gamma)
+    theta <- expected_gaussian_param(Y, exp(log_gamma))
   }
 
   list("theta" = theta, "gamma" = exp(log_gamma), "pi" = pi)
