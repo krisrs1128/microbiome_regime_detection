@@ -20,6 +20,9 @@ transition_counts <- function(z, modes = NULL) {
 }
 
 initialize_states <- function(y, L) {
+  y0 <- y
+  y <- matrix(y, prod(dim(y)[1:2]), dim(y)[3]) # unfold array to matrix
+
   y_clust <- kmeans(y, L)
   theta <- setNames(vector(mode = "list", length = L), 1:L)
   for (l in seq_len(L)) {
@@ -28,7 +31,7 @@ initialize_states <- function(y, L) {
   }
 
   list(
-    "z" = y_clust$cluster,
+    "z" = matrix(y_clust$cluster, nrow(y0), ncol(y0)),
     "theta" = theta,
     "n" = transition_counts(y_clust$cluster)
   )
