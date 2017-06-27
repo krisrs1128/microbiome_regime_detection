@@ -82,9 +82,7 @@ forwards <- function(pi, log_lik, p0) {
   log_alpha[1, ] <- normalize_log_space(log_alpha[1, ])
 
   for (i in seq(2, time_len)) {
-    for (k in seq_len(K)) {
-      log_alpha[i, k] <- log_lik[i, k] + log_alpha[i - 1, k]
-    }
+    log_alpha[i, ] <- log_lik[i, ] + log(t(pi) %*% exp(log_alpha[i - 1, ]))
     log_alpha[i, ] <- normalize_log_space(log_alpha[i, ])
   }
 
@@ -217,13 +215,7 @@ hmm_em <- function(Y, K = 4, n_iter = 10) {
       log_alpha[,, i] <- forwards(pi, log_lik[,, i], p0)
       log_beta[,, i] <- backwards(pi, log_lik[,, i])
       log_gamma[,, i] <- normalize_rows_log(log_alpha[,, i] + log_beta[,, i])
-
-      log_xi[,,, i] <- two_step_marginal(
-        pi,
-        log_lik[,, i],
-        log_alpha[,, i],
-        log_beta[,, i]
-      )
+      log_xi[,,, i] <- two_step_marginal(pi, log_lik[,, i], log_alpha[,, i], log_beta[,, i])
     }
 
     pi <- normalize_rows(expected_njk(log_xi))

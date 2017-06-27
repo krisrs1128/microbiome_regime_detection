@@ -29,8 +29,8 @@ k <- length(unique(z))
 # parameters per state
 theta <- list(
   list("mu" = 0, "sigma" = 1),
-  list("mu" = -3, "sigma" = 1),
-  list("mu" = 3, "sigma" = 1),
+  list("mu" = -2, "sigma" = 1),
+  list("mu" = 2, "sigma" = 1),
   list("mu" = -1, "sigma" = 1)
 )
 
