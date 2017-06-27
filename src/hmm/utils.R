@@ -39,19 +39,6 @@ initialize_states <- function(y, L) {
   )
 }
 
-## ---- sampling-latent-states ----
-sample_z2 <- function(Pi, y, theta, msg) {
-  time_len <- nrow(y)
-  logPi <- log(Pi)
-  z <- rep(1, time_len)
-  for (i in seq(2, time_len)) {
-    log_y_dens <- multi_dmvnorm(y[i, ], theta)
-    log_f <- logPi[z[i - 1], ] + log_y_dens + msg[i, ]
-    z[i] <- sample(seq_along(log_f), 1, prob = exp(log_f - lse(log_f)))
-  }
-  z
-}
-
 ## ---- sampling-posterior-parameters ----
 sample_mu <- function(mu0, sigma0, y, sigma) {
   if (nrow(y) == 0) {
