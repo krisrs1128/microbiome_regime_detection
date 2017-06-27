@@ -11,14 +11,12 @@
 library("mvnfast")
 library("MCMCpack")
 source("utils.R")
+Rcpp::sourceCpp("messages.cpp")
 
 ## ---- sampling ----
-sim <- simulate_data()
-library("profvis")
-profvis({
-  block_sampler(sim$y, list(K = 4, n_iter = 2))
-})
-
+#' @examples
+#' sim <- simulate_data()
+#' block_sampler(sim$y, list(K = 4, n_iter = 20))
 block_sampler <- function(y, hyper = list(), lambda = list()) {
   ## merge default opts
   hyper <- merge_default_hyper(hyper)
