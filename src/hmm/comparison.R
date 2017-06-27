@@ -11,6 +11,7 @@
 
 ## ---- setup ----
 library("tidyverse")
+library("mvtnorm")
 library("phyloseq")
 source("em_hmm.R")
 
@@ -22,22 +23,22 @@ z <- cbind(
   c(rep(4, 3), rep(1, 10), rep(2, 5), rep(4, 5), rep(3, 7))
 )[rep(1:30, each = 40), c(1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 3)]
 image(z)
-n <- nrow(z)
-p <- ncol(z)
-k <- length(unique(z))
+time_len <- nrow(z)
+n <- ncol(z)
+K <- length(unique(z))
 
 # parameters per state
 theta <- list(
-  list("mu" = 0, "sigma" = 1),
-  list("mu" = -2, "sigma" = 1),
-  list("mu" = 2, "sigma" = 1),
-  list("mu" = -1, "sigma" = 1)
+  list("mu" = c(0, 0), "sigma" = diag(2)),
+  list("mu" = c(-2, -1), "sigma" = diag(2)),
+  list("mu" = c(2, 1), "sigma" = diag(2)),
+  list("mu" = c(-1, -1), "sigma" = diag(2))
 )
 
 # observed data
-y <- matrix(0, n, p)
+y <- array(dim = c(time_len, n, 2))
 for (k in seq_along(theta)) {
-  y[z == k] <- rnorm(
+  y[z == k] <- rmvnorm(
     sum(z == k),
     theta[[k]]$mu,
     theta[[k]]$sigma
@@ -46,10 +47,11 @@ for (k in seq_along(theta)) {
 
 ## ---- visualize-simulation ----
 image(z)
-image(y)
-perm_ix <- sample(p)
+image(y[,, 1])
+image(y[,, 2])
+perm_ix <- sample(n)
 image(z[, perm_ix])
-image(y[, perm_ix])
+image(y[, perm_ix, 1])
 
 ## ---- hmm ----
 em_res <- hmm_em(y, K = 4, n_iter = 10)
