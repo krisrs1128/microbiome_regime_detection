@@ -13,11 +13,6 @@
 source("utils.R")
 
 ## ---- e-step ----
-lse <- function(log_x) {
-  m <- max(log_x)
-  m + log(sum(exp(log_x - m)))
-}
-
 normalize_log_space <- function(log_x) {
   log_x - lse(log_x)
 }
