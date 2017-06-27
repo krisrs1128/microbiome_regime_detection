@@ -8,26 +8,17 @@
 ## date: 06/27/2017
 
 ## ---- libraries ----
-library("mvtnorm")
+library("mvnfast")
 library("MCMCpack")
+source("utils.R")
 
 ## ---- sampling ----
-#' @examples
-#' K <- 20
-#' gamma <- 2
-#' alpha <- 0.9
-#' kappa <- 3
-#'
-#' z <- c(rep(1, 10), rep(2, 5), rep(1, 10), rep(3, 3), rep(2, 10))
-#' lambda <- list(zeta = .02, theta = c(0, 0), nu = 10, Delta = diag(c(0.1, 0.1)))
-#' theta <- emission_parameters(K, lambda)
-#' y <- emissions(z, theta)
-#' plot(y[, 1], col = z)
-#' z_clust <- kmeans(y, 20)$cluster
-#' plot(y, col = 'white', asp = 1)
-#' text(y, labels = z_clust)
-#'
-#' res <- block_sampler(y)
+sim <- simulate_data()
+library("profvis")
+profvis({
+  block_sampler(sim$y, list(K = 4, n_iter = 2))
+})
+
 block_sampler <- function(y, hyper = list(), lambda = list()) {
   ## merge default opts
   hyper <- merge_default_hyper(hyper)

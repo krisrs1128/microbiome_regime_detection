@@ -67,12 +67,12 @@ sample_z <- function(Pi, y, theta, msg) {
 ## ---- sampling-posterior-parameters ----
 sample_mu <- function(mu0, sigma0, y, sigma) {
   if (nrow(y) == 0) {
-    return (rmvnorm(1, mu0, sigma0)[1, ])
+    return (rmvn(1, mu0, sigma0)[1, ])
   }
 
   sigma_bar <- solve(solve(sigma0) + nrow(y) * solve(sigma))
   mu_bar <- sigma_bar %*% (solve(sigma0) %*% mu0 + solve(sigma) %*% colSums(y))
-  rmvnorm(1, mu_bar, sigma_bar)[1, ]
+  rmvn(1, mu_bar, sigma_bar)[1, ]
 }
 
 sample_sigma <- function(nu, delta, y, mu) {
@@ -117,7 +117,7 @@ multi_dmvnorm <- function(yt, theta) {
   modes <- names(theta)
   y_dens <- setNames(seq_along(modes), modes)
   for (l in modes) {
-    y_dens[l] <- dmvnorm(
+    y_dens[l] <- dmvn(
       yt,
       theta[[l]]$mu,
       theta[[l]]$sigma,
@@ -127,7 +127,34 @@ multi_dmvnorm <- function(yt, theta) {
   y_dens
 }
 
-lse <- function(log_x) {
-  m <- max(log_x)
-  m + log(sum(exp(log_x - m)))
+## ---- toy-example ----
+simulate_data <- function() {
+  z <- cbind(
+    c(rep(1, 10), rep(2, 4), rep(1, 6), rep(3, 10)),
+    c(rep(2, 6), rep(1, 5), rep(4, 5), rep(1, 4), rep(4, 10)),
+    c(rep(4, 3), rep(1, 10), rep(2, 5), rep(4, 5), rep(3, 7))
+  )[rep(1:30, each = 40), c(1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 3)]
+  image(z)
+  time_len <- nrow(z)
+  n <- ncol(z)
+  K <- length(unique(z))
+
+                                        # parameters per state
+  theta <- list(
+    list("mu" = c(0, 0), "sigma" = diag(2)),
+    list("mu" = c(-2, -1), "sigma" = diag(2)),
+    list("mu" = c(2, 1), "sigma" = diag(2)),
+    list("mu" = c(-1, -1), "sigma" = diag(2))
+  )
+
+                                        # observed data
+  y <- array(dim = c(time_len, n, 2))
+  for (k in seq_along(theta)) {
+    y[z == k] <- rmvn(
+      sum(z == k),
+      theta[[k]]$mu,
+      theta[[k]]$sigma
+    )
+  }
+  list("y" = y, "z" = z, "theta" = theta)
 }
