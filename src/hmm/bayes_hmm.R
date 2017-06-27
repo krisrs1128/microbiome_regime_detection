@@ -41,10 +41,13 @@ block_sampler <- function(y, hyper = list(), lambda = list()) {
   z <- init$z
   theta <- init$theta
 
-  for (i in seq_len(hyper$n_iter)) {
-    cat(sprintf("iteration %s\n", i))
-    msg <- messages(Pi, y, theta)
-    z <- sample_z(Pi, y, theta, msg)
+  for (iter in seq_len(hyper$n_iter)) {
+    cat(sprintf("iteration %s\n", iter))
+
+    for (i in seq_len(ncol(y))) {
+      msg <- messages(Pi, y[, i,], theta)
+      z[, i] <- sample_z(Pi, y[, i,], theta, msg)
+    }
 
     Pi <- sample_pi(z, hyper$alpha, hyper$kappa)
     theta <- sample_theta(y, z, theta, lambda, hyper$theta_iter)
