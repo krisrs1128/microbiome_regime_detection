@@ -1,5 +1,8 @@
 *.pdf
 *.aux
 *.log
-data/*
+data
 !data/README.md
+doc/*.bbl
+doc/*.blg
+doc/figure

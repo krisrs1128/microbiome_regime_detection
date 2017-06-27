@@ -11,45 +11,24 @@
 
 ## ---- setup ----
 library("tidyverse")
+library("mvtnorm")
 library("phyloseq")
 source("em_hmm.R")
+source("sim.R")
 
 ## ---- simulate ----
 # underlying states
-z <- cbind(
-  c(rep(1, 10), rep(2, 4), rep(1, 6), rep(3, 10)),
-  c(rep(2, 6), rep(1, 5), rep(4, 5), rep(1, 4), rep(4, 10)),
-  c(rep(4, 3), rep(1, 10), rep(2, 5), rep(4, 5), rep(3, 7))
-)[rep(1:30, each = 40), c(1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 3)]
-image(z)
-n <- nrow(z)
-p <- ncol(z)
-k <- length(unique(z))
-
-# parameters per state
-theta <- list(
-  list("mu" = 0, "sigma" = 1),
-  list("mu" = -2, "sigma" = 1),
-  list("mu" = 2, "sigma" = 1),
-  list("mu" = -1, "sigma" = 1)
-)
-
-# observed data
-y <- matrix(0, n, p)
-for (k in seq_along(theta)) {
-  y[z == k] <- rnorm(
-    sum(z == k),
-    theta[[k]]$mu,
-    theta[[k]]$sigma
-  )
-}
+sim <- simulate_data()
+y <- sim$y
+z <- sim$z
 
 ## ---- visualize-simulation ----
 image(z)
-image(y)
-perm_ix <- sample(p)
+image(y[,, 1])
+image(y[,, 2])
+perm_ix <- sample(n)
 image(z[, perm_ix])
-image(y[, perm_ix])
+image(y[, perm_ix, 1])
 
 ## ---- hmm ----
 em_res <- hmm_em(y, K = 4, n_iter = 10)
