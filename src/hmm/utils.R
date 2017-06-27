@@ -88,7 +88,10 @@ sample_sigma <- function(nu, delta, y, mu) {
 
 sample_theta <- function(y, z, theta, lambda, n_iter) {
   modes <- names(theta)
-  z <- as.character(z)
+  y0 <- y
+  z0 <- z
+  y <- matrix(y, prod(dim(y)[1:2]), dim(y)[3])
+  z <- as.character(z) # unwraps into character vector
 
   for (i in seq_len(n_iter)) {
     for (l in modes) {

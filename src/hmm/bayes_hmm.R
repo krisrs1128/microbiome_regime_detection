@@ -83,9 +83,12 @@ sample_pi <- function(z, alpha, kappa) {
   K <- length(alpha)
   modes <- names(alpha)
 
-  n <- transition_counts(z, modes)
-  Pi <- matrix(nrow = K, ncol = K, dimnames = list(modes, modes))
+  n <- transition_counts(z[, 1], modes)
+  for (i in seq(2, ncol(z))) {
+    n <- n + transition_counts(z[, i])
+  }
 
+  Pi <- matrix(nrow = K, ncol = K, dimnames = list(modes, modes))
   for (k in modes) {
     alpha_new <- alpha + n[k, ]
     alpha_new[k] <- alpha_new[k] + kappa
