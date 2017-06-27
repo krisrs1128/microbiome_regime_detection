@@ -1,10 +1,8 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 #include <RcppArmadillo.h>
-#include <RcppArmadilloExtensions/sample.h>
 using namespace arma;
 #include <vector>
 #include <random>
-
 
 const double log2pi = std::log(2.0 * M_PI);
 
