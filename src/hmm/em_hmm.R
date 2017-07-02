@@ -3,26 +3,20 @@
 ## File description ------------------------------------------------------------
 ## Fit a an HMM to parallel time series that share the same latent states, using
 ## the EM algorithm.
+##
+## author: sankaran.kris@gmail.com
+## date: 07/02/2017
 
-################################################################################
-## E-step: Compute smoothing probabilities and expected sufficient statistics
-## via forwards backwards algorithm.
-################################################################################
-
-## ---- libraries ----
 source("utils.R")
+library("Rcpp")
+sourceCpp("messages.cpp")
 
-## ---- e-step ----
+################################################################################
+## Helpers that aren't key to the logic of the alborithm
+################################################################################
+
 normalize_log_space <- function(log_x) {
   log_x - lse(log_x)
-}
-
-normalize <- function(x) {
-  x / sum(x)
-}
-
-normalize_rows <- function(x) {
-  x / rowSums(x)
 }
 
 normalize_rows_log <- function(log_x) {
@@ -32,6 +26,90 @@ normalize_rows_log <- function(log_x) {
   }
   res
 }
+
+merge_default_lambda <- function(lambda = list()) {
+  default_lambda <- list(
+    k0 = 0.1,
+    m0 = rep(0, 2),
+    nu0 = 3, ## p + 1 in our applications
+    s0 = diag(1/(4 ^(1/2)) * 2, nrow = 2) # 1/k ^ (1/p) * column_sigma_hat
+  )
+  modifyList(default_lambda, lambda)
+}
+
+###############################################################################
+## EM Algorithm
+###############################################################################
+
+#' EM Algorithm for Parallel HMM Sequences
+#'
+#' This is an implementation of standard EM for multiple sequencs each following
+#' an HMM with a shared gaussian emission structure. We place prior on the
+#' emission paramebers so the M-step is doing MAP estimation (see
+#' merge_lambda_opts() above). The only big issue is that I'm not calculating
+#' the loglikelihood at each iteration, which would be useful in comparing
+#' solutions coming from different initializations, but it seems to work on the
+#' toy examples I've created so far.
+#'
+#' @param y [matrix] A time x sequence numeric matrix
+#' @param K [integer] The number of states
+#' @param n_iter [integer] The number of iterations to run EM
+#' @param lambda [list] A list of prior parameter options, see
+#'   merge_lamba_opts()
+#' @return res [list] A list with the following elements
+#'   $gamma [array]: A time x state x sequence array giving the responsibility
+#'   of cluster k for sequence j at time i
+#'   $theta [list]: A list whose elements correspond to the estimated emission
+#'     parameters for each state
+#'   $pi [matrix]: The estimated transition probabilities between states
+#'
+#' @examples
+#' sim <- simulate_data()
+#' res <- hmm_em(sim$y)
+#' plot(sim$y[, 1,], col = sim$z[, 1])
+#' plot(sim$y[, 1 ,], col = apply(res$gamma[,, 1], 1, which.max))
+#' plot(sim$y[, 1, 1], col = sim$z[,1])
+#' plot(sim$y[, 1 , 1], col = apply(res$gamma[,, 1], 1, which.max))
+#' image(sim$z)
+#' image(apply(res$gamma, c(1, 3), which.max))
+hmm_em <- function(y, K = 4, n_iter = 10, lambda = list()) {
+  time_len <- nrow(y)
+  n <- ncol(y)
+
+  init <- initialize_states(y, K)
+  theta <- init$theta
+  pi <- init$n / rowSums(init$n)
+  p0 <- setNames(rep(1 / K, K), seq_len(K))
+
+  for (iter in seq_len(n_iter)) {
+    cat(sprintf("iteration %s\n", iter))
+
+    log_lik <- log_likelihood(y, theta)
+    log_alpha <- array(dim = c(time_len, K, n))
+    log_beta <- array(dim = c(time_len, K, n))
+    log_gamma <- array(dim = c(time_len, K, n))
+    log_xi <- array(dim = c(time_len - 1, K, K, n))
+
+    ## E-step
+    for (i in seq_len(n)) {
+      log_alpha[,, i] <- forwards(pi, log_lik[,, i], p0)
+      log_beta[,, i] <- backwards(pi, log_lik[,, i])
+      log_gamma[,, i] <- normalize_rows_log(log_alpha[,, i] + log_beta[,, i])
+      log_xi[,,, i] <- two_step_marginal(pi, log_lik[,, i], log_alpha[,, i], log_beta[,, i])
+    }
+
+    enjk <- expected_njk(log_xi)
+    pi <- enjk / rowSums(enjk)
+    p0 <- fitted_p0(as.matrix(log_gamma[1,, ]))
+    theta <- expected_gaussian_param(y, exp(log_gamma), lambda)
+  }
+
+  list("theta" = theta, "gamma" = exp(log_gamma), "pi" = pi)
+}
+
+###############################################################################
+## E-step: Infer latent states across all sequences in parallel
+###############################################################################
 
 #' @examples
 #' pi <- matrix(c(0.25, 0.75, 0.75, 0.25), 2)
@@ -134,21 +212,9 @@ expected_njk <- function(log_xi) {
   exp(log_njk)
 }
 
-expected_nj <- function(alpha, beta) {
-  gamma <- alpha * beta
-  apply(gamma, 2, sum) # sum over times and samples
-}
-
-merge_default_lambda <- function(lambda = list()) {
-  default_lambda <- list(
-    k0 = 0.1,
-    m0 = rep(0, 2),
-    nu0 = 3, ## p + 1 in our applications
-    s0 = diag(1/(4 ^(1/2)) * 2, nrow = 2) # 1/k ^ (1/p) * column_sigma_hat
-  )
-  modifyList(default_lambda, lambda)
-}
-
+#' MAP estimation for gaussian parameters
+#'
+#' See section 11.4 in Murphy's Machine Learning textbook
 expected_gaussian_param <- function(y, gamma, lambda = list()) {
   ## initialize prior parameters
   lambda <- merge_default_lambda(lambda)
@@ -173,7 +239,6 @@ expected_gaussian_param <- function(y, gamma, lambda = list()) {
 
     sk <- 0
     for (i in seq_len(nrow(y))) {
-      ## seems faster than t(x) %*% diag(w) %*% x for weighted sum of outer products
       sk <- sk + gamma[i, k] * (y[i, ] - y_means[, k]) %*% t(y[i, ] - y_means[, k])
     }
 
@@ -183,47 +248,4 @@ expected_gaussian_param <- function(y, gamma, lambda = list()) {
   }
 
   theta
-}
-
-#' @examples
-#' sim <- simulate_data()
-#' res <- hmm_em(sim$y)
-#' plot(sim$y[, 1,], col = sim$z[, 1])
-#' plot(sim$y[, 1 ,], col = apply(res$gamma[,, 1], 1, which.max))
-#' plot(sim$y[, 1, 1], col = sim$z[,1])
-#' plot(sim$y[, 1 , 1], col = apply(res$gamma[,, 1], 1, which.max))
-#' image(sim$z)
-#' image(apply(res$gamma, c(1, 3), which.max))
-hmm_em <- function(y, K = 4, n_iter = 10, lambda = list()) {
-  time_len <- nrow(y)
-  n <- ncol(y)
-
-  init <- initialize_states(y, K)
-  theta <- init$theta
-  pi <- (init$n) / rowSums(init$n)
-  p0 <- setNames(rep(1 / K, K), seq_len(K))
-
-  for (iter in seq_len(n_iter)) {
-    cat(sprintf("iteration %s\n", iter))
-
-    log_lik <- log_likelihood(y, theta)
-    log_alpha <- array(dim = c(time_len, K, n))
-    log_beta <- array(dim = c(time_len, K, n))
-    log_gamma <- array(dim = c(time_len, K, n))
-    log_xi <- array(dim = c(time_len - 1, K, K, n))
-
-    ## E-step
-    for (i in seq_len(n)) {
-      log_alpha[,, i] <- forwards(pi, log_lik[,, i], p0)
-      log_beta[,, i] <- backwards(pi, log_lik[,, i])
-      log_gamma[,, i] <- normalize_rows_log(log_alpha[,, i] + log_beta[,, i])
-      log_xi[,,, i] <- two_step_marginal(pi, log_lik[,, i], log_alpha[,, i], log_beta[,, i])
-    }
-
-    pi <- normalize_rows(expected_njk(log_xi))
-    p0 <- fitted_p0(as.matrix(log_gamma[1,, ]))
-    theta <- expected_gaussian_param(y, exp(log_gamma), lambda)
-  }
-
-  list("theta" = theta, "gamma" = exp(log_gamma), "pi" = pi)
 }
