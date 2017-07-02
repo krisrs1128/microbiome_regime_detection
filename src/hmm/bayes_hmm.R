@@ -31,7 +31,7 @@ block_sampler <- function(y, hyper = list(), lambda = list()) {
   theta <- init$theta
 
   for (iter in seq_len(hyper$n_iter)) {
-    cat(sprintf("iteration %s\n", iter))
+    cat(sprintf("iteration %s/%s\n", iter, hyper$n_iter))
 
     for (i in seq_len(ncol(y))) {
       msg <- messages(Pi, y[, i,], theta)
