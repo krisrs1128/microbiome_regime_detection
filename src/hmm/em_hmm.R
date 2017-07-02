@@ -108,14 +108,16 @@ fitted_p0 <- function(log_gamma1) {
 ## M-step: Optimize emission parameters based on expected sufficient statistics.
 ################################################################################
 
-log_likelihood <- function(Y, theta) {
+log_likelihood <- function(y, theta) {
   K <- length(theta)
-  time_len <- nrow(Y)
-  n <- ncol(Y)
+  time_len <- nrow(y)
+  n <- ncol(y)
 
   log_lik <- array(dim = c(time_len, K, n))
   for (k in seq_len(K)) {
-    log_lik[, k, ] <- dnorm(Y, theta[[k]]$mu, theta[[k]]$sigma, log = TRUE)
+    for (i in seq_len(n)) {
+      log_lik[, k, i] <- dmvn(y[, i,], theta[[k]]$mu, theta[[k]]$sigma, log = TRUE)
+    }
   }
   log_lik
 }
@@ -137,14 +139,14 @@ expected_nj <- function(alpha, beta) {
   apply(gamma, 2, sum) # sum over times and samples
 }
 
-expected_gaussian_param <- function(Y, gamma) {
+expected_gaussian_param <- function(y, gamma) {
   K <- ncol(gamma)
   ns <- vector(length = K)
   y_sums <- vector(length = K)
   yy_sums <- vector(length = K)
   for (k in seq_len(K)) {
-    y_sums[k] <- sum(gamma[, k, ] * Y)
-    yy_sums[k] <- sum(gamma[, k, ] * (Y ^ 2))
+    y_sums[k] <- sum(gamma[, k, ] * y)
+    yy_sums[k] <- sum(gamma[, k, ] * (y ^ 2))
     ns[k] <- sum(gamma[, k, ])
 }
 
@@ -157,11 +159,11 @@ expected_gaussian_param <- function(Y, gamma) {
   theta
 }
 
-hmm_em <- function(Y, K = 4, n_iter = 10) {
-  time_len <- nrow(Y)
-  n <- ncol(Y)
+hmm_em <- function(y, K = 4, n_iter = 10) {
+  time_len <- nrow(y)
+  n <- ncol(y)
 
-  init <- initialize_states(c(Y), K)
+  init <- initialize_states(y, K)
   theta <- init$theta
   pi <- (init$n) / rowSums(init$n)
   p0 <- setNames(rep(1 / K, K), seq_len(K))
@@ -169,7 +171,7 @@ hmm_em <- function(Y, K = 4, n_iter = 10) {
   for (iter in seq_len(n_iter)) {
     cat(sprintf("iteration %s\n", iter))
 
-    log_lik <- log_likelihood(Y, theta)
+    log_lik <- log_likelihood(y, theta)
     log_alpha <- array(dim = c(time_len, K, n))
     log_beta <- array(dim = c(time_len, K, n))
     log_gamma <- array(dim = c(time_len, K, n))
@@ -185,7 +187,7 @@ hmm_em <- function(Y, K = 4, n_iter = 10) {
 
     pi <- normalize_rows(expected_njk(log_xi))
     p0 <- fitted_p0(as.matrix(log_gamma[1,, ]))
-    theta <- expected_gaussian_param(Y, exp(log_gamma))
+    theta <- expected_gaussian_param(y, exp(log_gamma))
   }
 
   list("theta" = theta, "gamma" = exp(log_gamma), "pi" = pi)
