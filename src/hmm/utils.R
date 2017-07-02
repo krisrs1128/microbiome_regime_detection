@@ -8,17 +8,8 @@ transition_counts <- function(z, modes = NULL) {
     modes <- sort(unique(z))
   }
 
-  n <- matrix(0, nrow = length(modes), ncol = length(modes),
-              dimnames = list(modes, modes))
-  n_tilde <- table(head(z, -1), tail(z, -1))
-
-  for (i in rownames(n_tilde)) {
-    for (j in colnames(n_tilde)) {
-      n[i, j] <- n_tilde[i, j]
-    }
-  }
-
-  n
+  z <- factor(z, levels = modes)
+  table(head(z, -1), tail(z, -1))
 }
 
 initialize_states <- function(y, L) {
