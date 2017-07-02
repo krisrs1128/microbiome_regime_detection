@@ -139,27 +139,62 @@ expected_nj <- function(alpha, beta) {
   apply(gamma, 2, sum) # sum over times and samples
 }
 
-expected_gaussian_param <- function(y, gamma) {
-  K <- ncol(gamma)
-  ns <- vector(length = K)
-  y_sums <- vector(length = K)
-  yy_sums <- vector(length = K)
-  for (k in seq_len(K)) {
-    y_sums[k] <- sum(gamma[, k, ] * y)
-    yy_sums[k] <- sum(gamma[, k, ] * (y ^ 2))
-    ns[k] <- sum(gamma[, k, ])
+merge_default_lambda <- function(lambda = list()) {
+  default_lambda <- list(
+    k0 = 0.1,
+    m0 = rep(0, 2),
+    nu0 = 3, ## p + 1 in our applications
+    s0 = diag(1/(4 ^(1/2)) * 2, nrow = 2) # 1/k ^ (1/p) * column_sigma_hat
+  )
+  modifyList(default_lambda, lambda)
 }
 
-  theta <- vector(mode = "list", length = k)
+expected_gaussian_param <- function(y, gamma, lambda = list()) {
+  ## initialize prior parameters
+  lambda <- merge_default_lambda(lambda)
+  k0 <- lambda$k0
+  m0 <- lambda$m0
+  nu0 <- lambda$nu0
+  s0 <- lambda$s0
+  p <- dim(y)[3]
+  K <- dim(gamma)[2]
+
+  gamma <- aperm(gamma, c(1, 3, 2))
+  y <- matrix(y, prod(dim(y)[1:2]), p)
+  gamma <- matrix(gamma, prod(dim(gamma)[1:2]), K)
+
+  ## each column is a weighted mean for cluster k
+  cluster_weight <- colSums(gamma)
+  y_means <- sweep(t(y) %*% gamma, 2, cluster_weight, "/")
+
+  theta <- vector(mode = "list", length = K)
   for (k in seq_len(K)) {
-    theta[[k]]$mu <- y_sums[k] / ns[k]
-    theta[[k]]$sigma <- sqrt((yy_sums[k] - ns[k] * (theta[[k]]$mu ^ 2)) / ns[k])
+    theta[[k]]$mu <- (cluster_weight[k] * y_means[, k] + k0 * m0) / (cluster_weight[k] + k0)
+
+    sk <- 0
+    for (i in seq_len(nrow(y))) {
+      ## seems faster than t(x) %*% diag(w) %*% x for weighted sum of outer products
+      sk <- sk + gamma[i, k] * (y[i, ] - y_means[, k]) %*% t(y[i, ] - y_means[, k])
+    }
+
+    offset_coef <- (k0 * cluster_weight[k]) / (k0 + cluster_weight[k])
+    theta[[k]]$sigma <- (1 / (nu0 + cluster_weight[k] + p + 2)) *
+      (s0 + sk + offset_coef * (y_means[, k] - m0) %*% t(y_means[, k] - m0))
   }
 
   theta
 }
 
-hmm_em <- function(y, K = 4, n_iter = 10) {
+#' @examples
+#' sim <- simulate_data()
+#' res <- hmm_em(sim$y)
+#' plot(sim$y[, 1,], col = sim$z[, 1])
+#' plot(sim$y[, 1 ,], col = apply(res$gamma[,, 1], 1, which.max))
+#' plot(sim$y[, 1, 1], col = sim$z[,1])
+#' plot(sim$y[, 1 , 1], col = apply(res$gamma[,, 1], 1, which.max))
+#' image(sim$z)
+#' image(apply(res$gamma, c(1, 3), which.max))
+hmm_em <- function(y, K = 4, n_iter = 10, lambda = list()) {
   time_len <- nrow(y)
   n <- ncol(y)
 
@@ -187,7 +222,7 @@ hmm_em <- function(y, K = 4, n_iter = 10) {
 
     pi <- normalize_rows(expected_njk(log_xi))
     p0 <- fitted_p0(as.matrix(log_gamma[1,, ]))
-    theta <- expected_gaussian_param(y, exp(log_gamma))
+    theta <- expected_gaussian_param(y, exp(log_gamma), lambda)
   }
 
   list("theta" = theta, "gamma" = exp(log_gamma), "pi" = pi)
