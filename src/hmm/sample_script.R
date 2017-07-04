@@ -13,7 +13,7 @@ library("tidyverse")
 library("reshape2")
 library("phyloseq")
 library("jsonlite")
-source("em_hmm.R")
+source("bayes_hmm.R")
 theme_set(ggscaffold::min_theme(list(
                         "legend_position" = "right",
                         "border_size" = 0.2
@@ -75,5 +75,4 @@ hyper <- list(
   "outpath" = "bayes_kappa_4.txt"
 )
 lambda <- list("mu0" = mean(y), "sigma0" = sd(y), "nu" = 2, "delta" = matrix(1))
-source("bayes_hmm.R")
 res <- block_sampler(y, hyper, lambda)
