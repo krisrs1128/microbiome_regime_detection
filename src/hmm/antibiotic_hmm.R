@@ -12,6 +12,7 @@
 library("tidyverse")
 library("reshape2")
 library("phyloseq")
+library("jsonlite")
 source("em_hmm.R")
 theme_set(ggscaffold::min_theme(list(
                         "legend_position" = "right",
@@ -20,6 +21,8 @@ theme_set(ggscaffold::min_theme(list(
           )
 abt <- get(load("../../data/abt.rda")) %>%
   filter_taxa(function(x) { var(x) > 5 }, TRUE)
+K <- 6
+cluster_cols <- c("#9cdea0", "#9cdeb6", "#9cdecc", "#9cdade", "#9cc4de", "#9caede")
 
 ###############################################################################
 ## Some utilities
@@ -58,16 +61,16 @@ gamma_mode <- function(gamma) {
   gamma_group
 }
 
-melt_gamma <- function(gamma, names) {
+melt_gamma <- function(gamma, dimn, samples, theta) {
+  dimnames(gamma) <- dimn
   gamma <- gamma %>%
     melt(varnames = c("sample", "K", "rsv"), value.name = "gamma") %>%
     as_data_frame() %>%
-    left_join(samples) %>%
-    left_join(means)
+    left_join(samples)
 
   means <- data_frame(
     "K" = 1:K,
-    "mu" = sapply(res$theta, function(x) { x$mu })
+    "mu" = sapply(theta, function(x) { x$mu })
   )
   k_order <- order(means$mu, decreasing = TRUE)
 
@@ -110,17 +113,15 @@ rownames(x) <- sample_names
 
 y <- array(x, dim = c(dim(x), 1))
 lambda <- list("mu" = mean(x), "nu0" = 2, "s0" = 1, "m0" = 0)
-K <- 6
-res <- hmm_em(y, K, 4, lambda)
+#res <- hmm_em(y, K, 4, lambda)
 
 ###############################################################################
 ## inspect heatmap of states
 ###############################################################################
 gamma <- res$gamma
-dimnames(gamma) <- list(rownames(x), seq_len(K), colnames(x))
-gamma <- melt_gamma(gamma)
+dimn <- list(rownames(x), seq_len(K), colnames(x))
+gamma <- melt_gamma(gamma, dimn, samples, res$theta)
 
-cluster_cols <- c("#9cdea0", "#9cdeb6", "#9cdecc", "#9cdade", "#9cc4de", "#9caede")
 ggplot(gamma) +
   geom_tile(
     aes(x = sample, y = rsv, alpha = gamma, fill = K)
@@ -142,14 +143,75 @@ ggplot(gamma_group) +
 
 rownames(res$pi) <- 1:K
 colnames(res$pi) <- 1:K
-round(res$pi[k_order, k_order], 3)
+round(res$pi[levels(gamma$K), levels(gamma$K)], 3)
 
 ###############################################################################
 ## Block sampler for bayesian HMM
 ###############################################################################
-hyper <- list("L" = K, "n_iter" = 4, "alpha" = setNames(rep(1, K), seq_len(K)), kappa = 4)
+hyper <- list(
+  "L" = K,
+  "n_iter" = 4,
+  "alpha" = setNames(rep(1, K), seq_len(K)),
+  "kappa" = 4,
+  "outpath" = "bayes_hmm.txt"
+)
 lambda <- list("mu0" = mean(y), "sigma0" = sd(y), "nu" = 2, "delta" = matrix(1))
 source("bayes_hmm.R")
-res <- block_sampler(y, hyper, lambda)
+#res <- block_sampler(y, hyper, lambda)
 
-image(res$z)
+samp_mcmc <- readLines("bayes_hmm.txt") %>%
+  lapply(fromJSON)
+
+z <- array(dim = c(nrow(y), ncol(y), hyper$n_iter))
+agamma <- array(0, dim = c(nrow(y), K, ncol(y), hyper$n_iter))
+mu <- matrix(nrow = hyper$n_iter, ncol = K)
+sigma <- matrix(nrow = hyper$n_iter, ncol = K)
+for (iter in seq_len(hyper$n_iter)) {
+  z[,, iter] <- samp_mcmc[[iter]]$z
+  mu[iter, ] <- sapply(samp_mcmc[[iter]]$theta, function(x) { x$mu })
+  sigma[iter, ] <- sapply(samp_mcmc[[iter]]$theta, function(x) { x$sigma })
+
+  for (k in seq_len(K)) {
+    agamma[, k,, iter] <- as.integer(z[,, iter] == k)
+  }
+}
+
+gamma <- apply(agamma, c(1, 2, 3), mean)
+
+mu_df <- mu %>%
+  melt(varnames = c("iter", "K"), value.name = "mu")
+
+theta <- mu_df %>%
+  filter(iter > 0.9 * hyper$n_iter) %>%
+  group_by(K) %>%
+  summarise(mu = mean(mu))
+
+theta <- split(theta, seq(nrow(theta)))
+gamma <- melt_gamma(gamma, dimn, samples, theta)
+
+mu_df$K <- factor(mu_df$K, levels(gamma$K))
+ggplot(mu_df) +
+  geom_histogram(
+    aes(x = mu, fill = K),
+  ) +
+  scale_fill_manual(values = cluster_cols) +
+  facet_wrap(~ K)
+
+ggplot(gamma) +
+  geom_tile(
+    aes(x = sample, y = rsv, alpha = gamma, fill = K)
+  ) +
+  scale_fill_manual(values = cluster_cols) +
+  scale_alpha_continuous(range = c(0, 1)) +
+  theme(axis.text = element_blank()) +
+  facet_grid(K ~ ind, space = "free", scales = "free")
+
+gamma_group <- gamma_mode(gamma)
+
+ggplot(gamma_group) +
+  geom_tile(
+    aes(x = sample, y = rsv, fill = k_max)
+  ) +
+  scale_fill_manual(values = cluster_cols) +
+  theme(axis.text = element_blank()) +
+  facet_grid(. ~ ind, space = "free", scales = "free")
