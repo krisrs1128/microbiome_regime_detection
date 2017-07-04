@@ -215,3 +215,33 @@ ggplot(gamma_group) +
   scale_fill_manual(values = cluster_cols) +
   theme(axis.text = element_blank()) +
   facet_grid(. ~ ind, space = "free", scales = "free")
+
+rownames(z) <- rownames(x)
+colnames(z) <- colnames(x)
+mz <- melt(
+  z,
+  varnames = c("sample", "rsv", "iter"),
+  value.name = "K"
+) %>%
+  as_data_frame()
+mz$K <- factor(mz$K, levels(gamma$K))
+
+ggplot(mz %>% filter(rsv %in% levels(gamma$rsv)[1:3])) +
+  geom_tile(
+    aes(x = sample, y = iter, fill = K)
+  ) +
+  scale_fill_manual(values = cluster_cols) +
+  facet_wrap(~rsv) +
+  theme(axis.text = element_blank())
+
+## convert -delay 10 -loop 0 *.png z.gif
+for (i in seq_len(hyper$n_iter)) {
+  cat(sprintf("saving iteration %s\n", i))
+  p <- ggplot(mz %>% filter(iter == i)) +
+    geom_tile(
+      aes(x = sample, y = rsv, fill = K)
+    ) +
+    scale_fill_manual(values = cluster_cols) +
+    theme(axis.text = element_blank())
+  ggsave(sprintf("figure/z_iter_%s.png", i), p, height = 9, width = 4)
+}
