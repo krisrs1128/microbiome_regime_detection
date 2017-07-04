@@ -20,41 +20,11 @@ theme_set(ggscaffold::min_theme(list(
                         "border_size" = 0.2
                       ))
           )
-abt <- get(load("../../data/abt.rda")) %>%
-  filter_taxa(function(x) { var(x) > 5 }, TRUE)
-K <- 6
-cluster_cols <- c("#9cdea0", "#9cdeb6", "#9cdecc", "#9cdade", "#9cc4de", "#9caede")
 col_fun <- colorRampPalette(c("#9cdea0", "#9caede"))
-cluster_cols <- col_fun(K)
 
 ###############################################################################
 ## Some utilities
 ###############################################################################
-melted_counts <- function(x) {
-  x %>% data.frame() %>%
-    rownames_to_column("sample") %>%
-    as_data_frame %>%
-    gather(key = "rsv", value = "value", -sample) %>%
-    mutate(
-      scaled = asinh(value),
-      present = ifelse(value > 0, 1, 0)
-    )
-}
-
-taxa_labels <- function(taxa) {
-  taxa <- taxa %>%
-    data.frame() %>%
-    rownames_to_column("rsv")
-  taxa$label <- taxa$Taxon_5
-  taxa$label[is.na(taxa$Taxon_5)] <- taxa$Taxon_4[is.na(taxa$Taxon_5)]
-  ordered_labels <- names(sort(table(taxa$label), decreasing = TRUE))
-  taxa_levels <- c(ordered_labels, "other")
-  taxa$label <- factor(taxa$label, taxa_levels)
-  taxa$label[!c(taxa$label %in% ordered_labels[1:6])] <- "other"
-  taxa$label[taxa$label == ""] <- "other"
-  taxa
-}
-
 gamma_mode <- function(gamma) {
   gamma_group <- gamma %>%
     group_by(ind, sample, rsv) %>%
@@ -157,41 +127,14 @@ extract_theta <- function(mu) {
   )
 }
 
-
-###############################################################################
-## Extract data and fit HMM to ordinary data
-###############################################################################
-x_df <- abt %>%
-  get_taxa() %>%
-  t() %>%
-  melted_counts()
-
-samples <- sample_data(abt) %>%
-  data.frame() %>%
-  rownames_to_column("sample")
-
-x_df <- x_df %>%
-  select(sample, rsv, scaled) %>%
-  spread(rsv, scaled) %>%
-  left_join(samples) %>%
-  arrange(ind, time)
-
-sample_names <- x_df$sample
-x <- x_df %>%
-  select(-sample, -ind, -time, -condition) %>%
-  as.matrix()
-rownames(x) <- sample_names
-dimn <- list(rownames(x), seq_len(K), colnames(x))
-
-y <- array(x, dim = c(dim(x), 1))
-lambda <- list("mu" = mean(x), "nu0" = 2, "s0" = 1, "m0" = 0)
-#res <- hmm_em(y, K, 4, lambda)
-
 ###############################################################################
 ## inspect heatmap of states
 ###############################################################################
+res <- get(load("hmm_em.rda"))
 gamma <- res$gamma
 gamma <- melt_gamma(gamma, dimn, samples, res$theta)
+K <- nrow(res$Pi)
+cluster_cols <- col_fun(K)
 
 ggplot(gamma) +
   geom_tile(
@@ -202,9 +145,7 @@ ggplot(gamma) +
   theme(axis.text = element_blank()) +
   facet_grid(K ~ ind, space = "free", scales = "free")
 
-gamma_group <- gamma_mode(gamma)
-
-ggplot(gamma_group) +
+ggplot(gamma_mode(gamma)) +
   geom_tile(
     aes(x = sample, y = rsv, fill = k_max)
   ) +
@@ -222,6 +163,8 @@ round(res$pi[levels(gamma$K), levels(gamma$K)], 3)
 samp_mcmc <- readLines("bayes_kappa_4.txt")
 samp_mcmc <- samp_mcmc[seq(1, length(samp_mcmc), 10)] %>%
   lapply(fromJSON)
+K <- nrow(samp_mcmc[[1]]$Pi)
+cluster_cols <- col_fun(K)
 
 samp_data <- extract_iteration_data(
  rsamp_mcmc,
@@ -251,9 +194,7 @@ ggplot(gamma) +
   theme(axis.text = element_blank()) +
   facet_grid(K ~ ind, space = "free", scales = "free")
 
-gamma_group <- gamma_mode(gamma)
-
-ggplot(gamma_group) +
+ggplot(gamma_mode(gamma)) +
   geom_tile(
     aes(x = sample, y = rsv, fill = k_max)
   ) +
@@ -276,6 +217,8 @@ write_gif(mz)
 ###############################################################################
 samp_mcmc <- readLines("hdp_kappa_01.txt") %>%
   lapply(fromJSON)
+K <- nrow(samp_mcmc[[1]]$Pi)
+cluster_cols <- col_fun(K)
 ## samp_mcmc <- samp_mcmc[seq(1, length(samp_mcmc), 10)] %>%
 
 samp_data <- extract_iteration_data(
@@ -284,7 +227,7 @@ samp_data <- extract_iteration_data(
   ncol(y),
   nrow(y)
 )
-gamma <- apply(samp_data$zgamma[,,, 100:200], c(1, 2, 3), mean)
+gamma <- apply(samp_data$zgamma, c(1, 2, 3), mean)
 
 theta <- extract_theta(samp_data$mu)
 dimn[[2]] <- as.character(seq_len(ncol(gamma)))
