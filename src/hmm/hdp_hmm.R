@@ -26,7 +26,8 @@ merge_default_hyper <- function(opts = list()) {
     "theta_iter" = 2,
     "alpha" = 1,
     "gamma" = 2,
-    "kappa" = 3
+    "kappa" = 3,
+    "outpath" = file.path(getwd(), "samples.txt")
   )
   modifyList(default_opts, opts)
 }
@@ -82,8 +83,8 @@ block_sampler <- function(y, hyper = list(), lambda = list()) {
     cat(sprintf("iteration %s/%s\n", iter, hyper$n_iter))
 
     for (i in seq_len(ncol(y))) {
-      msg <- messages(Pi, y[, i, ], theta)
-      z[, i] <- sample_z(Pi, y[, i, ], theta, msg)
+      msg <- messages(Pi, as.matrix(y[, i,, drop = FALSE]), theta)
+      z[, i] <- sample_z(Pi, as.matrix(y[, i,, drop = FALSE]), theta, msg)
     }
 
     m <- sample_m(z, hyper$alpha, beta, hyper$kappa)
@@ -96,7 +97,13 @@ block_sampler <- function(y, hyper = list(), lambda = list()) {
 
     Pi <- sample_pi(z, hyper$alpha, beta, hyper$kappa)
     theta <- sample_theta(y, z, theta, lambda, hyper$theta_iter)
-    state <- list("z" = z, "beta" = beta, "theta" = theta)
+    state <- list("z" = z, "beta" = beta, "theta" = theta, "Pi" = Pi)
+
+    cat(
+      sprintf("%s\n", toJSON(c("iter" = iter, state))),
+      file = hyper$outpath,
+      append = iter != 1
+    )
   }
 
   state
