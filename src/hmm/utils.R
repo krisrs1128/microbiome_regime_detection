@@ -19,8 +19,8 @@ initialize_states <- function(y, L) {
   y_clust <- kmeans(y, L)
   theta <- setNames(vector(mode = "list", length = L), 1:L)
   for (l in seq_len(L)) {
-    theta[[l]]$mu <- colMeans(y[y_clust$cluster == l, ])
-    theta[[l]]$sigma <- 0.75 * cov(y[y_clust$cluster == l, ])
+    theta[[l]]$mu <- colMeans(y[y_clust$cluster == l,, drop = FALSE])
+    theta[[l]]$sigma <- 0.75 * cov(y[y_clust$cluster == l,, drop = FALSE])
   }
 
   list(
