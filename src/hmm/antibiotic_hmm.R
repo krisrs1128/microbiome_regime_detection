@@ -24,11 +24,12 @@ abt <- get(load("../../data/abt.rda")) %>%
   filter_taxa(function(x) { var(x) > 5 }, TRUE)
 K <- 6
 cluster_cols <- c("#9cdea0", "#9cdeb6", "#9cdecc", "#9cdade", "#9cc4de", "#9caede")
+col_fun <- colorRampPalette(c("#9cdea0", "#9caede"))
+cluster_cols <- col_fun(K)
 
 ###############################################################################
 ## Some utilities
 ###############################################################################
-
 melted_counts <- function(x) {
   x %>% data.frame() %>%
     rownames_to_column("sample") %>%
@@ -70,7 +71,7 @@ melt_gamma <- function(gamma, dimn, samples, theta) {
     left_join(samples)
 
   means <- data_frame(
-    "K" = 1:K,
+    "K" = seq_along(theta),
     "mu" = sapply(theta, function(x) { x$mu })
   )
   k_order <- order(means$mu, decreasing = TRUE)
@@ -89,6 +90,7 @@ melt_gamma <- function(gamma, dimn, samples, theta) {
 }
 
 extract_iteration_data <- function(samp_mcmc, n_iter, n_rsv, n_sample) {
+  K <- max(sapply(samp_mcmc, function(x) max(x$z)))
   z <- array(dim = c(n_sample, n_rsv, n_iter))
   zgamma <- array(0, dim = c(n_sample, K, n_rsv, n_iter))
   mu <- matrix(nrow = n_iter, ncol = K)
@@ -179,6 +181,7 @@ x <- x_df %>%
   select(-sample, -ind, -time, -condition) %>%
   as.matrix()
 rownames(x) <- sample_names
+dimn <- list(rownames(x), seq_len(K), colnames(x))
 
 y <- array(x, dim = c(dim(x), 1))
 lambda <- list("mu" = mean(x), "nu0" = 2, "s0" = 1, "m0" = 0)
@@ -188,7 +191,6 @@ lambda <- list("mu" = mean(x), "nu0" = 2, "s0" = 1, "m0" = 0)
 ## inspect heatmap of states
 ###############################################################################
 gamma <- res$gamma
-dimn <- list(rownames(x), seq_len(K), colnames(x))
 gamma <- melt_gamma(gamma, dimn, samples, res$theta)
 
 ggplot(gamma) +
@@ -217,11 +219,12 @@ round(res$pi[levels(gamma$K), levels(gamma$K)], 3)
 ###############################################################################
 ## Block sampler for bayesian HMM
 ###############################################################################
-samp_mcmc <- readLines("bayes_kappa_4.txt") %>%
+samp_mcmc <- readLines("bayes_kappa_4.txt")
+samp_mcmc <- samp_mcmc[seq(1, length(samp_mcmc), 10)] %>%
   lapply(fromJSON)
 
 samp_data <- extract_iteration_data(
-  samp_mcmc,
+ rsamp_mcmc,
   length(samp_mcmc),
   ncol(y),
   nrow(y)
@@ -251,6 +254,62 @@ ggplot(gamma) +
 gamma_group <- gamma_mode(gamma)
 
 ggplot(gamma_group) +
+  geom_tile(
+    aes(x = sample, y = rsv, fill = k_max)
+  ) +
+  scale_fill_manual(values = cluster_cols) +
+  theme(axis.text = element_blank()) +
+  facet_grid(. ~ ind, space = "free", scales = "free")
+
+mz <- melt_z(samp_data$z, x, gamma)
+ggplot(mz %>% filter(rsv %in% levels(gamma$rsv)[1:3])) +
+  geom_tile(
+    aes(x = sample, y = iter, fill = K)
+  ) +
+  scale_fill_manual(values = cluster_cols) +
+  facet_wrap(~rsv) +
+  theme(axis.text = element_blank())
+write_gif(mz)
+
+###############################################################################
+## Figures for HDP-HMM results
+###############################################################################
+samp_mcmc <- readLines("hdp_kappa_01.txt") %>%
+  lapply(fromJSON)
+## samp_mcmc <- samp_mcmc[seq(1, length(samp_mcmc), 10)] %>%
+
+samp_data <- extract_iteration_data(
+  samp_mcmc,
+  length(samp_mcmc),
+  ncol(y),
+  nrow(y)
+)
+gamma <- apply(samp_data$zgamma[,,, 100:200], c(1, 2, 3), mean)
+
+theta <- extract_theta(samp_data$mu)
+dimn[[2]] <- as.character(seq_len(ncol(gamma)))
+dimn[[3]] <- dimn[[3]][1:10]
+gamma <- melt_gamma(gamma, dimn, samples, theta$theta)
+
+theta$mu_df$K <- factor(theta$mu_df$K, levels(gamma$K))
+cluster_cols <- col_fun(length(unique(gamma$K)))
+ggplot(theta$mu_df) +
+  geom_histogram(
+    aes(x = mu, fill = K),
+  ) +
+  scale_fill_manual(values = cluster_cols) +
+  facet_wrap(~ K)
+
+ggplot(gamma) +
+  geom_tile(
+    aes(x = sample, y = rsv, alpha = gamma, fill = K)
+  ) +
+  scale_fill_manual(values = cluster_cols) +
+  scale_alpha_continuous(range = c(0, 1)) +
+  theme(axis.text = element_blank()) +
+  facet_grid(K ~ ind, space = "free", scales = "free")
+
+ggplot(gamma_mode(gamma)) +
   geom_tile(
     aes(x = sample, y = rsv, fill = k_max)
   ) +
