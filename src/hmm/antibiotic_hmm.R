@@ -87,6 +87,71 @@ melt_gamma <- function(gamma, dimn, samples, theta) {
   gamma
 }
 
+extract_iteration_data <- function(samp_mcmc, n_iter, n_rsv, n_sample) {
+  z <- array(dim = c(n_sample, n_rsv, n_iter))
+  zgamma <- array(0, dim = c(n_sample, K, n_rsv, n_iter))
+  mu <- matrix(nrow = n_iter, ncol = K)
+  sigma <- matrix(nrow = n_iter, ncol = K)
+  for (iter in seq_len(n_iter)) {
+    z[,, iter] <- samp_mcmc[[iter]]$z
+    mu[iter, ] <- sapply(samp_mcmc[[iter]]$theta, function(x) { x$mu })
+    sigma[iter, ] <- sapply(samp_mcmc[[iter]]$theta, function(x) { x$sigma })
+
+    for (k in seq_len(K)) {
+      zgamma[, k,, iter] <- as.integer(z[,, iter] == k)
+    }
+  }
+
+  list(
+    "z" = z,
+    "zgamma" = zgamma,
+    "mu" = mu,
+    "sigma" = sigma
+  )
+}
+
+write_gif <- function(mz) {
+  for (i in seq_len(max(mz$iter))) {
+    cat(sprintf("saving iteration %s\n", i))
+    p <- ggplot(mz %>% filter(iter == i)) +
+      geom_tile(
+        aes(x = sample, y = rsv, fill = K)
+      ) +
+      scale_fill_manual(values = cluster_cols) +
+      theme(axis.text = element_blank())
+    ggsave(sprintf("figure/z_iter_%s.png", i), p, height = 9, width = 4)
+  }
+  system("convert -delay 10 -loop 0 figure/*.png figure/z.gif")
+}
+
+melt_z <- function(z, x, gamma) {
+  colnames(z) <- colnames(x)
+  rownames(z) <- rownames(x)
+  mz <- melt(
+    z,
+    varnames = c("sample", "rsv", "iter"),
+    value.name = "K"
+  ) %>%
+    as_data_frame()
+  mz$K <- factor(mz$K, levels(gamma$K))
+  mz$rsv <- factor(mz$rsv, levels(gamma$rsv))
+  mz
+}
+
+extract_theta <- function(mu) {
+  mu_df <- mu %>%
+    melt(varnames = c("iter", "K"), value.name = "mu")
+  theta <- mu_df %>%
+    group_by(K) %>%
+    summarise(mu = mean(mu))
+  theta <- split(theta, seq(nrow(theta)))
+  list(
+    "mu_df" = mu_df,
+    "theta" = theta
+  )
+}
+
+
 ###############################################################################
 ## Extract data and fit HMM to ordinary data
 ###############################################################################
@@ -148,49 +213,22 @@ round(res$pi[levels(gamma$K), levels(gamma$K)], 3)
 ###############################################################################
 ## Block sampler for bayesian HMM
 ###############################################################################
-hyper <- list(
-  "L" = K,
-  "n_iter" = 4,
-  "alpha" = setNames(rep(1, K), seq_len(K)),
-  "kappa" = 4,
-  "outpath" = "bayes_hmm.txt"
-)
-lambda <- list("mu0" = mean(y), "sigma0" = sd(y), "nu" = 2, "delta" = matrix(1))
-source("bayes_hmm.R")
-#res <- block_sampler(y, hyper, lambda)
-
-samp_mcmc <- readLines("bayes_hmm.txt") %>%
+samp_mcmc <- readLines("bayes_kappa_4.txt") %>%
   lapply(fromJSON)
 
-z <- array(dim = c(nrow(y), ncol(y), hyper$n_iter))
-agamma <- array(0, dim = c(nrow(y), K, ncol(y), hyper$n_iter))
-mu <- matrix(nrow = hyper$n_iter, ncol = K)
-sigma <- matrix(nrow = hyper$n_iter, ncol = K)
-for (iter in seq_len(hyper$n_iter)) {
-  z[,, iter] <- samp_mcmc[[iter]]$z
-  mu[iter, ] <- sapply(samp_mcmc[[iter]]$theta, function(x) { x$mu })
-  sigma[iter, ] <- sapply(samp_mcmc[[iter]]$theta, function(x) { x$sigma })
+samp_data <- extract_iteration_data(
+  samp_mcmc,
+  length(samp_mcmc),
+  ncol(y),
+  nrow(y)
+)
+gamma <- apply(samp_data$zgamma, c(1, 2, 3), mean)
 
-  for (k in seq_len(K)) {
-    agamma[, k,, iter] <- as.integer(z[,, iter] == k)
-  }
-}
+theta <- extract_theta(samp_data$mu)
+gamma <- melt_gamma(gamma, dimn, samples, theta$theta)
 
-gamma <- apply(agamma, c(1, 2, 3), mean)
-
-mu_df <- mu %>%
-  melt(varnames = c("iter", "K"), value.name = "mu")
-
-theta <- mu_df %>%
-  filter(iter > 0.9 * hyper$n_iter) %>%
-  group_by(K) %>%
-  summarise(mu = mean(mu))
-
-theta <- split(theta, seq(nrow(theta)))
-gamma <- melt_gamma(gamma, dimn, samples, theta)
-
-mu_df$K <- factor(mu_df$K, levels(gamma$K))
-ggplot(mu_df) +
+theta$mu_df$K <- factor(theta$mu_df$K, levels(gamma$K))
+ggplot(theta$mu_df) +
   geom_histogram(
     aes(x = mu, fill = K),
   ) +
@@ -216,16 +254,7 @@ ggplot(gamma_group) +
   theme(axis.text = element_blank()) +
   facet_grid(. ~ ind, space = "free", scales = "free")
 
-rownames(z) <- rownames(x)
-colnames(z) <- colnames(x)
-mz <- melt(
-  z,
-  varnames = c("sample", "rsv", "iter"),
-  value.name = "K"
-) %>%
-  as_data_frame()
-mz$K <- factor(mz$K, levels(gamma$K))
-
+mz <- melt_z(samp_data$z, x, gamma)
 ggplot(mz %>% filter(rsv %in% levels(gamma$rsv)[1:3])) +
   geom_tile(
     aes(x = sample, y = iter, fill = K)
@@ -233,15 +262,4 @@ ggplot(mz %>% filter(rsv %in% levels(gamma$rsv)[1:3])) +
   scale_fill_manual(values = cluster_cols) +
   facet_wrap(~rsv) +
   theme(axis.text = element_blank())
-
-## convert -delay 10 -loop 0 *.png z.gif
-for (i in seq_len(hyper$n_iter)) {
-  cat(sprintf("saving iteration %s\n", i))
-  p <- ggplot(mz %>% filter(iter == i)) +
-    geom_tile(
-      aes(x = sample, y = rsv, fill = K)
-    ) +
-    scale_fill_manual(values = cluster_cols) +
-    theme(axis.text = element_blank())
-  ggsave(sprintf("figure/z_iter_%s.png", i), p, height = 9, width = 4)
-}
+write_gif(mz)
