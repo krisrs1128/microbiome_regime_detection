@@ -13,6 +13,7 @@ library("tidyverse")
 library("reshape2")
 library("phyloseq")
 library("jsonlite")
+library("stringr")
 source("em_hmm.R")
 theme_set(ggscaffold::min_theme(list(
                         "legend_position" = "right",
@@ -119,7 +120,10 @@ write_gif <- function(mz) {
       ) +
       scale_fill_manual(values = cluster_cols) +
       theme(axis.text = element_blank())
-    ggsave(sprintf("figure/z_iter_%s.png", i), p, height = 9, width = 4)
+    ggsave(
+      sprintf("figure/z_iter_%s.png", str_pad(i, 4, "left", "0")),
+      p, height = 9, width = 4
+    )
   }
   system("convert -delay 10 -loop 0 figure/*.png figure/z.gif")
 }
