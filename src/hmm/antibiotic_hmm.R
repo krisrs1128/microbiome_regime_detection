@@ -50,6 +50,40 @@ taxa_labels <- function(taxa) {
   taxa
 }
 
+gamma_mode <- function(gamma) {
+  gamma_group <- gamma %>%
+    group_by(ind, sample, rsv) %>%
+    summarise(k_max = K[which.max(gamma)])
+  gamma_group$k_max <- factor(gamma_group$k_max, levels(gamma$K))
+  gamma_group
+}
+
+melt_gamma <- function(gamma, names) {
+  gamma <- gamma %>%
+    melt(varnames = c("sample", "K", "rsv"), value.name = "gamma") %>%
+    as_data_frame() %>%
+    left_join(samples) %>%
+    left_join(means)
+
+  means <- data_frame(
+    "K" = 1:K,
+    "mu" = sapply(res$theta, function(x) { x$mu })
+  )
+  k_order <- order(means$mu, decreasing = TRUE)
+
+  gamma_mat <- gamma %>%
+    select(rsv, sample, K, gamma) %>%
+    unite(sample_K, sample, K) %>%
+    spread(sample_K, gamma)
+
+  hres <- hclust(dist(as.matrix(gamma_mat[, -1])))
+  rsv_order <- gamma_mat$rsv[hres$order]
+
+  gamma$K <- factor(gamma$K, levels = k_order)
+  gamma$rsv <- factor(gamma$rsv, levels = rsv_order)
+  gamma
+}
+
 ###############################################################################
 ## Extract data and fit HMM to ordinary data
 ###############################################################################
@@ -84,28 +118,7 @@ res <- hmm_em(y, K, 4, lambda)
 ###############################################################################
 gamma <- res$gamma
 dimnames(gamma) <- list(rownames(x), seq_len(K), colnames(x))
-gamma <- gamma %>%
-  melt(varnames = c("sample", "K", "rsv"), value.name = "gamma") %>%
-  as_data_frame() %>%
-  left_join(samples) %>%
-  left_join(means)
-
-means <- data_frame(
-  "K" = 1:K,
-  "mu" = sapply(res$theta, function(x) { x$mu })
-)
-k_order <- order(means$mu, decreasing = TRUE)
-
-gamma_mat <- gamma %>%
-  select(rsv, sample, K, gamma) %>%
-  unite(sample_K, sample, K) %>%
-  spread(sample_K, gamma)
-
-hres <- hclust(dist(as.matrix(gamma_mat[, -1])))
-rsv_order <- gamma_mat$rsv[hres$order]
-
-gamma$K <- factor(gamma$K, levels = k_order)
-gamma$rsv <- factor(gamma$rsv, levels = rsv_order)
+gamma <- melt_gamma(gamma)
 
 cluster_cols <- c("#9cdea0", "#9cdeb6", "#9cdecc", "#9cdade", "#9cc4de", "#9caede")
 ggplot(gamma) +
@@ -117,10 +130,7 @@ ggplot(gamma) +
   theme(axis.text = element_blank()) +
   facet_grid(K ~ ind, space = "free", scales = "free")
 
-gamma_group <- gamma %>%
-  group_by(ind, sample, rsv) %>%
-  summarise(k_max = K[which.max(gamma)])
-gamma_group$k_max <- factor(gamma_group$k_max, k_order)
+gamma_group <- gamma_mode(gamma)
 
 ggplot(gamma_group) +
   geom_tile(
@@ -133,3 +143,13 @@ ggplot(gamma_group) +
 rownames(res$pi) <- 1:K
 colnames(res$pi) <- 1:K
 round(res$pi[k_order, k_order], 3)
+
+###############################################################################
+## Block sampler for bayesian HMM
+###############################################################################
+hyper <- list("L" = K, "n_iter" = 4, "alpha" = setNames(rep(1, K), seq_len(K)), kappa = 4)
+lambda <- list("mu0" = mean(y), "sigma0" = sd(y), "nu" = 2, "delta" = matrix(1))
+source("bayes_hmm.R")
+res <- block_sampler(y, hyper, lambda)
+
+image(res$z)
