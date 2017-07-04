@@ -55,14 +55,15 @@ merge_default_lambda <- function(opts = list()) {
 #' @examples
 #' sim <- simulate_data()
 #' hyper <- list(
-#'   n_iter = 2000,
+#'   n_iter = 200,
 #'   L = 10,
-#'   gamma = 0.1,
-#'   alpha = 0.9,
-#'   kappa = 3
+#'   gamma = 1e-4, ## controls total number of states
+#'   alpha = 1e-2, ## controls number of states any one state can transition to
+#'   kappa = 0.01
 #' )
 #' res <- block_sampler(sim$y[, 1:20, ], hyper)
-#' plot(sim$y[,1,2], col = res$z[, 1])
+#' plot(sim$y[,1, 1], col = res$z[, 1])
+#' plot(sim$y[,1, ], col = res$z[, 1], asp = 1)
 #' image(res$z)
 block_sampler <- function(y, hyper = list(), lambda = list()) {
   ## merge default opts
@@ -113,7 +114,11 @@ sample_beta <- function(m, w, gamma) {
 
 sample_pi <- function(z, alpha, beta, kappa) {
   modes <- names(beta)
-  n <- transition_counts(z, modes)
+  n <- 0
+  for (i in seq_len(ncol(z))) {
+    n <- n + transition_counts(z[, i], modes)
+  }
+
   Pi <- matrix(0, length(modes), length(modes),
                dimnames = list(modes, modes))
   for (l in modes) {
