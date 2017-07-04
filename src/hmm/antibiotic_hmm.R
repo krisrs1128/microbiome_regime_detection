@@ -82,12 +82,6 @@ res <- hmm_em(y, K, 4, lambda)
 ###############################################################################
 ## inspect heatmap of states
 ###############################################################################
-means <- data_frame(
-  "K" = 1:K,
-  "mu" = sapply(res$theta, function(x) { x$mu })
-)
-k_order <- order(means$mu, decreasing = TRUE)
-
 gamma <- res$gamma
 dimnames(gamma) <- list(rownames(x), seq_len(K), colnames(x))
 gamma <- gamma %>%
@@ -95,7 +89,23 @@ gamma <- gamma %>%
   as_data_frame() %>%
   left_join(samples) %>%
   left_join(means)
+
+means <- data_frame(
+  "K" = 1:K,
+  "mu" = sapply(res$theta, function(x) { x$mu })
+)
+k_order <- order(means$mu, decreasing = TRUE)
+
+gamma_mat <- gamma %>%
+  select(rsv, sample, K, gamma) %>%
+  unite(sample_K, sample, K) %>%
+  spread(sample_K, gamma)
+
+hres <- hclust(dist(as.matrix(gamma_mat[, -1])))
+rsv_order <- gamma_mat$rsv[hres$order]
+
 gamma$K <- factor(gamma$K, levels = k_order)
+gamma$rsv <- factor(gamma$rsv, levels = rsv_order)
 
 cluster_cols <- c("#9cdea0", "#9cdeb6", "#9cdecc", "#9cdade", "#9cc4de", "#9caede")
 ggplot(gamma) +
