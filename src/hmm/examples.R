@@ -38,7 +38,7 @@ p <- ggplot(mz) +
   geom_tile(
     aes(x = time, y = sample, fill = value)
   ) +
-  scale_fill_viridis(option = "magma", begin = 1, end = 0) +
+  scale_fill_viridis(option = "magma") +
   scale_y_continuous(expand = c(0, 0)) +
   scale_x_continuous(expand = c(0, 0)) +
   theme(legend.position = "none")
@@ -68,7 +68,7 @@ p <- ggplot(mz_est) +
   geom_tile(
     aes(x = time, y = sample, fill = value)
   ) +
-  scale_fill_viridis(option = "magma", begin = 1, end = 0) +
+  scale_fill_viridis(option = "magma") +
   scale_y_continuous(expand = c(0, 0)) +
   scale_x_continuous(expand = c(0, 0)) +
   theme(legend.position = "none")
@@ -88,7 +88,7 @@ p <- ggplot(mz_est) +
   geom_tile(
     aes(x = time, y = sample, fill = value)
   ) +
-  scale_fill_viridis(option = "magma", begin = 1, end = 0) +
+  scale_fill_viridis(option = "magma") +
   scale_y_continuous(expand = c(0, 0)) +
   scale_x_continuous(expand = c(0, 0)) +
   theme(legend.position = "none")
@@ -96,11 +96,11 @@ ggsave("~/Desktop/lab_meetings/20170705/figure/sticky_hmm_large_kappa.pdf", p, h
 
 source("hdp_hmm2.R")
 hyper <- list(
-  n_iter = 100,
+  n_iter = 200,
   L = 10,
   gamma = 1e-4, ## controls total number of states
   alpha = 1e-2, ## controls number of states any one state can transition to
-  kappa = 0.01
+  kappa = 1e-2
 )
 res <- block_sampler(sim$y, hyper)
 
@@ -116,8 +116,10 @@ p <- ggplot(mz_est) +
   geom_tile(
     aes(x = time, y = sample, fill = value)
   ) +
-  scale_fill_viridis(option = "magma", begin = 1, end = 0) +
+  scale_fill_viridis(option = "magma")  +
   scale_y_continuous(expand = c(0, 0)) +
   scale_x_continuous(expand = c(0, 0)) +
   theme(legend.position = "none")
+
 ggsave("~/Desktop/lab_meetings/20170705/figure/sticky_hdp_hmm.pdf", p, height = 2, width = 4)
+
