@@ -15,10 +15,9 @@ library("phyloseq")
 library("jsonlite")
 library("stringr")
 source("em_hmm.R")
-          )
 abt <- get(load("../../data/abt.rda")) %>%
   filter_taxa(function(x) { var(x) > 5 }, TRUE)
-K <- 6
+K <- 4
 
 ###############################################################################
 ## Some utilities
@@ -60,5 +59,5 @@ rownames(x) <- sample_names
 
 y <- array(x, dim = c(dim(x), 1))
 lambda <- list("mu" = mean(x), "nu0" = 2, "s0" = 1, "m0" = 0)
-res <- hmm_em(y, K, 4, lambda)
+res <- hmm_em(y, K, 20, lambda)
 save(res, file = "hmm_em.rda")

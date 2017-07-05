@@ -9,11 +9,12 @@
 ###############################################################################
 ## setup
 ###############################################################################
-library("tidyverse")
+source("bayes_hmm.R")
 library("reshape2")
 library("phyloseq")
 library("jsonlite")
-source("bayes_hmm.R")
+library("tidyverse")
+set.seed(705)
 theme_set(ggscaffold::min_theme(list(
                         "legend_position" = "right",
                         "border_size" = 0.2
@@ -21,7 +22,7 @@ theme_set(ggscaffold::min_theme(list(
           )
 abt <- get(load("../../data/abt.rda")) %>%
   filter_taxa(function(x) { var(x) > 5 }, TRUE)
-K <- 6
+K <- 4
 
 ###############################################################################
 ## Some utilities
@@ -69,7 +70,7 @@ y <- array(x, dim = c(dim(x), 1))
 ###############################################################################
 hyper <- list(
   "L" = K,
-  "n_iter" = 5e4,
+  "n_iter" = 2000,
   "alpha" = setNames(rep(1, K), seq_len(K)),
   "kappa" = 4,
   "outpath" = "bayes_kappa_4.txt"
