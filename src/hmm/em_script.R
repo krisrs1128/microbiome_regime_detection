@@ -57,7 +57,6 @@ x <- x_df %>%
   select(-sample, -ind, -time, -condition) %>%
   as.matrix()
 rownames(x) <- sample_names
-dimn <- list(rownames(x), seq_len(K), colnames(x))
 
 y <- array(x, dim = c(dim(x), 1))
 lambda <- list("mu" = mean(x), "nu0" = 2, "s0" = 1, "m0" = 0)

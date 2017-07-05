@@ -83,7 +83,7 @@ extract_iteration_data <- function(samp_mcmc, n_iter, n_rsv, n_sample) {
   )
 }
 
-write_gif <- function(mz) {
+write_gif <- function(mz, name_base) {
   for (i in seq_len(max(mz$iter))) {
     cat(sprintf("saving iteration %s\n", i))
     p <- ggplot(mz %>% filter(iter == i)) +
@@ -93,11 +93,21 @@ write_gif <- function(mz) {
       scale_fill_manual(values = cluster_cols) +
       theme(axis.text = element_blank())
     ggsave(
-      sprintf("figure/z_iter_%s.png", str_pad(i, 4, "left", "0")),
+      sprintf(
+        "figure/%s_iter_%s.png",
+        name_base,
+        str_pad(i, 4, "left", "0")
+      ),
       p, height = 9, width = 4
     )
   }
-  system("convert -delay 10 -loop 0 figure/*.png figure/z.gif")
+  system(
+    sprintf(
+      "convert -delay 10 -loop 0 figure/%s*.png figure/%s.gif",
+      name_base,
+      name_base
+    )
+  )
 }
 
 melt_z <- function(z, x, gamma) {
@@ -130,10 +140,13 @@ extract_theta <- function(mu) {
 ###############################################################################
 ## inspect heatmap of states
 ###############################################################################
+abt <- get(load("../../data/abt.rda")) %>%
+  filter_taxa(function(x) { var(x) > 5 }, TRUE)
 res <- get(load("hmm_em.rda"))
 gamma <- res$gamma
 gamma <- melt_gamma(gamma, dimn, samples, res$theta)
 K <- nrow(res$Pi)
+dimn <- list(sample_names(abt), seq_len(K), taxa_names(abt))
 cluster_cols <- col_fun(K)
 
 ggplot(gamma) +
@@ -164,6 +177,7 @@ samp_mcmc <- readLines("bayes_kappa_4.txt")
 samp_mcmc <- samp_mcmc[seq(1, length(samp_mcmc), 10)] %>%
   lapply(fromJSON)
 K <- nrow(samp_mcmc[[1]]$Pi)
+dimn <- list(sample_names(abt), seq_len(K), taxa_names(abt))
 cluster_cols <- col_fun(K)
 
 samp_data <- extract_iteration_data(
@@ -210,7 +224,7 @@ ggplot(mz %>% filter(rsv %in% levels(gamma$rsv)[1:3])) +
   scale_fill_manual(values = cluster_cols) +
   facet_wrap(~rsv) +
   theme(axis.text = element_blank())
-write_gif(mz)
+write_gif(mz, "bayes_hmm_z")
 
 ###############################################################################
 ## Figures for HDP-HMM results
@@ -218,8 +232,8 @@ write_gif(mz)
 samp_mcmc <- readLines("hdp_kappa_01.txt") %>%
   lapply(fromJSON)
 K <- nrow(samp_mcmc[[1]]$Pi)
+dimn <- list(sample_names(abt), seq_len(K), taxa_names(abt))
 cluster_cols <- col_fun(K)
-## samp_mcmc <- samp_mcmc[seq(1, length(samp_mcmc), 10)] %>%
 
 samp_data <- extract_iteration_data(
   samp_mcmc,
@@ -227,11 +241,10 @@ samp_data <- extract_iteration_data(
   ncol(y),
   nrow(y)
 )
-gamma <- apply(samp_data$zgamma, c(1, 2, 3), mean)
+gamma <- apply(samp_data$zgamma[,,, 100:200], c(1, 2, 3), mean)
 
 theta <- extract_theta(samp_data$mu)
 dimn[[2]] <- as.character(seq_len(ncol(gamma)))
-dimn[[3]] <- dimn[[3]][1:10]
 gamma <- melt_gamma(gamma, dimn, samples, theta$theta)
 
 theta$mu_df$K <- factor(theta$mu_df$K, levels(gamma$K))
@@ -268,4 +281,4 @@ ggplot(mz %>% filter(rsv %in% levels(gamma$rsv)[1:3])) +
   scale_fill_manual(values = cluster_cols) +
   facet_wrap(~rsv) +
   theme(axis.text = element_blank())
-write_gif(mz)
+write_gif(mz, "hdp_hmm_z")

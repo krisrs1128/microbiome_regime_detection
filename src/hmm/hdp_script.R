@@ -68,8 +68,8 @@ y <- array(x, dim = c(dim(x), 1))
 hyper <- list(
   "L" = 10,
   "n_iter" = 200,
-  "alpha" = 1e-15,
-  "gamma" = 1e-10,
+  "alpha" = 1e-4,
+  "gamma" = 1e-6,
   "kappa" = 0.1,
   "outpath" = "hdp_kappa_01.txt"
 )
