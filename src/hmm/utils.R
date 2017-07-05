@@ -91,10 +91,10 @@ simulate_data <- function() {
 
   ## parameters per state
   theta <- list(
-    list("mu" = c(0, 0), "sigma" = diag(2)),
     list("mu" = c(-2, -1), "sigma" = diag(2)),
-    list("mu" = c(2, 1), "sigma" = diag(2)),
-    list("mu" = c(-1, -1), "sigma" = diag(2))
+    list("mu" = c(-1, -1), "sigma" = diag(2)),
+    list("mu" = c(0, 0), "sigma" = diag(2)),
+    list("mu" = c(2, 1), "sigma" = diag(2))
   )
 
   ## observed data
