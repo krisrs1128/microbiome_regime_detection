@@ -26,13 +26,15 @@ dir.create(figure_dir)
 ## --- utils ----
 combined_heatmap <- function(mx, fill_type = "bw") {
   p1 <- ggplot(mx) +
-    geom_tile(aes(x = leaf_ix, y = sample, fill = scaled)) +
-    facet_grid(ind ~ cluster, scales = "free", space = "free") +
-    scale_x_continuous(expand = c(0, 0)) +
+    geom_tile(aes(y = leaf_ix, x = sample, fill = scaled)) +
+    facet_grid(cluster ~ ind, scales = "free", space = "free") +
+    scale_y_continuous(expand = c(0, 0)) +
     theme(
       plot.margin = unit(c(0, 0, 0, 0), "null"),
+      legend.position = "none",
       axis.title = element_blank(),
-      axis.text = element_blank()
+      axis.text = element_blank(),
+      strip.text.y = element_text(size = 4),
     )
 
   if (fill_type == "bw") {
@@ -49,17 +51,17 @@ combined_heatmap <- function(mx, fill_type = "bw") {
     "leaf_ix" = unique_mx$leaf_ix[inv_rep_ix],
     "cluster" = unique_mx$cluster[inv_rep_ix],
     "y" = rep_ix,
-    "label" = unique_mx$label[inv_rep_ix],
-    "dummy" = 1
+    "label" = unique_mx$label[inv_rep_ix]
   )
 
   p2 <- ggplot(rsvs) +
-    geom_tile(aes(x = leaf_ix, y = y, fill = label)) +
+    geom_tile(aes(y = leaf_ix, x = y, fill = label)) +
     scale_fill_brewer(palette = "Set2", guide = guide_legend(nrow = 8)) +
-    scale_x_continuous(expand = c(0, 0)) +
-    facet_grid(dummy ~ cluster, scales = "free", space = "free") +
+    scale_y_continuous(expand = c(0, 0)) +
+    facet_grid(cluster ~ ., scales = "free", space = "free") +
     theme(
       panel.border = element_blank(),
+      legend.position = "left",
       axis.title = element_blank(),
       axis.text = element_blank(),
       strip.text = element_blank(),
@@ -67,7 +69,7 @@ combined_heatmap <- function(mx, fill_type = "bw") {
       plot.margin = unit(c(0, 0, 0, 0), "null")
     )
 
-  arrangeGrob(rbind(ggplotGrob(p1), ggplotGrob(p2), size = "last"))
+  arrangeGrob(cbind(ggplotGrob(p2), ggplotGrob(p1)[-1, ], size = "last"))
 }
 
 centroid_plot <- function(mx) {
@@ -93,7 +95,8 @@ centroid_plot <- function(mx) {
       aes(x = time, y = centroid, col = ind), size = 0.4
     ) +
     scale_color_brewer(palette = "Set1") +
-    facet_wrap(~cluster)
+    theme(axis.text.x = element_blank()) +
+    facet_wrap(~cluster, ncol = 10)
 
   p2 <- ggplot(mx) +
     geom_point(
@@ -110,7 +113,8 @@ centroid_plot <- function(mx) {
       aes(x = time, y = centroid_prob, col = ind), size = 0.4
     ) +
     scale_color_brewer(palette = "Set1") +
-    facet_wrap(~cluster)
+    theme(axis.text.x = element_blank()) +
+    facet_wrap(~cluster, ncol = 10)
 
   list(
     "conditional" = p1,
@@ -259,78 +263,78 @@ all_plots[["pacf_pairs"]] <- ggplot(x_pairs %>% filter(time >= 10, time <= 20)) 
   facet_grid(ind~time)
 
 ## ---- hmm ----
-i <- 100
-df <- data.frame(y = x_scaled[, i] + runif(nrow(x_scaled), 0, 0.001))
-msp <- depmix(y ~ 1, nstates = 4, data = df, emcontrol = em.control(classification = "soft"))
-fm <- fit(msp)
+## i <- 100
+## df <- data.frame(y = x_scaled[, i] + runif(nrow(x_scaled), 0, 0.001))
+## msp <- depmix(y ~ 1, nstates = 4, data = df, emcontrol = em.control(classification = "soft"))
+## fm <- fit(msp)
 
-plot_hmm <- cbind(df, fm@posterior) %>%
-  rownames_to_column("sample") %>%
-  left_join(samples) %>%
-  gather(state_prob, prob, starts_with("S", ignore.case = FALSE))
+## plot_hmm <- cbind(df, fm@posterior) %>%
+##   rownames_to_column("sample") %>%
+##   left_join(samples) %>%
+##   gather(state_prob, prob, starts_with("S", ignore.case = FALSE))
 
-all_plots[["hmm-example"]] <- ggplot(plot_hmm) +
-  geom_line(aes(x = time, y = y, col = ind), size = 0.4, alpha = 0.3) +
-  geom_point(aes(x = time, y = y, col = ind, size = prob)) +
-  facet_grid(state_prob ~ .) +
-  scale_size_continuous(range = c(0.05, 2)) +
-  scale_color_brewer(palette = "Set1")
+## all_plots[["hmm-example"]] <- ggplot(plot_hmm) +
+##   geom_line(aes(x = time, y = y, col = ind), size = 0.4, alpha = 0.3) +
+##   geom_point(aes(x = time, y = y, col = ind, size = prob)) +
+##   facet_grid(state_prob ~ .) +
+##   scale_size_continuous(range = c(0.05, 2)) +
+##   scale_color_brewer(palette = "Set1")
 
-## ---- parallel-hmm ----
-plot_hmm <- list()
-K <- 4
+## ## ---- parallel-hmm ----
+## plot_hmm <- list()
+## K <- 4
 
-## Loop over every RSV and fit an HMM
-for (i in seq_len(ncol(x_scaled))) {
-  if (i %% 10 == 0) {
-    cat(sprintf("HMM on rsv %s\n", i))
-  }
+## ## Loop over every RSV and fit an HMM
+## for (i in seq_len(ncol(x_scaled))) {
+##   if (i %% 10 == 0) {
+##     cat(sprintf("HMM on rsv %s\n", i))
+##   }
 
-  df <- data_frame(
-    "sample" = rownames(x_scaled),
-    "y" = x_scaled[, i] + runif(nrow(x_scaled), 0, 0.005),
-    "rsv" = colnames(x_scaled)[i]
-  )
+##   df <- data_frame(
+##     "sample" = rownames(x_scaled),
+##     "y" = x_scaled[, i] + runif(nrow(x_scaled), 0, 0.005),
+##     "rsv" = colnames(x_scaled)[i]
+##   )
 
-  msp <- depmix(
-    y ~ 1,
-   nstates = K,
-    data = df,
-    emcontrol = em.control(classification = "soft")
-  )
-  fm <- try(fit(msp, verbose = FALSE))
+##   msp <- depmix(
+##     y ~ 1,
+##    nstates = K,
+##     data = df,
+##     emcontrol = em.control(classification = "soft")
+##   )
+##   fm <- try(fit(msp, verbose = FALSE))
 
-  if (class(fm) != "try-error") {
-    ## try to align states across rsvs, naive approach just sorts by emission mean
-    state_order <- c(1, 1 + order(summary(fm)[, 1], decreasing = TRUE))
-    ordered_posterior <- fm@posterior[, state_order]
-    colnames(ordered_posterior) <- c("state", paste0("S", seq_len(K)))
+##   if (class(fm) != "try-error") {
+##     ## try to align states across rsvs, naive approach just sorts by emission mean
+##     state_order <- c(1, 1 + order(summary(fm)[, 1], decreasing = TRUE))
+##     ordered_posterior <- fm@posterior[, state_order]
+##     colnames(ordered_posterior) <- c("state", paste0("S", seq_len(K)))
 
-    plot_hmm[[i]] <- cbind(df, ordered_posterior) %>%
-      gather(state_prob, prob, starts_with("S", ignore.case = FALSE)) %>%
-      as_data_frame
-  }
-}
+##     plot_hmm[[i]] <- cbind(df, ordered_posterior) %>%
+##       gather(state_prob, prob, starts_with("S", ignore.case = FALSE)) %>%
+##       as_data_frame
+##   }
+## }
 
-plot_hmm <- do.call(rbind, plot_hmm) %>%
-  left_join(samples)
-plot_hmm$rsv <- factor(plot_hmm$rsv, levels = mix_tree$label)
+## plot_hmm <- do.call(rbind, plot_hmm) %>%
+##   left_join(samples)
+## plot_hmm$rsv <- factor(plot_hmm$rsv, levels = mix_tree$label)
 
-for (state in paste0("S", 1:K)) {
-  all_plots[[sprintf("hmm-%s", state)]] <- ggplot(plot_hmm %>% filter_(sprintf("state_prob == '%s'", state))) +
-    geom_tile(aes(x = rsv, y = sample, fill = prob)) +
-    scale_fill_gradient(low = "white", high = "black") +
-    facet_grid(ind ~ ., scale = "free_y") +
-    theme(axis.text = element_blank()) +
-    ggtitle(sprintf("State %s", state))
-}
+## for (state in paste0("S", 1:K)) {
+##   all_plots[[sprintf("hmm-%s", state)]] <- ggplot(plot_hmm %>% filter_(sprintf("state_prob == '%s'", state))) +
+##     geom_tile(aes(x = rsv, y = sample, fill = prob)) +
+##     scale_fill_gradient(low = "white", high = "black") +
+##     facet_grid(ind ~ ., scale = "free_y") +
+##     theme(axis.text = element_blank()) +
+##     ggtitle(sprintf("State %s", state))
+## }
 
 ## write all the plots to file
 for (i in seq_along(all_plots)) {
-  cur_name <- paste0(names(all_plots)[i], ".png")
+  cur_name <- paste0(names(all_plots)[i], ".pdf")
   height <- 2.5
   if (grepl("heatmap", cur_name)) {
-    height <- 1.5
+    height <- 2
   } else if (grepl("centroid", cur_name)) {
     height <- 4
   }
@@ -339,31 +343,6 @@ for (i in seq_along(all_plots)) {
     file.path(figure_dir, cur_name),
     all_plots[[i]],
     dpi = 450,
-    height = height, width = 6.5
+    height = height, width = 2
   )
 }
-
-## ---- write-js ---
-js_data <- mx %>%
-  ungroup() %>%
-  arrange(leaf_ix) %>%
-  dplyr::select(sample, rsv, label, scaled) %>%
-  rename(
-    column = rsv,
-    row = sample,
-    value = scaled
-  )
-
-cat(sprintf("var data = %s;", jsonlite::toJSON(js_data)), file = "~/Desktop/100_days/june2/data.js")
-
-phy <- as.phylo(mix_dendro)
-phy_df <- data_frame(
-  parent = phy$edge[, 1],
-  child = phy$edge[, 2],
-  edge_length = phy$edge.length
-)
-phy_df <- rbind(
-  phy_df,
-  data_frame(parent = "", child = "621", edge_length = 0.1)
-)
-cat(sprintf("var tree = %s;", jsonlite::toJSON(phy_df)), file = "~/Desktop/100_days/june2/tree.js")

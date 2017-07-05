@@ -103,9 +103,8 @@ write_gif <- function(mz, name_base) {
   }
   system(
     sprintf(
-      "convert -delay 10 -loop 0 figure/%s*.png figure/%s.gif",
-      name_base,
-      name_base
+      "convert -delay 15 -loop 0 figure/%s*.png figure/%s.gif",
+      name_base, name_base
     )
   )
 }
