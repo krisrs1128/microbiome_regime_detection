@@ -20,7 +20,6 @@ theme_set(ggscaffold::min_theme(list(
                         "border_size" = 0.2
                       ))
           )
-col_fun <- colorRampPalette(c("#9cdea0", "#9caede"))
 
 ###############################################################################
 ## Some utilities
@@ -153,7 +152,6 @@ samples <- sample_data(abt) %>%
 res <- get(load("hmm_em.rda"))
 gamma <- res$gamma
 K <- nrow(res$pi)
-cluster_cols <- col_fun(K)
 dimn <- list(sample_names(abt), seq_len(K), taxa_names(abt))
 gamma <- melt_gamma(gamma, dimn, samples, res$theta)
 
@@ -188,7 +186,6 @@ samp_mcmc <- samp_mcmc[seq(1, length(samp_mcmc), 1)] %>%
   lapply(fromJSON)
 K <- nrow(samp_mcmc[[1]]$Pi)
 dimn <- list(sample_names(abt), seq_len(K), taxa_names(abt))
-cluster_cols <- col_fun(K)
 
 samp_data <- extract_iteration_data(
   samp_mcmc,
@@ -209,7 +206,6 @@ ggplot(theta$mu_df) +
     aes(x = mu, fill = K),
     binwidth = 0.01
   ) +
-  scale_fill_manual(values = cluster_cols) +
   facet_wrap(~ K, scales = "free")
 
 pi <- samp_data$pi %>%
@@ -246,7 +242,6 @@ ggplot(gamma) +
   geom_tile(
     aes(x = sample, y = rsv, alpha = gamma, fill = K)
   ) +
-  scale_fill_manual(values = cluster_cols) +
   scale_alpha_continuous(range = c(0, 1)) +
   theme(axis.text = element_blank()) +
   facet_grid(K ~ ind, space = "free", scales = "free")
@@ -278,7 +273,6 @@ samp_mcmc <- readLines("hdp_kappa_01.txt") %>%
   lapply(fromJSON)
 K <- nrow(samp_mcmc[[1]]$Pi)
 dimn <- list(sample_names(abt), seq_len(K), taxa_names(abt))
-cluster_cols <- col_fun(K)
 
 samp_data <- extract_iteration_data(
   samp_mcmc,
@@ -299,14 +293,12 @@ ggplot(theta$mu_df) +
   geom_histogram(
     aes(x = mu, fill = K),
   ) +
-  scale_fill_manual(values = cluster_cols) +
   facet_wrap(~ K)
 
 ggplot(gamma) +
   geom_tile(
     aes(x = sample, y = rsv, alpha = gamma, fill = K)
   ) +
-  scale_fill_manual(values = cluster_cols) +
   scale_alpha_continuous(range = c(0, 1)) +
   theme(axis.text = element_blank()) +
   facet_grid(K ~ ind, space = "free", scales = "free")
