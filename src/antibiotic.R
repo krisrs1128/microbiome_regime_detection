@@ -343,6 +343,6 @@ for (i in seq_along(all_plots)) {
     file.path(figure_dir, cur_name),
     all_plots[[i]],
     dpi = 450,
-    height = height, width = 2
+    height = height, width = 9
   )
 }
