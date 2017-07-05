@@ -8,6 +8,7 @@
 ## date: 07/02/2017
 
 source("utils.R")
+library("mvnfast")
 library("Rcpp")
 sourceCpp("messages.cpp")
 
@@ -29,10 +30,11 @@ normalize_rows_log <- function(log_x) {
 
 merge_default_lambda <- function(lambda = list()) {
   default_lambda <- list(
-    k0 = 0.1,
-    m0 = rep(0, 2),
-    nu0 = 3, ## p + 1 in our applications
-    s0 = diag(1/(4 ^(1/2)) * 2, nrow = 2) # 1/k ^ (1/p) * column_sigma_hat
+    "k0" = 0.1,
+    "m0" = rep(0, 2),
+    "pi_smooth" = 5,
+    "nu0" = 3, ## p + 1 in our applications
+    "s0" = diag(1/(4 ^(1/2)) * 2, nrow = 2) # 1/k ^ (1/p) * column_sigma_hat
   )
   modifyList(default_lambda, lambda)
 }
@@ -73,13 +75,15 @@ merge_default_lambda <- function(lambda = list()) {
 #' image(sim$z)
 #' image(apply(res$gamma, c(1, 3), which.max))
 hmm_em <- function(y, K = 4, n_iter = 10, lambda = list()) {
+  lambda <- merge_default_lambda(lambda)
   time_len <- nrow(y)
   n <- ncol(y)
 
   init <- initialize_states(y, K)
   theta <- init$theta
-  pi <- init$n / rowSums(init$n)
-  p0 <- setNames(rep(1 / K, K), seq_len(K))
+  pi <- init$n + lambda$pi_smooth
+  pi <- pi / rowSums(pi)
+  p0 <- matrix(1 / K, K, n)
 
   for (iter in seq_len(n_iter)) {
     cat(sprintf("iteration %s\n", iter))
@@ -92,7 +96,7 @@ hmm_em <- function(y, K = 4, n_iter = 10, lambda = list()) {
 
     ## E-step
     for (i in seq_len(n)) {
-      log_alpha[,, i] <- forwards(pi, log_lik[,, i], p0)
+      log_alpha[,, i] <- forwards(pi, log_lik[,, i], p0[, i])
       log_beta[,, i] <- backwards(pi, log_lik[,, i])
       log_gamma[,, i] <- normalize_rows_log(log_alpha[,, i] + log_beta[,, i])
       log_xi[,,, i] <- two_step_marginal(pi, log_lik[,, i], log_alpha[,, i], log_beta[,, i])
@@ -100,7 +104,7 @@ hmm_em <- function(y, K = 4, n_iter = 10, lambda = list()) {
 
     enjk <- expected_njk(log_xi)
     pi <- enjk / rowSums(enjk)
-    p0 <- fitted_p0(as.matrix(log_gamma[1,, ]))
+    p0 <- exp(log_gamma[1,, ])
     theta <- expected_gaussian_param(y, exp(log_gamma), lambda)
   }
 
@@ -194,7 +198,12 @@ log_likelihood <- function(y, theta) {
   log_lik <- array(dim = c(time_len, K, n))
   for (k in seq_len(K)) {
     for (i in seq_len(n)) {
-      log_lik[, k, i] <- dmvn(y[, i,], theta[[k]]$mu, theta[[k]]$sigma, log = TRUE)
+      log_lik[, k, i] <- dmvn(
+        as.matrix(y[, i,, drop = FALSE]),
+        theta[[k]]$mu,
+        theta[[k]]$sigma,
+        log = TRUE
+      )
     }
   }
   log_lik

@@ -9,6 +9,7 @@
 
 ## ---- libraries ----
 library("mvnfast")
+library("jsonlite")
 library("MCMCpack")
 source("utils.R")
 Rcpp::sourceCpp("messages.cpp")
@@ -34,13 +35,19 @@ block_sampler <- function(y, hyper = list(), lambda = list()) {
     cat(sprintf("iteration %s/%s\n", iter, hyper$n_iter))
 
     for (i in seq_len(ncol(y))) {
-      msg <- messages(Pi, y[, i,], theta)
-      z[, i] <- sample_z(Pi, y[, i,], theta, msg)
+      msg <- messages(Pi, as.matrix(y[, i,, drop = FALSE]), theta)
+      z[, i] <- sample_z(Pi, as.matrix(y[, i,, drop = FALSE]), theta, msg)
     }
 
     Pi <- sample_pi(z, hyper$alpha, hyper$kappa)
     theta <- sample_theta(y, z, theta, lambda, hyper$theta_iter)
-    state <- list(z = z, beta = beta, theta = theta)
+    state <- list("z" = z, "Pi" = Pi, "theta" = theta)
+
+    cat(
+      sprintf("%s\n", toJSON(c("iter" = iter, state))),
+      file = hyper$outpath,
+      append = iter != 1
+    )
   }
 
   state
@@ -53,7 +60,8 @@ merge_default_hyper <- function(opts = list()) {
     "n_iter" = 500,
     "theta_iter" = 2,
     "alpha" = setNames(rep(1, 4), seq_len(4)),
-    "kappa" = 1
+    "kappa" = 1,
+    "outpath" = file.path(getwd(), "samples.txt")
   )
   modifyList(default_opts, opts)
 }
