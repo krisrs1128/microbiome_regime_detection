@@ -8,7 +8,7 @@
 ## provided a priori.
 ##
 ## author: sankaran.kris@gmail.com
-## date: 06/22/2017
+## date: 07/06/2017
 
 ###############################################################################
 ## Libraries and functions used below
@@ -28,7 +28,7 @@ pred_grid <- function(X, model, type = "raw") {
     "leaf_ix" = unique(X$leaf_ix),
     "time" = unique(X$time)
   )
-  y_hat <- predict(rpart_model, newdata = x_grid, type = type)
+  y_hat <- predict(model, newdata = x_grid, type = type)
   if (type == "prob") {
     y_hat <- y_hat[, 2]
   }
@@ -39,7 +39,7 @@ pred_grid <- function(X, model, type = "raw") {
 plot_grid <- function(X, model, ...) {
   ggplot(pred_grid(X, model, ...)) +
     geom_tile(
-      aes(x = interaction(ind, time), y = leaf_ix, fill = y_hat)
+      aes(x = time, y = leaf_ix, fill = y_hat)
     ) +
     scale_fill_viridis(option = "magma") +
     facet_grid(. ~ ind, scale = "free", space = "free") +
@@ -49,10 +49,15 @@ plot_grid <- function(X, model, ...) {
     scale_y_continuous(expand = c(0, 0))
 }
 
-## ---- data ----
+###############################################################################
+## Load and prepare the data of interest
+###############################################################################
+download.file(
+  "https://github.com/krisrs1128/treelapse/raw/master/data/abt.rda",
+  "../data/abt.rda"
+)
 abt <- get(load("../data/abt.rda")) %>%
-  filter_taxa(function(x) { var(x) > 5}, prune = TRUE) %>%
-  transform_sample_counts(asinh)
+  filter_taxa(function(x) { var(x) > 5}, prune = TRUE)
 x <- t(get_taxa(abt))
 n <- nsamples(abt)
 
@@ -64,7 +69,7 @@ mx <- melted_counts(x) %>%
   left_join(samples)
 
 x_bin <- x > 0
-D_euclidean <- dist(t(asinh(x)), method = "euclidean")
+D_euclidean <- dist(t(x), method = "euclidean")
 D_jaccard <- vegdist(t(x_bin), method = "jaccard")
 mix_tree <- hclust(0.5 * D_euclidean + 0.5 * D_jaccard)
 mix_dendro <- reorder(as.dendrogram(mix_tree), -colMeans(x))
@@ -103,6 +108,7 @@ train_opts$tuneGrid <- data.frame("cp" = c(1e-4))
 rpart_model <- do.call(train, train_opts)
 plot_grid(X, rpart_model)
 
+## notice differential recovery in F
 train_opts$tuneGrid <- data.frame("cp" = c(5e-4))
 rpart_model <- do.call(train, train_opts)
 plot_grid(X, rpart_model)
@@ -121,11 +127,13 @@ train_opts$x <- mx %>%
 train_opts$y <- mx %>%
   filter(scaled > 0) %>%
   .[["scaled"]]
-rpart_model <- do.call(train, train_opts) ## notice the lack of antibiotic timepoint splitting
+
+## notice the lack of antibiotic timepoint splitting
+rpart_model <- do.call(train, train_opts)
 plot_grid(X, rpart_model)
 
 ###############################################################################
-## Consider the conditionally positive models
+## Consider the binarized models
 ###############################################################################
 train_opts$tuneGrid <- data.frame("cp" = c(3e-4))
 train_opts$x <- mx %>%
@@ -138,6 +146,6 @@ plot_grid(X, rpart_model, type = "prob")
 
 ## notice that there are some that go from being not present to being present
 ## during the antibiotics time course
-train_opts$tuneGrid <- data.frame("cp" = c(1e-4)) 
+train_opts$tuneGrid <- data.frame("cp" = c(1e-4))
 rpart_model <- do.call(train, train_opts)
 plot_grid(X, rpart_model, type = "prob")
