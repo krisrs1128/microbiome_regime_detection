@@ -1,0 +1,155 @@
+\documentclass{article}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\input{preamble.tex}
+
+\title{Inference of Dynamic Regimes in the Microbiome}
+\author{Kris Sankaran}
+\begin{document}
+\maketitle
+
+A typical microbiome data set describes the abundances of bacterial species
+across samples. To this point, we have studied latent structure across species
+and samples separately. For example, we have developed interactive visualization
+techniques to compare subsets of species, and we have applied mixed-membership
+models to characterize variation in samples across timepoints. In contrast, our
+goal here is to study latent structure across species and samples
+simultaneously. This difference is analogous to the change in perspective
+obtained by studying a coclustering rather than two separate clusterings, or an
+ordination biplot instead of simply the scores or loadings. We will focus on the
+case where samples are collected over time, so that this problem can be
+understood as one of detecting dynamic regimes, as explained in section
+\ref{sec:problem_description}
+
+In this chapter, our contributions are
+
+\begin{itemize}
+\item The relation of the regime detection problem to several statistical
+  frameworks, and a comparison of the types of interpretation facilitated by
+  each.
+\item Developing experiments to evaluate the practical utility of these
+  different formulations.
+\item A catalog of algorithm pseudocode and real implementations, to serve as a
+  reference for researchers interested in regime detection.
+\item The design of and code for static visualizations that can be used to
+  evaluate the results of various methods.
+\end{itemize}
+
+compare the behavior of different species, while 
+
+\section{Problem description}
+\label{sec:problem_description}
+
+\section{Methods baseline}
+
+\subsection{Hierarchical Clustering}
+
+- Limitations, advantages
+- Interpretation of centroids
+- Choices: transformation, distances
+
+- Review of hierarchical clustering
+
+- Distances
+Using euclidean distance
+Using innovations
+Using jaccard distance
+Combining distances
+
+General question: How to choose between these distances?
+
+Interpretation
+- ordinary averages within components
+- proportions nonzero
+
+\subsection{Recursive partitioning}
+
+- Variation on hierarchical clustering, to provide temporal structure
+- Brief description of recursive partitioning
+- Application to the antibiotics data: provide heatmap and interpretation, at
+several levels of complexity.
+
+\section{Temporal probabilistic models}
+
+\subsection{Linear dynamical systems}
+
+- Review LDS graphical model
+- Derivation of Kalman Filter / Smoother
+  + Kalman filtering pseudocode
+  + Kalman smoothing pseudocode
+  + Link to some actual code
+
+\subsection{Gaussian processes}
+- Review GP graphical model
+- Basic distinctions from previous models
+- Description of GP posterior
+  + GP pseudocode
+  + Link to some actual code
+
+\section{Temporal mixture models}
+
+\subsection{Hidden Markov Modeling}
+
+- Probabilistic approach that incorporates time structure directly
+- Draw the graphical model
+
+\subsubsection{Standard HMMs}
+
+- Write the model and provide an interpretation
+- Application to antibiotics: heatmap, interpretation, and transition
+probability matrix
+- In order to understand extensions, briefly review actual inferential mechanism
+- What kinds of limitations have we encountered?
+
+\subsubsection{Sticky HMMs}
+
+- Modified model
+- Simulation example
+- Antibiotics case study: Transition probabilities and heatmap. Interpretation
+of transition probabilities. Contrast with hierarchical clsutering and recursive
+partitioning
+- Review inferential procedure (block sampling)
+  + Link to code
+  + Algorithm psueodocode
+  + Derivation of some nonobvious steps
+
+\subsubsection{Sticky HDP-HMMs}
+
+- Write the new model
+- Simulation example
+- Antibiotics case study
+- Review inferential procedures (direct assignment and block sampling)
+  + Algorithm psueodocode
+  + Derivation of some nonobvious steps
+  + Link to code
+
+\subsection{Mixture of Experts}
+
+- Switching state space models
+   + Model description
+   + Simulation example
+   + Description of variational inference
+- Mixture of Gaussian processes
+  + Model description
+  + Simulation examples
+  + Description of variational inference
+
+\section{Alternative probabilistic models}
+
+\subsection{Changepoint detection}
+
+- Description of the model
+- Summary of the empirical bayes idea
+- Summary of dynamic programming, and provide row and column updates
+  + Maybe provide actual pseudocode?
+- Would be nice to include a simulation / application to antibiotics
+
+\subsection{Accounting for zero inflation}
+
+- The dynamic tobit model
+  + Brief summary of Glasby Nevison
+  + Explanation and simulation using the scan sampler
+
+\end{document}
