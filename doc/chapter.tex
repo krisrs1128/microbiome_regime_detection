@@ -23,8 +23,7 @@ case where samples are collected over time, so that this problem can be
 understood as one of detecting dynamic regimes, as explained in section
 \ref{sec:problem_description}
 
-In this chapter, our contributions are
-
+The primary contributions of this chapter are,
 \begin{itemize}
 \item The relation of the regime detection problem to several statistical
   frameworks, and a comparison of the types of interpretation facilitated by
@@ -37,14 +36,112 @@ In this chapter, our contributions are
   evaluate the results of various methods.
 \end{itemize}
 
-compare the behavior of different species, while 
+In section \ref{sec:problem_description}, we describe the scientific problem of
+interest in more detail and provide a high-level statistic formulation. In
+section \ref{sec:baseline}, we describe approaches which are easy to implement,
+but that fail to incorporate temporal structure -- these serve as reference
+points for evaluating more complex models.
+Sections \label{sec:temporal_probabilistic_models}
+and \label{sec:temporal_mixture_models} review and apply smoothing and mixture
+modeling techniques to this problem, while
+section \label{sec:alternative_probabilistic_models} highlights several
+departures of typical microbiome data from the structure assumed by the
+techniques in previous sections, along with references to literature that
+addresses these departures.
 
 \section{Problem description}
 \label{sec:problem_description}
 
+In latent variable modeling, our ultimate goal is a succint representation of
+complex data. In a way, we can think of the reduced representations as a type of
+data compression for human interpretation, and as in any (lossy) compression,
+there is a choice of what structure to preserve. Different reduced
+representations facilitate different comparisons -- for example, clustering
+bacteria allows easy comparison of taxonomic categories, while clustering
+samples allows a comparison of full community states.
+
+In the regime detection problem, the comparisons we would like to facilitate are
+\begin{itemize}
+\item For each species, can we assign time intervals to different dynamic
+  regimes?
+\item Can we define subsets of species which have similar patterns of behavior,
+  in terms of these regimes?
+\end{itemize}
+
+Conceretely, we may expect that over the time course of a study, individual
+species may switch between stable / unstable, increasing / decreasing, or
+present / absent regimes, either due to natural ecological dynamics or
+experimentally induced perturbations. We would like to detect these alternative
+regimes automatically.
+
+Further, as we are typically working with hundreds or thousands of bacterial
+species at a time, we would like to group or relate species according to these
+regimes, so that (1) we do not need to inspect the regime switching for
+individual species one by one (2) we can achieve gains in power by pooling
+across species. The resulting species groups can be related to available taxonomic
+information to draw scientific conclusions about the behavior of different
+taxa during different sampling periods -- for example, ``70\% of the Bacteroides
+exhibited stability during the first half of the antibiotic time course, while
+the rest showed decreasing trends.''
+
+We can frame this analysis problem using the language of latent variables. Let
+$\left(t_{i}\right)_{i = 1}^{n}$ be the sampling timepoints, and index species by
+$\left(s_{j}\right)_{j = 1}^{p}$. Our goal is to infer a function $\theta$
+mapping time by species pairs $\left(t_{i}, s_{j}\right)$ to an associated
+latent state, which can either belong to a discrete set of $K$ types,
+$theta\left(t_{i}, s_{j}\right) \in \{1, \dots, K\}$, or which might described a
+mixed-memberhip, $\theta\left(t_{i}, s_{j}\right) \in \S^{K - 1}$, where
+$\S^{K - 1}$ is the $K - 1$-dimensional simplex.
+
+We expect the function $\theta$ to be reasonably well-behaved over time.
+Further, by comparing $\theta\left(\cdot, s_{j}\right)$ across different species
+$j$, we can group or sort species according to their regime membership behavior.
+See Figures \ref{fig:partition} and \ref{fig:gradient} for visual explanations
+of this analysis approach.
+
 \section{Methods baseline}
+\label{sec:baseline}
 
 \subsection{Hierarchical Clustering}
+
+As a baseline, we create a heatmap as in Figure \ref{fig:partition}, where
+species are ordered according to a hierarchical clustering tree. Note that
+clustering trees are invariant under left-right swaps of branches; to fix a
+unique tree, we order branches so that the average abundance of the left is
+always larger than those on the right. The resulting ordered heatmap could
+potentially resolve partitions in the species by time space. A limitation of
+this approach is that it does not provide any clustering for the timepoints,
+only species, even if blocks across timepoints seem to appear in the resulting
+heatmap. Coclustering species and timepoints is not a sufficient alternative,
+because the blocking across timepoints must respect the known order. Conversely,
+an advantage of this approach is that it is simple to both implement this method
+and interpret the results.
+
+The figure generated by hierarchical clustering will be sensitive to several
+choices,
+\begin{itemize}
+\item Transformations: Different transformations might be more effective
+  representations of the underlying data.
+\item Distance: Different distances are appropriate for different types of data.
+\end{itemize}
+
+For example, some natural transformations are
+\begin{itemize}
+\item $\asinh$-transformed: Raw count data in microbiome data sets tend to
+  be very heavy tailed, but with a large spike at 0. An $\asinh$-transformation
+  behaves like $\log$-transformation for large counts, but goes through the
+  origin -- this downweights coordinates with large counts. This can be seen
+  from the representation $\asinh\left(x\right) = \logarg{(x + \sqrt{1 -
+      x^{2}}}$.
+\item Innovations: Rather than clustering the raw series, we can cluster the
+  differenced series. This will cluster series that have similar changes between
+  neighboring timepoints, even if their overall values are quite different. This
+  can highlight bacterial series with similar dynamics, at the cost of failing
+  to resolve changes resulting from different overall abundances.
+\end{itemize}
+
+On these transformed data, it is natural to consider 
+
 
 - Limitations, advantages
 - Interpretation of centroids
@@ -66,12 +163,14 @@ Interpretation
 
 \subsection{Recursive partitioning}
 
-- Variation on hierarchical clustering, to provide temporal structure
+- Variation on hierarchical clustering, to provide
+temporal structure
 - Brief description of recursive partitioning
 - Application to the antibiotics data: provide heatmap and interpretation, at
 several levels of complexity.
 
 \section{Temporal probabilistic models}
+\label{sec:temporal_probabilistic_models}
 
 \subsection{Linear dynamical systems}
 
@@ -88,7 +187,16 @@ several levels of complexity.
   + GP pseudocode
   + Link to some actual code
 
+\subsection{Changepoint detection}
+
+- Description of the model
+- Summary of the empirical bayes idea
+- Summary of dynamic programming, and provide row and column updates
+  + Maybe provide actual pseudocode?
+- Would be nice to include a simulation / application to antibiotics
+
 \section{Temporal mixture models}
+\label{sec:temporal_mixture_models}
 
 \subsection{Hidden Markov Modeling}
 
@@ -137,15 +245,7 @@ partitioning
   + Description of variational inference
 
 \section{Alternative probabilistic models}
-
-\subsection{Changepoint detection}
-
-- Description of the model
-- Summary of the empirical bayes idea
-- Summary of dynamic programming, and provide row and column updates
-  + Maybe provide actual pseudocode?
-- Would be nice to include a simulation / application to antibiotics
-
+\label{sec:alternative_probabilistic_models}
 \subsection{Accounting for zero inflation}
 
 - The dynamic tobit model
