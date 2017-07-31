@@ -138,10 +138,29 @@ For example, some natural transformations are
   neighboring timepoints, even if their overall values are quite different. This
   can highlight bacterial series with similar dynamics, at the cost of failing
   to resolve changes resulting from different overall abundances.
+\item Binarized: We can transform the series $x_{i}$ into $\indic{x_{i} > 0}$.
+  This loses substantial information, but measuring differences in presence /
+  absence patterns in microbiome studies can be scientifically meaningful.
 \end{itemize}
 
-On these transformed data, it is natural to consider 
-
+On these transformed data, we now need to compute pairwise distances between
+series. Three choices that we consider are,
+\begin{itemize}
+\item Euclidean: This distance is ideal when clusters have a spherical shape in
+  a high-dimensional space.
+\item Jaccard: This is a distance between pairs of length $p$ binary sequences
+  $x_{i}$ and $x_{j}$ defined as
+\begin{align}
+  d\left(x_{i}, x_{j}\right) &= 1 - \frac{\sum_{k = 1}^{p} \indic{x_{ik} = x_{jk} = 1}}{p},
+\end{align}
+or one minus the fraction of coordinates that are 0/1. The motivation for this
+distance is that coordinates that are both 0 should not contribute to similarity
+between sequences, especially when they may be dominated by 0s. We apply this
+distance to the binarized version of the species counts.
+\item Mixture: Since any convex combination of distances is still a distance, we
+  can define mixtures of distances that reflect several characteristics of the
+  data.
+\end{itemize}
 
 - Limitations, advantages
 - Interpretation of centroids
