@@ -162,6 +162,120 @@ distance to the binarized version of the species counts.
   data.
 \end{itemize}
 
+In general, we have no quantitative approach for comparing the clusterings
+obtained by different distances. Instead, we compare the resulting heatmaps,
+noting how different patterns are identified by different approaches.
+
+An example application to the $\asinh$-transformed antibiotics data is provided
+in Figures \ref{} through \ref{}. Recall that this data set tracks the abundance
+of bacterial species over three subjects across several months, including two
+brief antibiotic treatment regimes -- see section
+\ref{subsec:bacterial-dynamics-of-antibiotics-time-courses} for further details.
+
+
+The heatmaps in Figures \ref{fig:heatmap-euclidean} through
+\ref{fig:heatmap-innovations-bin} describe which species have simialr behaviors.
+The three main column panels correspond to the three study subjects. Each row
+gives the time series of abundances for a single species, with time evolving
+from left to right and abundance indicated by heatmap shade intensity. The
+taxonomic identities of these species is provided by the multicolored bar on the
+left. The rowwise panels correspond to different subtrees of the hierachical
+clustering when choosing to cut at a particular height -- note that the clusters
+tend to have highly imbalanced sizes.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figure/heatmap-euclidean}
+  \caption{\label{fig:heatmap-euclidean} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figure/heatmap-jaccard}
+  \caption{\label{fig:heatmap-jaccard} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figure/heatmap-mix}
+  \caption{\label{fig:heatmap-mix} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figure/heatmap-innovations}
+  \caption{\label{fig:heatmap-innovations} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figure/heatmap-innovations-bin}
+  \caption{\label{fig:heatmap-innovations-bin} }
+\end{figure}
+
+As expected, different distances group series according to the features that
+define the distance. For example, the Jaccard distance groups series with
+similar zero patterns, even if their associated abundances are very different.
+On the other hand, the euclidean distance tends to group series with similar
+averages, and there is less blocking by presence-absence structure. Notice that,
+according to the colored bar indicating taxonomic identity, families are not
+scattered randomly across rows, but they are not separated into completely
+disjoint blocks either. This suggests that while phylogenetic identity certainly
+relates to the patterns of abundance over time course, variation is occuring at
+levels of granularity more subtle than family level.
+
+We can further inspect the centroids of the clusters indicated by row labels
+within the heatmaps. This is the content of Figures
+\ref{fig:centroid-euclidean-conditional} through \ref{fig:centroid-mix-presence}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figure/centroid-euclidean-conditional}
+  \caption{\label{fig:centroid-euclidean-conditional} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figure/centroid-euclidean-presence}
+  \caption{\label{fig:centroid-euclidean-presence} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figure/centroid-innovations-conditional}
+  \caption{\label{fig:centroid-innovations-conditional}}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figure/centroid-innovations-presence}
+  \caption{\label{fig:centroid-innovations-presence}}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figure/centroid-jaccard-conditional}
+  \caption{\label{fig:centroid-jaccard-conditional}}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figure/centroid-jaccard-presence}
+  \caption{\label{fig:centroid-jaccard-presence}}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figure/centroid-mix-conditional}
+  \caption{\label{fig:centroid-mix-conditional}}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figure/centroid-mix-presence}
+  \caption{\label{fig:centroid-mix-presence}}
+\end{figure}
+
 - Limitations, advantages
 - Interpretation of centroids
 - Choices: transformation, distances
