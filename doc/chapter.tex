@@ -181,7 +181,9 @@ from left to right and abundance indicated by heatmap shade intensity. The
 taxonomic identities of these species is provided by the multicolored bar on the
 left. The rowwise panels correspond to different subtrees of the hierachical
 clustering when choosing to cut at a particular height -- note that the clusters
-tend to have highly imbalanced sizes.
+tend to have highly imbalanced sizes. The most important takeaways from these
+figures are that they show which groups of bacteria are most strongly affected
+by the antibiotic treatment, as well as how long they take to recover.
 
 \begin{figure}[ht]
   \centering
@@ -224,9 +226,26 @@ disjoint blocks either. This suggests that while phylogenetic identity certainly
 relates to the patterns of abundance over time course, variation is occuring at
 levels of granularity more subtle than family level.
 
-We can further inspect the centroids of the clusters indicated by row labels
-within the heatmaps. This is the content of Figures
-\ref{fig:centroid-euclidean-conditional} through \ref{fig:centroid-mix-presence}
+To summarize the behavior within clusters, we display the centroids in Figures
+\ref{fig:centroid-euclidean-conditional} through
+\ref{fig:centroid-mix-presence}. The panel number indicates the cluster as
+defined by cutting hierarchical clustering, with the same labeling as in the
+heatmap. Different individuals are represented by different colors. The solid
+points are time series of averages across all species for the given cluster, for
+the current individual. The semitransparent points are the raw values used to
+compute these averages. Evidently, some of the clustering structure is due
+simply to the presence of species within only some of the patients. Further,
+differential responses can be seen within some of the panels. For example,
+cluster 17 includes bacteria that are affected by the first antibiotics time
+course, but only for patients D and F, and which are also only affected in
+subject D during the second time course.
+
+The fact that the data include many zeros makes computing averages groups a
+somewhat misleading cluster summary. Instead, we can decompose the summary into
+a presence-absence component and a value-conditional-on-presence component.
+The presence-absence component computes the proportion of bacteria that are
+present at any given timepoint, while the conditional-positive component
+computes the time averages among all observed bacteria.
 
 \begin{figure}[ht]
   \centering
