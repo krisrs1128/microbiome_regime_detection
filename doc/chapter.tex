@@ -80,7 +80,7 @@ regimes, so that (1) we do not need to inspect the regime switching for
 individual species one by one (2) we can achieve gains in power by pooling
 across species. The resulting species groups can be related to available taxonomic
 information to draw scientific conclusions about the behavior of different
-taxa during different sampling periods -- for example, ``70\% of the Bacteroides
+taxa during different sampling periods -- for example, ``70\ of the Bacteroides
 exhibited stability during the first half of the antibiotic time course, while
 the rest showed decreasing trends.''
 
@@ -187,31 +187,31 @@ by the antibiotic treatment, as well as how long they take to recover.
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/heatmap-euclidean}
+  %\includegraphics[width=0.8\textwidth]{figure/heatmap-euclidean}
   \caption{\label{fig:heatmap-euclidean} }
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/heatmap-jaccard}
+  %\includegraphics[width=0.8\textwidth]{figure/heatmap-jaccard}
   \caption{\label{fig:heatmap-jaccard} }
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/heatmap-mix}
+  %\includegraphics[width=0.8\textwidth]{figure/heatmap-mix}
   \caption{\label{fig:heatmap-mix} }
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/heatmap-innovations}
+  %\includegraphics[width=0.8\textwidth]{figure/heatmap-innovations}
   \caption{\label{fig:heatmap-innovations} }
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/heatmap-innovations-bin}
+  %\includegraphics[width=0.8\textwidth]{figure/heatmap-innovations-bin}
   \caption{\label{fig:heatmap-innovations-bin} }
 \end{figure}
 
@@ -249,59 +249,189 @@ computes the time averages among all observed bacteria.
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.9\textwidth]{figure/centroid-euclidean-conditional}
+  %\includegraphics[width=0.9\textwidth]{figure/centroid-euclidean-conditional}
   \caption{\label{fig:centroid-euclidean-conditional} }
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.9\textwidth]{figure/centroid-euclidean-presence}
+  %\includegraphics[width=0.9\textwidth]{figure/centroid-euclidean-presence}
   \caption{\label{fig:centroid-euclidean-presence} }
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.9\textwidth]{figure/centroid-innovations-conditional}
+  %\includegraphics[width=0.9\textwidth]{figure/centroid-innovations-conditional}
   \caption{\label{fig:centroid-innovations-conditional}}
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.9\textwidth]{figure/centroid-innovations-presence}
+  %\includegraphics[width=0.9\textwidth]{figure/centroid-innovations-presence}
   \caption{\label{fig:centroid-innovations-presence}}
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.9\textwidth]{figure/centroid-jaccard-conditional}
+  %\includegraphics[width=0.9\textwidth]{figure/centroid-jaccard-conditional}
   \caption{\label{fig:centroid-jaccard-conditional}}
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.9\textwidth]{figure/centroid-jaccard-presence}
+  %\includegraphics[width=0.9\textwidth]{figure/centroid-jaccard-presence}
   \caption{\label{fig:centroid-jaccard-presence}}
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.9\textwidth]{figure/centroid-mix-conditional}
+  %\includegraphics[width=0.9\textwidth]{figure/centroid-mix-conditional}
   \caption{\label{fig:centroid-mix-conditional}}
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.9\textwidth]{figure/centroid-mix-presence}
+  %\includegraphics[width=0.9\textwidth]{figure/centroid-mix-presence}
   \caption{\label{fig:centroid-mix-presence}}
 \end{figure}
 
-\subsection{Recursive partitioning}
+\subsection{CART}
+
+While placing similar time series near to one another suggests time windows
+where the series behave similarly to one another, the hierarchical clustering
+approach presented above does not explicitly partition timepoints into windows
+with distinct behaviors. In this section, we consider a slight extension that
+provides such a partitioning.
+
+The main idea is that a regression tree that uses $X$ to predict $y$ provides a
+partition of the $X$ space, where $y$ has lower variation within than between
+partitions \citep{breiman1984classification}. We will the hierarchical
+clustering approach from the previous section to obtain an ordering $s_{j} \in
+\{1, \dots, n_{\text{species}}\}$ across species. We write the timepoint for the
+$i^{th}$ sample as $t_{i}$ Then, we model the count for the $j^{th}$ species in
+the $i^{th}$ sample as $y_{ij} \approx f\left(s_{j}, t_{i}\right)$ using
+$f \in \mathcal{T}$ the space of decision trees. The output of interest is the
+fitted partition on $\left(s_{j}, t_{i}\right)$.
+
+\subsubsection{CART review}
+\label{subsubsec:cart_review}
+
+For completeness, we review the CART algorithm. Following \citep{stat315bnotes},
+we can describe it in terms of (1) the structural model, (2) the score criterion
+for choosing between models, and (3) the search strategy used to produce the
+final fit.
+
+The structural model $\mathcal{F}$ is the class of functions that can be
+expressed as
+\begin{align}
+f\left(x\right) &= \sum_{m = 1}^{M} c_{m} \indic{x \in R_{m}},
+\end{align}
+where $\left(R_{m}\right)_{m = 1}^{M}$ are some partition of the covariate space
+and $c_{m} \in \reals$ are constants associated with each partition element.
+
+For regression, the criterion is the expected generalization squared-error
+between $y_{i}$ and the $c_{m}$ associated with the $R_{m}$ within which the
+covariate $x_{i}$ lies -- we will denote this by $c\left(x_{i}\right)$. In
+classification, the corresponding criterion is the expected missclassification
+error. More precisely, we consider the empirical risks
+\begin{align}
+  \frac{1}{n} \sum_{i = 1}^{n} \left(y_{i} - c\left(x_{i}\right)\right)^{2},
+\end{align}
+
+for regression and
+\begin{align}
+  \frac{1}{n} \sum_{i = 1}^{n} L_{y_{i}, c\left(x_{i}\right)} \indic{y_{i} = c\left(x_{i}\right)},
+\end{align}
+for classification, where $L_{kk^{\prime}}$ is the loss induced by
+missclassifying $k$ as $k^{\prime}$. Since the empirical risk on the training
+data underestimates generalization error, these estimates are constructed on
+test sets.
+
+To obtain a fitted $\hat{f} \in \mathcal{F}$, the algorithm must identify a
+partition $\left(R_{m}\right)$ and constants $c_{m}$ (approximately) minimizing
+the score criterion. Given a particular $R_{m}$, fitting $c_{m}$ is
+straightforwards, since the score decouples across partition elements -- in the
+regression case the minimizers are averages of the $y_{i}$s or majority votes
+within partition elements. On the other hand, finding the optimal $R_{m}$ is an
+intractable combinatorial optimization problem, and the search strategy instead
+uses a greedy approach to obtain a reasonable local minimizer.
+
+More precisely, the final partition is found by recursively splitting the
+input space, and then pruning away splits that seem less relevant. At the first
+step, the partition consists of a single $R_{1}$, equal to the entire covariate
+space, and it is split on covariate $j^{\ast}$ at position $t_{j1}^{\ast}$
+that solve the optimization
+\begin{align}
+  \left(j^{\ast}, t_{j1}^{\ast}\right) &= \arg \min_{\substack{j = 1, \dots, p \\ t_{j1} \in \reals}} \sum_{i \in R_{1, l}} \left(y_{i} - \bar{y}_{l}\right)^{2} + \sum_{i \in R_{1, r}} \left(y_{i} - \bar{y}_{r}\right)^{2}
+\end{align}
+where $R_{1, l}$ and $R_{1, r}$ (for ``left'' and ``right'') are a splitting of
+$R_{1}$ along feature $j$ feature at position $t_{j1}$.
+
+This procedure is iterated recursively. That is, at the $m^{th}$ iteration, the
+next split solves nearly the same optimization,
+\begin{align}
+  \left(m^{\ast}, j^{\ast}, t_{jm}^{\ast}\right) &= \arg \min_{\substack{j = 1, \dots, p \\ t_{jm} \in \reals}} \sum_{i \in R_{m, l}} \left(y_{i} - \bar{y}_{l}\right)^{2} + \sum_{i \in R_{m, r}} \left(y_{i} - \bar{y}_{r}\right)^{2},
+\end{align}
+where the main difference is that we must now choose which of the $m$ previously
+defined partition elements to split.
+
+This is done for some prespecified number of splits, $M$. This partition is
+potentially unecessarily highly resolved, and it can improve generalization
+error to introduce a pruning step. Define $C_{m}$ denote the ``cost'' of a
+(potentially intermediate) partition element $R_{m}$ according to,
+
+\begin{align}
+  C_{m} &= \begin{cases}
+    \hat{r}_{m} + k & \text{if $m$ was never split} \\
+    \sum_{m^\prime} C_{m^{\prime}} & \text{if $m$ was split into two $m^{\prime}$}
+    \end{cases}
+\end{align}
+where $\hat{r}_{m} = \sum_{x_{i} \in R_{m}} \left(y_{i} - c_{m}\right)^{2}$. $k$
+can be interpreted as the amount of improvement to the score criterion that the
+split must provide in order to be accepted. The
+final partitioning is obtained by choosing to split or merge each intermediate
+$m$ so that $C_{m}$ is minimized. Specifically, if
+$\hat{r}_{m} + k < \sum_{m^{\prime}} C_{m^{\prime}}$, then all descendant nodes
+(subpartition elements) are merged into $R_{m}$. Otherwise, the left and right
+splits are accepted. These choices are made sequentially, from the bottom up.
+
 
 - Variation on hierarchical clustering, to provide
 temporal structure
 - Brief description of recursive partitioning
 - Application to the antibiotics data: provide heatmap and interpretation, at
 several levels of complexity.
+
+\begin{figure}[ht]
+  \centering
+  %\includegraphics[width=0.8\textwidth]{figure/rpart_simple}
+  \caption{\label{fig:label} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  %\includegraphics[width=0.8\textwidth]{figure/rpart_complex}
+  \caption{\label{fig:label} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  %\includegraphics[width=0.8\textwidth]{figure/rpart_complex_2}
+  \caption{\label{fig:label} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  %\includegraphics[width=0.8\textwidth]{figure/rpart_complex_3}
+  \caption{\label{fig:label} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  %\includegraphics[width=0.8\textwidth]{figure/rpart_conditional}
+  \caption{\label{fig:label} }
+\end{figure}
+
 
 \section{Temporal probabilistic models}
 \label{sec:temporal_probabilistic_models}
@@ -310,7 +440,7 @@ several levels of complexity.
 
 - Review LDS graphical model
 - Derivation of Kalman Filter / Smoother
-  + Kalman filtering pseudocode
+  + Kalman filtering pseudocod
   + Kalman smoothing pseudocode
   + Link to some actual code
 
@@ -385,5 +515,8 @@ partitioning
 - The dynamic tobit model
   + Brief summary of Glasby Nevison
   + Explanation and simulation using the scan sampler
+
+\bibliographystyle{plainnat}
+\bibliography{bibliography.bib}
 
 \end{document}
