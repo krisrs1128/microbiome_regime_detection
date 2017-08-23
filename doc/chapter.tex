@@ -454,7 +454,26 @@ the spirit of our \texttt{hclustvis} package.
 \section{Temporal probabilistic models}
 \label{sec:temporal_probabilistic_models}
 
+In section \ref{sec:baseline}, we described distance and regression-based
+techniques to approaching the questions outlined in
+\ref{sec:problem_description} of identifying which subsets of species have
+similar abundance profiles during which windows of time. In particular, we have
+avoided any direct modeling of abundances across species or over time. From this
+point onwards, we adopt this alternative approach, using the approaches of
+\ref{sec:baseline} as a reference for what analysis is possible with minimal
+effort.
+
+In this section, we first review two fundamental approaches to probabilistic
+temporal modeling which are used as building blocks in section
+\ref{sec:temporal_mixture_models}: linear dynamical systems (section
+\ref{subsec:linear_dynamical_systems}) and gaussian processes (section
+\ref{subsec:gaussian_processes}). These approaches are designed for single time
+series, or collections of independent ones. However, models that consider
+collections of related time series can be constructed from these, by introducing
+latent variables.
+
 \subsection{Linear dynamical systems}
+\ref{subsec:linear_dynamical_systems}
 
 - Review LDS graphical model
 - Derivation of Kalman Filter / Smoother
@@ -463,19 +482,12 @@ the spirit of our \texttt{hclustvis} package.
   + Link to some actual code
 
 \subsection{Gaussian processes}
+\ref{subsec:gaussian_processes}
 - Review GP graphical model
 - Basic distinctions from previous models
 - Description of GP posterior
   + GP pseudocode
   + Link to some actual code
-
-\subsection{Changepoint detection}
-
-- Description of the model
-- Summary of the empirical bayes idea
-- Summary of dynamic programming, and provide row and column updates
-  + Maybe provide actual pseudocode?
-- Would be nice to include a simulation / application to antibiotics
 
 \section{Temporal mixture models}
 \label{sec:temporal_mixture_models}
@@ -525,6 +537,15 @@ partitioning
   + Model description
   + Simulation examples
   + Description of variational inference
+
+\subsection{Changepoint detection}
+
+- Description of the model
+- Summary of the empirical bayes idea
+- Summary of dynamic programming, and provide row and column updates
+  + Maybe provide actual pseudocode?
+- Would be nice to include a simulation / application to antibiotics
+
 
 \section{Alternative probabilistic models}
 \label{sec:alternative_probabilistic_models}
