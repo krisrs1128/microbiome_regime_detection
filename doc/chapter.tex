@@ -3,6 +3,8 @@
 \usepackage{natbib}
 \usepackage{graphicx}
 \usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{bayesnet}
 \input{preamble.tex}
 
 \title{Inference of Dynamic Regimes in the Microbiome}
@@ -525,6 +527,29 @@ for an in depth example. Note that the covariance function is responsible for
 the GPs emphasis on smooth trajectories rather than transient events. However,
 multiscale behavior can be modeled by introducing mixtures, as we will see in
 section \ref{sec:temporal_mixture_models}.
+
+A plate diagram representing this model is provided in Figure \ref{fig:gp_plate}.
+
+\begin{figure}[ht]
+  \centering
+  \begin{tikzpicture}
+    \node[obs] (y) {$y$};
+    \node[latent, below=0.7 of y, xshift=-0.4cm] (f) {$f$};
+    \node[obs, left=of y, xshift=-0.4cm]  (x) {$x$};
+    \node[const, right=of y, xshift=-0.2cm]  (sigma) {$\sigma^2$};
+    \node[const, left=0.4 of f] (theta) {$\theta$};
+
+    % Connect the nodes
+    \edge {x, f, sigma} {y} ; %
+    \edge {theta} {f} ; %
+    
+    % Plates
+    \plate {yx} {(x)(y)} {$n$} ;
+  \end{tikzpicture}
+
+  \caption{Gaussian Process plate diagram.\label{fig:gp_plate} }
+\end{figure}
+
 
 In this model, the posterior of $f$ is available analytically, by virtue of
 Gaussian-Gaussian conjugacy. Consider evaluating the function $f$ at new points
