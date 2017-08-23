@@ -331,18 +331,18 @@ all_plots[["pacf_pairs"]] <- ggplot(x_pairs %>% filter(time >= 10, time <= 20)) 
 
 ## write all the plots to file
 for (i in seq_along(all_plots)) {
-  cur_name <- paste0(names(all_plots)[i], ".pdf")
-  height <- 2.5
+  cur_name <- paste0(names(all_plots)[i], ".png")
+  width <- 2.5
   if (grepl("heatmap", cur_name)) {
-    height <- 2
+    width <- 3
   } else if (grepl("centroid", cur_name)) {
-    height <- 4
+    width <- 6.5
   }
 
   ggsave(
     file.path(figure_dir, cur_name),
     all_plots[[i]],
-    dpi = 450,
-    height = height, width = 9
+    dpi = 900,
+    height = 5.5, width = width
   )
 }

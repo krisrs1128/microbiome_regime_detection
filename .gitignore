@@ -2,6 +2,9 @@
 *.aux
 *.log
 *.txt
+*.rda
+*.out
+*.DS_Store
 data
 !data/README.md
 doc/*.bbl

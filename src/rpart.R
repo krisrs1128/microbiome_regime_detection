@@ -99,23 +99,24 @@ train_opts <- list(
   "trControl" = trainControl(method = "boot", number = 1)
 )
 rpart_model <- do.call(train, train_opts)
-plot_grid(X, rpart_model$final_model)
+p <- list()
+p[["rpart_simple"]] <- plot_grid(X, rpart_model)
 
 ###############################################################################
 ## different complexity penalization
 ###############################################################################
 train_opts$tuneGrid <- data.frame("cp" = c(1e-4))
 rpart_model <- do.call(train, train_opts)
-plot_grid(X, rpart_model)
+p[["rpart_complex"]] <- plot_grid(X, rpart_model)
 
 ## notice differential recovery in F
 train_opts$tuneGrid <- data.frame("cp" = c(5e-4))
 rpart_model <- do.call(train, train_opts)
-plot_grid(X, rpart_model)
+p[["rpart_complex_2"]] <- plot_grid(X, rpart_model)
 
 train_opts$tuneGrid <- data.frame("cp" = c(7.5e-4))
 rpart_model <- do.call(train, train_opts)
-plot_grid(X, rpart_model)
+p[["rpart_complex_3"]] <- plot_grid(X, rpart_model)
 
 ###############################################################################
 ## Consider the conditionally positive models
@@ -130,7 +131,7 @@ train_opts$y <- mx %>%
 
 ## notice the lack of antibiotic timepoint splitting
 rpart_model <- do.call(train, train_opts)
-plot_grid(X, rpart_model)
+p[["rpart_conditional"]] <- plot_grid(X, rpart_model)
 
 ###############################################################################
 ## Consider the binarized models
@@ -142,10 +143,17 @@ train_opts$y <- mx %>%
   .[["present"]] %>%
   as.factor()
 rpart_model <- do.call(train, train_opts)
-plot_grid(X, rpart_model, type = "prob")
+p[["rpart_binary"]] <- plot_grid(X, rpart_model, type = "prob")
 
 ## notice that there are some that go from being not present to being present
 ## during the antibiotics time course
 train_opts$tuneGrid <- data.frame("cp" = c(1e-4))
 rpart_model <- do.call(train, train_opts)
-plot_grid(X, rpart_model, type = "prob")
+p[["rpart_binary_simple"]] <- plot_grid(X, rpart_model, type = "prob")
+
+for (i in seq_along(p)) {
+  ggsave(
+    file = file.path("../doc/figure", paste0(names(p)[i], ".png")),
+    p[[i]]
+  )
+}
