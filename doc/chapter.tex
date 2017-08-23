@@ -417,7 +417,7 @@ One interesting detail is the delayed, or sometimes nonexistent, recovery after
 the first antibiotic time course among a cluster of bacteria near the bottom of
 the panel for subject F. This long-term impact of antibiotics on bacterial
 populations, at least in one patient, was a central finding in
-\citep{dethlefsen2011complete}. Observe that a similar pattern is visible after
+\citep{dethlefsen2011incomplete}. Observe that a similar pattern is visible after
 the second antibiotic time course among patient D, also for species near the
 bottom of the panel.
 
@@ -481,8 +481,100 @@ latent variables.
   + Kalman smoothing pseudocode
   + Link to some actual code
 
-\subsection{Gaussian processes}
+\subsection{Gaussian Processes}
 \ref{subsec:gaussian_processes}
+
+Gaussian Processes (GPs) provide a prior over classes of stationary, smoothly
+varying functions. Their appeal as a probabilistic modeling building block lies
+in the fact that they are simultaneously nonparametric -- they can adapt to more
+complex functions as more data arrives -- while still admitting tractable
+inference. One of the simplest models involving GPs models observations
+$\left(x_{i}, y_{i}\right) \in \reals^{p}\times R$ as
+
+\begin{align}
+y_{i} &= f\left(x_{i}\right) + \eps_{i}
+\end{align}
+
+where $f \sim GP\left(m, \kappa\right)$, meaning that for any collections of
+covariates $\left(x_{1}, \dots, x_{n}\right)$, we have
+
+\begin{align}
+  \left(f\left(x_{1}\right), \dots, f\left(x_{n}\right)\right) &\sim
+  \Gsn\left( \begin{pmatrix} m\left(x_{1}\right) \\ \vdots \\ m\left(x_{n}\right) \end{pmatrix}, \begin{pmatrix} \kappa\left(x_{1}, x_{1}\right) & \dots & \kappa\left(x_{1}, x_{n}\right) \\ \vdots & & \vdots \\ \kappa\left(x_{n}, x_{1}\right) & \dots &\kappa\left(x_{n}, x_{n}\right) \end{pmatrix}\right)
+\end{align}
+$m$ and $\kappa$ are called the mean and covariance functions, respectively. We
+will denote this covariance matrix of $\kappa$'s applied to pairs of $x_{i}$ by
+$K\left(x, x\right)$.
+
+It is common to initially center the data before analysis, in which case we can
+assume $m \equiv 0$. Further, any positive-definite covariance function $\kappa$
+can be used -- a common choice is the Gaussian covariance,
+
+\begin{align}
+\kappa_{\sigma_{f}, M}\left(x_{p}, x_{q}\right) &= \sigma_{f}^{2}\exp{-\frac{1}{2}\left(x_{p} - x_{q}\right)^{T}M\left(x_{p} - x_{q}\right)},
+\end{align}
+
+where $M$ can be $\frac{1}{l^{2}}I_{n}$, which assumes similar degrees of smoothness
+across all coordinates, $\diag\left(l\right)^{-2}$, which allows different
+smoothness along different axes, or $\Lambda \Lambda^{T} + \diag\left(l\right)^{-2}$,
+which assumes variation along certain non-axes-aligned directions. While a
+reasonable defult, it is good practice to adapt the covariance function to the
+data problem at hand, accounting for seasonality, multiple scales of variation,
+or the presence of outliers, see section 5.4.3 of \citep{rasmussen2006gaussian}
+for an in depth example. Note that the covariance function is responsible for
+the GPs emphasis on smooth trajectories rather than transient events. However,
+multiscale behavior can be modeled by introducing mixtures, as we will see in
+section \ref{sec:temporal_mixture_models}.
+
+In this model, the posterior of $f$ is available analytically, by virtue of
+Gaussian-Gaussian conjugacy. Consider evaluating the function $f$ at new points
+$x_{\ast}$, denoted by $f_{\ast} := f\left(x_{\ast}\right)$. Then, the joint of
+$y$ and $f^{\ast}$ is
+\begin{align}
+  \begin{pmatrix}
+    y \\ f_{\ast}
+  \end{pmatrix} &= \Gsn\left(
+ \begin{pmatrix}
+   0 \\ 0
+ \end{pmatrix} ,
+\begin{pmatrix}
+  K\left(x, x\right) + \sigma^{2}I_{n} & K\left(x, x_{\ast}\right) \\
+  K\left(x_{\ast}, x\right) & K\left(x_{\ast}, x_{\ast}\right)
+\end{pmatrix}
+  \right),
+\end{align}
+which yields the posterior,
+\begin{align}
+  f_{\ast} \vert y &\sim \Gsn\left(\Earg{f_{\ast} \vert y}, \Covarg{f_{\ast} \vert y}\right),
+\end{align}
+where
+\begin{align}
+  \Earg{f_{\ast} \vert y} &= K\left(x_{\ast}, x\right)\left(K\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}y \\
+  \Covarg{f_{\ast} \vert y} &= K\left(x_{\ast}, x_{\ast}\right) - K\left(x_{\ast}, x\right)\left(K\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}K\left(x, x_{\ast}\right)
+\end{align}
+Note the $n\times n$ matrix inversion in the covariance calculation. This is the
+source of the $O\left(n^{3}\right)$ complexity of using standard GPs, though a
+variety of fast approximations have been proposed, exploiting the sparse,
+banded, or block structure within the covariance
+\citep{quinonero2007approximation}.
+
+In this computation, we have assumed the the kernel hyperparameters $\theta$ is
+known\footnote{For example, in the Gaussian covariance case, this has the form
+  $\theta = \left(\sigma_{f}^{2}, M\right)$}. In reality, these must be inferred
+from the data. Two standard approaches are based on maximizing (1) the marginal
+likelihood of $y$ and (2) the cross-validated predictive likelihood. The first
+approach leverages the fact that the marginal likelihood,
+\begin{align}
+\log p\left(y \vert x; \theta\right) &= -\frac{n}{2}\log 2\pi - \log\absarg{K_{\theta}\left(x, x\right) + \sigma^{2}I_{n}} - \frac{1}{2}y^{T}\left(K_{\theta}\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}y
+\end{align}
+and its gradients over $\theta$ have a closed form, and so can be optimized.
+
+The cross-validation approach instead maximizes the average predicted log probability,
+\begin{align}
+\sum_{i = 1}^{n} \log p\left(y_{i} \vert x, y_{-i}; \theta\right),
+\end{align}
+which can also be found analytically, by conditioning the marginal for $y$.
+
 - Review GP graphical model
 - Basic distinctions from previous models
 - Description of GP posterior
