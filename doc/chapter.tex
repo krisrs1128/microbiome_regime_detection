@@ -474,17 +474,8 @@ series, or collections of independent ones. However, models that consider
 collections of related time series can be constructed from these, by introducing
 latent variables.
 
-\subsection{Linear dynamical systems}
-\ref{subsec:linear_dynamical_systems}
-
-- Review LDS graphical model
-- Derivation of Kalman Filter / Smoother
-  + Kalman filtering pseudocod
-  + Kalman smoothing pseudocode
-  + Link to some actual code
-
 \subsection{Gaussian Processes}
-\ref{subsec:gaussian_processes}
+\label{subsec:gaussian_processes}
 
 Gaussian Processes (GPs) provide a prior over classes of stationary, smoothly
 varying functions. Their appeal as a probabilistic modeling building block lies
@@ -542,7 +533,7 @@ A plate diagram representing this model is provided in Figure \ref{fig:gp_plate}
     % Connect the nodes
     \edge {x, f, sigma} {y} ; %
     \edge {theta} {f} ; %
-    
+
     % Plates
     \plate {yx} {(x)(y)} {$n$} ;
   \end{tikzpicture}
@@ -604,6 +595,60 @@ which can also be found analytically, by conditioning the marginal for $y$.
 - Basic distinctions from previous models
 - Description of GP posterior
   + GP pseudocode
+  + Link to some actual code
+
+\subsection{Linear dynamical systems}
+\label{subsec:linear_dynamical_systems}
+
+Linear dynamical systems model an observed time series as a transformation of
+temporally evolving latent states. The basic idea reminds me of trying to swat a
+fly. I might hear a buzzing noise, which gives some sense of where the fly is,
+and I might know that it can't move too far too quickly, but I might only get a
+few brief glimpses of the actual insect. The evolving latent state here is the
+true position of the fly, while the transformation that we observe is the
+loudness of the buzzing. There have been many proposals that allow general
+transformation and state evolution behavior, but a fundamental starting point is
+the linear-gaussian dynamical system,
+
+\begin{align}
+  z_{t} &= A z_{t - 1} + w_{t} \\
+  x_{t} &= C z_{t} + \eps_{t} \\
+  w_{t} &\sim \Gsn\left(0, \Lambda\right) \\
+  \eps_{t} &\sim \Gsn\left(0, \Sigma\right).
+\end{align}
+
+The $z_{t}$'s are a markov chain of latent states, while the $x_{t}$'s represent
+the observed emissions from it. $A$ and $\Lambda$ govern the dynamics of the
+underlying process, while $C$ and $\Sigma$ describe the emission structure.
+
+There are two conceptual components to fitting this model,
+
+\begin{itemize}
+\item Inference: Even if $\Theta = \{A, C, \Lambda, \Sigma\}$ were known, there
+  is often value in estimating the latent $z_{i}$.
+\item Learning: Typically, the parameters $\Theta$ are unknown, and must
+  themselves be learned from the data.
+\end{itemize}
+
+Further, inference can be approached in several different ways, depending on
+problem context and constraints. Among the most common approaches are
+
+\begin{itemize}
+\item Filtering: Update beliefs of the current latent state in an online
+  fashion. Quantitatively, the goal is to estimate the distribution
+  $p\left(z_{t} \vert x_{1:t}\right)$.
+\item Smoothing: Use the full history to estimate beliefs of each latent state,
+  one at a time. This means to estimate $p\left(z_{t} \vert x_{1:T}\right)$ for
+  each $t = 1, \dots, T$.
+\item Forecasting: Predict the next few latent states given all observations so
+  far. For example, we might be interested in $p\left(z_{t + 1} \vert
+  x_{1:t}\right)$.
+\end{itemize}
+
+- Review LDS graphical model
+- Derivation of Kalman Filter / Smoother
+  + Kalman filtering pseudocod
+  + Kalman smoothing pseudocode
   + Link to some actual code
 
 \section{Temporal mixture models}
