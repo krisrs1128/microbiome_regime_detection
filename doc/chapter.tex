@@ -709,11 +709,48 @@ regime the system is in at any given timepoint.
 
 \subsection{Hidden Markov Modeling}
 
+The idea behind Hidden Markov Models (HMMs) is similar to that of LDSs, with the
+exception that the $z_{t}$ are no longer thought of a continuous latent
+variable. Instesad, each $z_{t}$ is assigned one of a few discrete states, which
+switch between one another according to a Markov chain.
+
+An informal analogy is how I choose to listen to different music tracks. For a
+few days, I might be mostly listening to sonatas by Beethoven and Schubert,
+because I'm in a latent state that prefers German piano sonatas. I might be more
+likely to transition from here to French chamber music than, say, LA punk. So,
+my underlying style preferences evolve according to a Markov chain $z_{t}$,
+which is in turn reflected by the actual tracks $x_{t}$ that I listen to.
+
+More formally, we suppose $z_{1} \sim \pi_{0}$ comes from some initial
+distribution $\pi_{1} \in \simplex^{K - 1}$ and has some $K \times K$ transition
+probability matrix $P$ whose rows lie in $\simplex^{K - 1}$, where $\simplex^{K
+  - 1}$ denotes the $K - 1$ dimensional simplex. Conditional on $z_{t}$, $x_{t}$
+is emitted according to the density $p_{\theta_{z_{t}}}\left(x\right)$, one of
+$K$ emission densities $p_{\theta_{1}}\left(x\right), \dots,
+p_{\theta_{k}}\left(x\right)$. Concisely,
+
+\begin{align}
+  x_{t} \vert z_{t} &\sim p_{\theta_{z_{t}}} \\
+  z_{1} &\sim \pi_{1} \\
+  z_{t} \vert z_{t - 1} &\sim P_{z_{t - 1}, z_{t}} \text{ for } t > 1
+\end{align}
+observe that the graphical model structure is identical to that in
+\ref{fig:lds_graphical}.
+
+As in LDSs, fitting this model can be broken into an inference and a learning
+step, which estimate the distributions of the $z_{t}$ conditional on observed
+data and which fit the model parameters $\Theta = \{P, \pi, \theta_{1}, \dots,
+\theta_{K}\}$.
+
+\subsubsection{HMM for for antibiotics}
+\label{subsubsec:hmm_for_antibiotics}
+
+
+
+In the antibiotics setting, 
+
 - Probabilistic approach that incorporates time structure directly
 - Draw the graphical model
-
-\subsubsection{Standard HMMs}
-
 - Write the model and provide an interpretation
 - Application to antibiotics: heatmap, interpretation, and transition
 probability matrix
