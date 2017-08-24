@@ -661,7 +661,7 @@ problem context and constraints. Among the most common approaches are
     \node[latent, below=0.4 of zT] (wT) {$w_{T}$};
     \node[obs, above=0.7 of zT] (xT) {$x_{T}$};
     \node[latent, above=0.4 of xT] (epsT) {$\eps_{T}$};
-    
+
     % Connect the nodes
     \edge {z1} {x1} ; %
     \edge {z2} {x2} ; %
@@ -678,6 +678,17 @@ problem context and constraints. Among the most common approaches are
   \caption{\label{fig:lds_graphical} }
 \end{figure}
 
+Due to the linear gaussian assumption, the conditionals required by filtering
+and smoothing are still gaussian; however, their means and covariances are not
+immediately apparent. It turns out that, for both filtering and smoothing, they
+can be efficiently computed via dynamic programming recursions. In the
+literature, these are referred to as the Kalman Filtering and
+Rauch-Tung-Striebel Smoothing recursions.
+
+We begin with filter, where the goal is inference of $p\left(z_{t} \vert
+x_{1:t}\right)$. We will assume $z_{1} \sim \Gsn\left(0, \Lambda\right)$. We
+could alternatively fix it to a constant -- the point is that the distribution
+for $z_{1}$ is known.
 
 - Review LDS graphical model
 - Derivation of Kalman Filter / Smoother
@@ -687,6 +698,14 @@ problem context and constraints. Among the most common approaches are
 
 \section{Temporal mixture models}
 \label{sec:temporal_mixture_models}
+
+In all the models considered so far, all time windows exhibit comparable
+behavior. In the problem description of section \ref{sec:problem_description}
+however, we would expect changes in the behavior of the system during different
+temporal regimes. In this section, we describe probabilistic models that
+generate this sort of behavior. The unifying probabilistic ``trick'' that helps
+accomplish this goal is the introduction of latent variables specying which
+regime the system is in at any given timepoint.
 
 \subsection{Hidden Markov Modeling}
 
