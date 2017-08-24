@@ -619,7 +619,8 @@ the linear-gaussian dynamical system,
 
 The $z_{t}$'s are a markov chain of latent states, while the $x_{t}$'s represent
 the observed emissions from it. $A$ and $\Lambda$ govern the dynamics of the
-underlying process, while $C$ and $\Sigma$ describe the emission structure.
+underlying process, while $C$ and $\Sigma$ describe the emission structure. The
+associated graphical model is provided in Figure \ref{fig:lds_graphical}.
 
 There are two conceptual components to fitting this model,
 
@@ -644,6 +645,39 @@ problem context and constraints. Among the most common approaches are
   far. For example, we might be interested in $p\left(z_{t + 1} \vert
   x_{1:t}\right)$.
 \end{itemize}
+
+\begin{figure}[ht]
+  \centering
+  \begin{tikzpicture}
+    \node[obs] (x1) {$x_{1}$};
+    \node[latent, above=0.4 of x1] (eps1) {$\eps_{1}$};
+    \node[latent, below=0.7 of x1] (z1) {$z_{1}$};
+    \node[obs, right=of x1] (x2) {$x_{2}$};
+    \node[latent, above=0.4 of x2] (eps2) {$\eps_{2}$};
+    \node[latent, right=of z1] (z2) {$z_{2}$};
+    \node[latent, below=0.4 of z2] (w2) {$w_{2}$};
+    \node[const, right=0.4 of z2] (zdots) {$\ldots$};
+    \node[latent, right=0.4 of zdots] (zT) {$z_{T}$};
+    \node[latent, below=0.4 of zT] (wT) {$w_{T}$};
+    \node[obs, above=0.7 of zT] (xT) {$x_{T}$};
+    \node[latent, above=0.4 of xT] (epsT) {$\eps_{T}$};
+    
+    % Connect the nodes
+    \edge {z1} {x1} ; %
+    \edge {z2} {x2} ; %
+    \edge {z1} {z2} ; %
+    \edge {z2} {zdots} ; %
+    \edge {zdots} {zT} ; %
+    \edge {zT} {xT} ; %
+    \edge {w2} {z2} ; %
+    \edge {wT} {zT} ; %
+    \edge {eps1} {x1} ; %
+    \edge {eps2} {x2} ; %
+    \edge {epsT} {xT} ; %
+  \end{tikzpicture}
+  \caption{\label{fig:lds_graphical} }
+\end{figure}
+
 
 - Review LDS graphical model
 - Derivation of Kalman Filter / Smoother
