@@ -15,11 +15,25 @@ library("phyloseq")
 library("jsonlite")
 library("tidyverse")
 set.seed(705)
-theme_set(ggscaffold::min_theme(list(
-                        "legend_position" = "right",
-                        "border_size" = 0.2
-                      ))
-          )
+scale_colour_discrete <- function(...)
+  scale_colour_brewer(..., palette="Set2")
+scale_fill_discrete <- function(...)
+  scale_fill_brewer(..., palette="Set2")
+
+theme_set(theme_bw())
+min_theme <- theme_update(
+  panel.border = element_blank(),
+  panel.grid = element_blank(),
+  axis.ticks = element_blank(),
+  legend.title = element_text(size = 8),
+  legend.text = element_text(size = 6),
+  axis.text = element_text(size = 6),
+  axis.title = element_text(size = 8),
+  strip.background = element_blank(),
+  strip.text = element_text(size = 8),
+  legend.key = element_blank()
+)
+
 abt <- get(load("../../data/abt.rda")) %>%
   filter_taxa(function(x) { var(x) > 5 }, TRUE)
 K <- 4
@@ -52,14 +66,14 @@ samples <- sample_data(abt) %>%
   rownames_to_column("sample")
 
 x_df <- x_df %>%
-  select(sample, rsv, scaled) %>%
+  dplyr::select(sample, rsv, scaled) %>%
   spread(rsv, scaled) %>%
   left_join(samples) %>%
   arrange(ind, time)
 
 sample_names <- x_df$sample
 x <- x_df %>%
-  select(-sample, -ind, -time, -condition) %>%
+  dplyr::select(-sample, -ind, -time, -condition) %>%
   as.matrix()
 rownames(x) <- sample_names
 
