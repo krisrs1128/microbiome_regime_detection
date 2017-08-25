@@ -42,7 +42,7 @@ p <- ggplot(mz) +
   scale_y_continuous(expand = c(0, 0)) +
   scale_x_continuous(expand = c(0, 0)) +
   theme(legend.position = "none")
-ggsave("~/Desktop/lab_meetings/20170705/figure/sticky_hmm_truth.pdf", p, height = 2, width = 4)
+ggsave("../../doc/sticky_hmm_truth.png", p, height = 2, width = 4)
 
 p <- ggplot(my %>% filter(p == 1)) +
   geom_tile(
@@ -52,7 +52,7 @@ p <- ggplot(my %>% filter(p == 1)) +
   scale_y_continuous(expand = c(0, 0)) +
   scale_x_continuous(expand = c(0, 0)) +
   theme(legend.position = "none")
-ggsave("~/Desktop/lab_meetings/20170705/figure/sticky_hmm_observed.pdf", p, height = 2, width = 4)
+ggsave("../../doc/sticky_hmm_observed.png", p, height = 2, width = 4)
 
 source("bayes_hmm2.R")
 res <- block_sampler(sim$y, list(K = 4, n_iter = 100, kappa = 0))
@@ -72,7 +72,7 @@ p <- ggplot(mz_est) +
   scale_y_continuous(expand = c(0, 0)) +
   scale_x_continuous(expand = c(0, 0)) +
   theme(legend.position = "none")
-ggsave("~/Desktop/lab_meetings/20170705/figure/sticky_hmm_no_kappa.pdf", p, height = 2, width = 4)
+ggsave("../../doc/sticky_hmm_no_kappa.png", p, height = 2, width = 4)
 
 ## larger kappa now
 res <- block_sampler(sim$y, list(K = 4, n_iter = 100, kappa = 3))
@@ -92,7 +92,7 @@ p <- ggplot(mz_est) +
   scale_y_continuous(expand = c(0, 0)) +
   scale_x_continuous(expand = c(0, 0)) +
   theme(legend.position = "none")
-ggsave("~/Desktop/lab_meetings/20170705/figure/sticky_hmm_large_kappa.pdf", p, height = 2, width = 4)
+ggsave("../../doc/sticky_hmm_large_kappa.png", p, height = 2, width = 4)
 
 source("hdp_hmm2.R")
 hyper <- list(
@@ -121,5 +121,5 @@ p <- ggplot(mz_est) +
   scale_x_continuous(expand = c(0, 0)) +
   theme(legend.position = "none")
 
-ggsave("~/Desktop/lab_meetings/20170705/figure/sticky_hdp_hmm.pdf", p, height = 2, width = 4)
+ggsave("../../doc/sticky_hdp_hmm.png", p, height = 2, width = 4)
 
