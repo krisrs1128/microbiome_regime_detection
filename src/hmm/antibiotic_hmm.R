@@ -15,11 +15,25 @@ library("phyloseq")
 library("viridis")
 library("jsonlite")
 library("stringr")
-theme_set(ggscaffold::min_theme(list(
-                        "legend_position" = "right",
-                        "border_size" = 0.2
-                      ))
-          )
+
+scale_colour_discrete <- function(...)
+  scale_colour_brewer(..., palette="Set2")
+scale_fill_discrete <- function(...)
+  scale_fill_brewer(..., palette="Set2")
+
+theme_set(theme_bw())
+min_theme <- theme_update(
+  panel.border = element_blank(),
+  panel.grid = element_blank(),
+  axis.ticks = element_blank(),
+  legend.title = element_text(size = 8),
+  legend.text = element_text(size = 6),
+  axis.text = element_text(size = 6),
+  axis.title = element_text(size = 8),
+  strip.background = element_blank(),
+  strip.text = element_text(size = 8),
+  legend.key = element_blank()
+)
 
 ###############################################################################
 ## Some utilities
@@ -46,7 +60,7 @@ melt_gamma <- function(gamma, dimn, samples, theta) {
   k_order <- order(means$mu, decreasing = TRUE)
 
   gamma_mat <- gamma %>%
-    select(rsv, sample, K, gamma) %>%
+    dplyr::select(rsv, sample, K, gamma) %>%
     unite(sample_K, sample, K) %>%
     spread(sample_K, gamma)
 
@@ -163,7 +177,7 @@ p <- ggplot(gamma) +
   scale_alpha_continuous(range = c(0, 1)) +
   theme(axis.text = element_blank(), legend.position = "none") +
   facet_grid(K ~ ind, space = "free", scales = "free")
-ggsave("~/Desktop/lab_meetings/20170705/figure/hmm_probs.pdf", height = 3, width = 2)
+ggsave("../../doc//figure/hmm_probs.png", height = 3, width = 2)
 
 p <- ggplot(gamma_mode(gamma)) +
   geom_tile(
@@ -172,7 +186,7 @@ p <- ggplot(gamma_mode(gamma)) +
   scale_fill_viridis(option = "magma") +
   theme(axis.text = element_blank(), legend.position = "none") +
   facet_grid(. ~ ind, space = "free", scales = "free")
-ggsave("~/Desktop/lab_meetings/20170705/figure/hmm_mode.pdf", height = 3, width = 2)
+ggsave("../../doc//figure/hmm_mode.png", height = 3, width = 2)
 
 rownames(res$pi) <- 1:K
 colnames(res$pi) <- 1:K
@@ -253,7 +267,7 @@ p <- ggplot(gamma_mode(gamma)) +
   scale_fill_viridis(option = "magma") +
   theme(axis.text = element_blank(), legend.position = "none") +
   facet_grid(. ~ ind, space = "free", scales = "free")
-ggsave("~/Desktop/lab_meetings/20170705/figure/bayes_mode.pdf", height = 3, width = 2)
+ggsave("../../doc//figure/bayes_mode.png", height = 3, width = 2)
 
 mz <- melt_z(samp_data$z[,, 1000:1050], dimn, gamma)
 p <- ggplot(mz %>% filter(rsv %in% levels(gamma$rsv)[sample(1:600, 4)])) +
@@ -263,7 +277,7 @@ p <- ggplot(mz %>% filter(rsv %in% levels(gamma$rsv)[sample(1:600, 4)])) +
   scale_fill_viridis(option = "magma") +
   facet_wrap(~rsv) +
   theme(axis.text = element_blank())
-ggsave("~/Desktop/lab_meetings/20170705/figure/gibbs_samples.pdf", height = 1.8, width = 3)
+ggsave("../../doc//figure/gibbs_samples.png", height = 1.8, width = 3)
 write_gif(mz, "bayes_hmm_z")
 
 ###############################################################################
@@ -310,7 +324,7 @@ p <- ggplot(gamma_mode(gamma)) +
   scale_fill_viridis(option = "magma") +
   theme(axis.text = element_blank(), legend.position = "none") +
   facet_grid(. ~ ind, space = "free", scales = "free")
-ggsave("~/Desktop/lab_meetings/20170705/figure/hdp_antibiotics_mode.pdf", height = 3, width = 2)
+ggsave("../../doc//figure/hdp_antibiotics_mode.png", height = 3, width = 2)
 
 ## study mixing in z
 mz <- melt_z(samp_data$z[,, 1000:1050], dimn, gamma)
