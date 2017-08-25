@@ -235,10 +235,10 @@ pi_df <- pi %>%
   summarise(pi_mean = mean(pi_ij), se = sd(pi_ij))
 
 pi_mean <- pi_df %>%
-  select(-se) %>%
+  dplyr::select(-se) %>%
   spread(j, pi_mean) %>%
   ungroup %>%
-  select(-i)
+  dplyr::select(-i)
 pi_se <- pi_df %>%
   select(-pi_mean) %>%
   spread(j, se) %>%
