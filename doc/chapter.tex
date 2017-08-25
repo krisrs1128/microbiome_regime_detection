@@ -5,6 +5,9 @@
 \usepackage{hyperref}
 \usepackage{tikz}
 \usetikzlibrary{bayesnet}
+\usetikzlibrary{positioning}
+\usepackage{algorithm}
+\usepackage[noend]{algorithmic}
 \input{preamble.tex}
 
 \title{Inference of Dynamic Regimes in the Microbiome}
@@ -566,7 +569,7 @@ which yields the posterior,
 where
 \begin{align}
   \Earg{f_{\ast} \vert y} &= K\left(x_{\ast}, x\right)\left(K\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}y \\
-  \Covarg{f_{\ast} \vert y} &= K\left(x_{\ast}, x_{\ast}\right) - K\left(x_{\ast}, x\right)\left(K\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}K\left(x, x_{\ast}\right)
+  %% \Covarg{f_{\ast} \vert y} &= K\left(x_{\ast}, x_{\ast}\right) - K\left(x_{\ast}, x\right)\left(K\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}K\left(x, x_{\ast}\right)
 \end{align}
 Note the $n\times n$ matrix inversion in the covariance calculation. This is the
 source of the $O\left(n^{3}\right)$ complexity of using standard GPs, though a
@@ -611,10 +614,10 @@ transformation and state evolution behavior, but a fundamental starting point is
 the linear-gaussian dynamical system,
 
 \begin{align}
-  z_{t} &= A z_{t - 1} + w_{t} \\
-  x_{t} &= C z_{t} + \eps_{t} \\
-  w_{t} &\sim \Gsn\left(0, \Lambda\right) \\
-  \eps_{t} &\sim \Gsn\left(0, \Sigma\right).
+  z_{t} &= A z_{t - 1} + \eps_{t} \\
+  x_{t} &= C z_{t} + \delta_{t} \\
+  w_{t} &\sim \Gsn\left(0, Q\right) \\
+  \eps_{t} &\sim \Gsn\left(0, R\right).
 \end{align}
 
 The $z_{t}$'s are a markov chain of latent states, while the $x_{t}$'s represent
@@ -625,7 +628,7 @@ associated graphical model is provided in Figure \ref{fig:lds_graphical}.
 There are two conceptual components to fitting this model,
 
 \begin{itemize}
-\item Inference: Even if $\Theta = \{A, C, \Lambda, \Sigma\}$ were known, there
+\item Inference: Even if $\Theta = \{A, C, Q, R}$ were known, there
   is often value in estimating the latent $z_{i}$.
 \item Learning: Typically, the parameters $\Theta$ are unknown, and must
   themselves be learned from the data.
@@ -649,46 +652,99 @@ problem context and constraints. Among the most common approaches are
 \begin{figure}[ht]
   \centering
   \begin{tikzpicture}
-    \node[obs] (x1) {$x_{1}$};
-    \node[latent, above=0.4 of x1] (eps1) {$\eps_{1}$};
-    \node[latent, below=0.7 of x1] (z1) {$z_{1}$};
-    \node[obs, right=of x1] (x2) {$x_{2}$};
-    \node[latent, above=0.4 of x2] (eps2) {$\eps_{2}$};
+    \node[latent, left=of z1] (z0) {$z_{0}$};
+    \node[latent] (z1) {$z_{1}$};
+    \node[obs, above=of z1] (x1) {$x_{1}$};
+    \node[latent, above=of x1] (delta1) {$\delta_{1}$};
+    \node[latent, below=of z1] (eps1) {$\eps_{1}$};
     \node[latent, right=of z1] (z2) {$z_{2}$};
-    \node[latent, below=0.4 of z2] (w2) {$w_{2}$};
-    \node[const, right=0.4 of z2] (zdots) {$\ldots$};
-    \node[latent, right=0.4 of zdots] (zT) {$z_{T}$};
-    \node[latent, below=0.4 of zT] (wT) {$w_{T}$};
-    \node[obs, above=0.7 of zT] (xT) {$x_{T}$};
-    \node[latent, above=0.4 of xT] (epsT) {$\eps_{T}$};
+    \node[obs, above=of z2] (x2) {$x_{2}$};
+    \node[latent, above=of x2] (delta2) {$\delta_{2}$};
+    \node[latent, below=of z2] (eps2) {$\eps_{2}$};
+    \node[const, right=of z2] (zdots) {$\dots$};
+    \node[latent, right=of zdots] (zT) {$z_{T}$};
+    \node[latent, below=of zT] (epsT) {$\eps_{T}$};
+    \node[obs, above=of zT] (xT) {$x_{T}$};
+    \node[latent, above=of xT] (deltaT) {$\delta_{T}$};
 
     % Connect the nodes
     \edge {z1} {x1} ; %
     \edge {z2} {x2} ; %
+    \edge {z0} {z1} ; %
     \edge {z1} {z2} ; %
+    \edge {z2} {zT} ; %
     \edge {z2} {zdots} ; %
     \edge {zdots} {zT} ; %
     \edge {zT} {xT} ; %
-    \edge {w2} {z2} ; %
-    \edge {wT} {zT} ; %
-    \edge {eps1} {x1} ; %
-    \edge {eps2} {x2} ; %
-    \edge {epsT} {xT} ; %
+    \edge {eps1} {z1} ; %
+    \edge {eps2} {z2} ; %
+    \edge {epsT} {zT} ; %
+    \edge {delta1} {x1} ; %
+    \edge {delta2} {x2} ; %
+    \edge {deltaT} {xT} ; %
   \end{tikzpicture}
   \caption{\label{fig:lds_graphical} }
 \end{figure}
 
-Due to the linear gaussian assumption, the conditionals required by filtering
-and smoothing are still gaussian; however, their means and covariances are not
-immediately apparent. It turns out that, for both filtering and smoothing, they
-can be efficiently computed via dynamic programming recursions. In the
-literature, these are referred to as the Kalman Filtering and
-Rauch-Tung-Striebel Smoothing recursions.
+We first describe inference in detail, before describe how inference and
+learning can be alternated to fit models on real data. Due to the linear
+gaussian assumption, the conditionals required by filtering and smoothing are
+still gaussian; however, their means and covariances are not immediately
+apparent. It turns out that, for both filtering and smoothing, they can be
+efficiently computed via dynamic programming recursions. In the literature,
+these are referred to as the Kalman Filtering and Rauch-Tung-Striebel Smoothing
+recursions.
 
-We begin with filter, where the goal is inference of $p\left(z_{t} \vert
-x_{1:t}\right)$. We will assume $z_{1} \sim \Gsn\left(0, \Lambda\right)$. We
+Consider the filter, where the goal is inference of $p\left(z_{t} \vert
+x_{1:t}\right)$. We will assume $z_{1} \sim \Gsn\left(0, Q\right)$. We
 could alternatively fix it to a constant -- the point is that the distribution
 for $z_{1}$ is known.
+
+For $t > 1$, define the \textit{one-step-ahead} and \textit{update} means and
+covariances by
+\begin{align}
+  \mu_{t \vert t - 1} &:= \Earg{z_{t} \vert y_{1:t - 1}} \\
+  \Sigma_{t \ vert t - 1} &:= \Covarg{z_{t} \vert y_{1:t - 1}} \\
+  \mu_{t} &:= \Earg{z_{t} \vert y_{1:t}} \\
+  \Sigma_{t} &:= \Covarg{z_{t} \vert y_{1:t}}.
+\end{align}
+
+The update means and covariances $\mu_{t}$ and $\Sigma_{t}$ are the main
+quantities of interest in filtering. The filtering algorithm is detailed in in
+Algorithm \ref{alg:kalman_filter}. It can be thought of as a forwards pass
+through the observed sequence, updating means and covariances along the way.
+
+The derivation is as follows. For the predict step, use teh tower property and
+the law of total variance,
+
+\begin{align}
+  \Earg{z_{t} \vert y_{1:t - 1}} &= \Earg{\Earg{z_{t} \vert z_{t - 1}, y_{1:t - 1}}} \\
+  & = \Earg{Az_{t - 1}\vert y_{1:t - 1}} \\
+  &= A\mu_{t - 1} \\
+  \Covarg{z_{t} \vert y_{1:t - 1}} &= \Covarg{\Earg{z_{t} \vert z_{t - 1}, y_{1:t - 1}}} + \Earg{\Covarg{z_{t} \vert z_{t - 1}, y_{1:t - 1}}} \\
+  &= \Covarg{Az_{t - 1} \vert z_{t - 1}, y_{1:t - 1}} + \Earg{Q} \\
+  &= A\Sigma_{t - 1}A^{T} + Q.
+\end{align}
+
+\begin{algorithm}
+   \caption{The Kalman filtering predict-update recursions.}
+   \label{alg:kalman_filter}
+\begin{algorithmic}
+  \STATE {\bfseries Input:} Model parameters $\Theta = \{A, C, Q, R\}$ and
+    observed sequence $x_{1:T}$.
+    \STATE $\mu_{0} = 0, \Sigma_{0} = Q$ \hfill initialize distribution of
+    $z_{0}$.
+    \FOR{$t = 1 \dots T$}
+    \STATE $\mu_{t \vert t - 1} = A\mu_{t - 1}$ \hfill predict step
+    \STATE $\Sigma_{t \vert t - 1} = A \Sigma_{t - 1} A^{T} + Q$
+    \STATE $\mu_{t} = \mu_{t \vert t - 1} + K_{t}\left(y_{t} - C\mu_{t \vert t - 1}\right)$ \hfill update step
+    \STATE $\Sigma_{t} = \left(I - K_{t}C\right)\Sigma_{t \vert t - 1}$
+    \STATE where $K_{t} &= \left(\Sigma_{t \vert t - 1}^{-1} + C^{T}R C\right)^{-1} C^{T}R^{-1}$
+    \ENDFOR
+    \STATE {\bfseries Output:} Filtered means and covariances $\left(\mu_{t},
+    \Sigma_{t}\right)_{t = 1}^{T}$.
+\end{algorithmic}
+\end{algorithm}
 
 - Review LDS graphical model
 - Derivation of Kalman Filter / Smoother
@@ -710,9 +766,9 @@ regime the system is in at any given timepoint.
 \subsection{Hidden Markov Modeling}
 
 The idea behind Hidden Markov Models (HMMs) is similar to that of LDSs, with the
-exception that the $z_{t}$ are no longer thought of a continuous latent
-variable. Instesad, each $z_{t}$ is assigned one of a few discrete states, which
-switch between one another according to a Markov chain.
+exception that the $z_{t}$ are no longer thought of as continuous latent
+variables. Instesad, each $z_{t}$ is assigned one of a few discrete states,
+which switch between one another according to a Markov chain.
 
 An informal analogy is how I choose to listen to different music tracks. For a
 few days, I might be mostly listening to sonatas by Beethoven and Schubert,
@@ -745,8 +801,6 @@ data and which fit the model parameters $\Theta = \{P, \pi, \theta_{1}, \dots,
 \subsubsection{HMM for for antibiotics}
 \label{subsubsec:hmm_for_antibiotics}
 
-
-
 In the antibiotics setting, 
 
 - Probabilistic approach that incorporates time structure directly
@@ -757,7 +811,23 @@ probability matrix
 - In order to understand extensions, briefly review actual inferential mechanism
 - What kinds of limitations have we encountered?
 
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figure/hmm_mode}
+  \caption{The modal sequences according to the HMM estimated through
+    EM. \label{fig:hmm_mode} }
+\end{figure}
+
 \subsubsection{Sticky HMMs}
+
+An interesting extension of ordinary HMMs are sticky HMMs. They are interesting
+both because (1) they incorporate extra, often more plausible, structure into
+the state transitions and (2) their estimation introduces novel inferential
+ideas that are useful in other extensions of HMMs.
+
+The modified model attempts to encourage an increased rate of self-transitions
+-- the latent states are ``sticky.'' This is achieved by introducing a
+``stickiness'' parameter $\alpha$ to the ordinary transition probability matrix.
 
 - Modified model
 - Simulation example
@@ -771,6 +841,13 @@ partitioning
 
 \subsubsection{Sticky HDP-HMMs}
 
+We describe a Bayesian nonparametric variation of sticky HMMs first proposed in
+\citep{fox2008hdp}. As it is nonparametric, the number of observed regimes can
+increase as more data are processed, though the rate at which new states are
+introduced is still controlled by user-specified parameters\footnote{In
+  particular, it is misleading to claim that the method ``discovers'' the
+  ``optimal'' number of clusters.}
+
 - Write the new model
 - Simulation example
 - Antibiotics case study
@@ -781,14 +858,25 @@ partitioning
 
 \subsection{Mixture of Experts}
 
-- Switching state space models
+HMMs suppose that the observed system switches between a few regimes, but that
+within regimes observations are stationary. In certain situations, this is not
+quite plausible, and here we describe some alternatives that mix nonstationary
+processes. In particular, we focus on several efforts to merge the switching idea of
+HMMs with linear dynamical systems and gaussian processes, proposed in
+\citep{ghahramani1998variational, rasmussen2002infinite, fox2012multiresolution}.
+
+- Switching state space models (subsubsection)
    + Model description
    + Simulation example
    + Description of variational inference
-- Mixture of Gaussian processes
+- Mixture of Gaussian processes (subsubsection)
   + Model description
   + Simulation examples
   + Description of variational inference
+- Multiresolution gaussian processes (subsubsection)
+  + Model description
+  + Simulation examples
+  + Description of MCMC
 
 \subsection{Changepoint detection}
 
@@ -844,6 +932,12 @@ partitioning
   \centering
   %\includegraphics[width=0.8\textwidth]{figure/rpart_conditional}
   \caption{\label{fig:rpart_conditional} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figure/hmm_probs}
+  \caption{\label{fig:hmm_probs} }
 \end{figure}
 
 \end{document}
