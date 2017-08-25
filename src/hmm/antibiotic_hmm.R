@@ -349,18 +349,18 @@ pi$j <- factor(pi$j, levels(gamma$K))
 
 pi_df <- pi %>%
   group_by(i, j) %>%
-  summarise(pi_mean = mean(pi_ij), se = sd(pi_ij))
+  dplyr::summarise(pi_mean = mean(pi_ij), se = sd(pi_ij))
 
 pi_mean <- pi_df %>%
-  select(-se) %>%
+  dplyr::select(-se) %>%
   spread(j, pi_mean) %>%
   ungroup %>%
-  select(-i)
+  dplyr::select(-i)
 pi_se <- pi_df %>%
-  select(-pi_mean) %>%
+  dplyr::select(-pi_mean) %>%
   spread(j, se) %>%
   ungroup %>%
-  select(-i)
+  dplyr::select(-i)
 
 round(pi_mean, 3)
 round(pi_se, 3)
