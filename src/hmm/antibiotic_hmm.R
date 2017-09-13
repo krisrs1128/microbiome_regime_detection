@@ -22,12 +22,13 @@ scale_fill_discrete <- function(...)
   scale_fill_brewer(..., palette="Set2")
 
 theme_set(theme_bw())
-min_theme <- theme_update(
+theme_update(
   panel.border = element_blank(),
   panel.grid = element_blank(),
   axis.ticks = element_blank(),
   legend.title = element_text(size = 5),
   legend.text = element_text(size = 3),
+  legend.margin = margin(t = 0, r = 0, b = 0, l = 0.04, unit = "cm"),
   axis.text = element_text(size = 6),
   axis.title = element_text(size = 8),
   strip.background = element_blank(),
