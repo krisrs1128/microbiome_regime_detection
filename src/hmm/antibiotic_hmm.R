@@ -42,7 +42,13 @@ gamma_mode <- function(gamma) {
   gamma_group <- gamma %>%
     group_by(ind, sample, rsv) %>%
     summarise(k_max = K[which.max(gamma)])
-  gamma_group$k_max <- factor(gamma_group$k_max, levels(gamma$K))
+  mu <- gamma %>%
+    filter_(sprintf("sample == '%s'", gamma$sample[1])) %>%
+    dplyr::select(K, mu) %>%
+    unique()
+  mu <- setNames(mu$mu, mu$K)
+
+  gamma_group$mu <- mu[as.character(gamma_group$k_max)]
   gamma_group
 }
 
@@ -163,7 +169,7 @@ abt <- get(load("../../data/abt.rda")) %>%
 samples <- sample_data(abt) %>%
   data.frame() %>%
   mutate(time = str_pad(time, 2, "left", 0)) %>%
-  unite(sample, ind, time, sep = "")
+  unite(sample, ind, time, sep = "", remove = FALSE)
 
 res <- get(load("hmm_em.rda"))
 gamma <- res$gamma
@@ -171,22 +177,27 @@ K <- nrow(res$pi)
 dimn <- list(samples$sample, seq_len(K), taxa_names(abt))
 gamma <- melt_gamma(gamma, dimn, samples, res$theta)
 
+viri_scale <- scale_fill_viridis(
+  option = "magma",
+  direction = -1,
+  limits = c(0, 5.2)
+)
 p <- ggplot(gamma) +
   geom_tile(
-    aes(x = sample, y = rsv, alpha = gamma, fill = as.numeric(K))
+    aes(x = sample, y = rsv, alpha = gamma, fill = mu)
   ) +
-  scale_fill_viridis(option = "magma") +
+  viri_scale +
   scale_alpha_continuous(range = c(0, 1)) +
-  theme(axis.text = element_blank(), legend.position = "none") +
+  theme(axis.text = element_blank(), legend.position = "bottom") +
   facet_grid(K ~ ind, space = "free", scales = "free")
 ggsave("../../doc//figure/hmm_probs.png", height = 3, width = 2)
 
 p <- ggplot(gamma_mode(gamma)) +
   geom_tile(
-    aes(x = sample, y = rsv, fill = as.numeric(k_max))
+    aes(x = sample, y = rsv, fill = mu)
   ) +
-  scale_fill_viridis(option = "magma") +
-  theme(axis.text = element_blank(), legend.position = "none") +
+  viri_scale +
+  theme(axis.text = element_blank()) +
   facet_grid(. ~ ind, space = "free", scales = "free")
 ggsave("../../doc//figure/hmm_mode.png", height = 3, width = 2)
 
