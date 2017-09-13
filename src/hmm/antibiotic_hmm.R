@@ -26,8 +26,8 @@ min_theme <- theme_update(
   panel.border = element_blank(),
   panel.grid = element_blank(),
   axis.ticks = element_blank(),
-  legend.title = element_text(size = 8),
-  legend.text = element_text(size = 6),
+  legend.title = element_text(size = 5),
+  legend.text = element_text(size = 3),
   axis.text = element_text(size = 6),
   axis.title = element_text(size = 8),
   strip.background = element_blank(),
@@ -180,26 +180,36 @@ gamma <- melt_gamma(gamma, dimn, samples, res$theta)
 viri_scale <- scale_fill_viridis(
   option = "magma",
   direction = -1,
-  limits = c(0, 5.2)
+  limits = c(0, 5.2),
+    breaks = c(0, 2, 4)
 )
+legend_guide <- guides(
+  fill = guide_colorbar(
+    barwidth = 0.2,
+    ticks = FALSE,
+  )
+)
+
 ggplot(gamma) +
   geom_tile(
     aes(x = sample, y = rsv, alpha = gamma, fill = mu)
   ) +
   viri_scale +
+  legend_guide +
   scale_alpha_continuous(range = c(0, 1)) +
-  theme(axis.text = element_blank(), legend.position = "bottom") +
+  theme(axis.text = element_blank()) +
   facet_grid(K ~ ind, space = "free", scales = "free")
-ggsave("../../doc//figure/hmm_probs.png", height = 3, width = 2)
+ggsave("../../doc//figure/hmm_probs.png", height = 3, width = 2, dpi = 500)
 
 ggplot(gamma_mode(gamma)) +
   geom_tile(
     aes(x = sample, y = rsv, fill = mu)
   ) +
   viri_scale +
+  legend_guide +
   theme(axis.text = element_blank()) +
   facet_grid(. ~ ind, space = "free", scales = "free")
-ggsave("../../doc//figure/hmm_mode.png", height = 3, width = 2)
+ggsave("../../doc//figure/hmm_mode.png", height = 3, width = 2, dpi = 500)
 
 rownames(res$pi) <- 1:K
 colnames(res$pi) <- 1:K
