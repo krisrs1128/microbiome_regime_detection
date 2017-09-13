@@ -942,13 +942,12 @@ The forwards pass of the Forwards-Backwards algorithm alternates these two steps
 \pi_{1}$, as described in algorithm \ref{alg:hmm_forwards}.
 
 \begin{algorithm}
-   \caption{Normalize log probabilities}
+   \caption{Safe log-sum-exp}
    \label{alg:normalize_log}
    \begin{algorithmic}
-     \STATE {\bfseries Input:} Unnormalized log probabilities $\log \tilde{p} = \left(\log \tilde{p}_{1}, \dots, \log \tilde{p}_{K}\right)$
-     \STATE $m \leftarrow \max\left(\log \tilde{p}\right)$ \hfill Avoid numerical underflow
-     \STATE $\log{p} \leftarrow \log \tilde{p} - \left(m + \log\left(\sum\exp{\log \tilde{p}_{k} - m}\right)\right)$
-     \STATE {\bfseries Output:} Normalized $\log p$, such that $\sum \exp{\log p_{k}} = 1$.
+     \STATE {\bfseries Input:} $x \in \reals^{n}$
+     \STATE $m \leftarrow \max\left(x\right)$
+     \STATE {\bfseries Output:} $lse\left(x\right) \leftarrow x - \left(m + \log\left(\sum\exp{x_{i} - m}\right)\right)$
    \end{algorithmic}
 \end{algorithm}
 
@@ -960,10 +959,10 @@ The forwards pass of the Forwards-Backwards algorithm alternates these two steps
   observed sequence $x_{1:T}$
   \STATE $\log \tilde{p}\left(z_{1}\vert x_{1}\right) \leftarrow
   \log\pi_{1} + \begin{pmatrix} \log p_{\theta_{1}}\left(x_{1}\right) \\ \vdots \\ \log p_{\theta_{k}}\left(x_{1}\right) \end{pmatrix}$ \hfill initialize distribution of $z_{1}$
-  \STATE $\log p\left(z_{1} \vert x_{1}\right) \leftarrow \texttt{normalize\_log\_space}\left(\log \tilde{p}\left(z_{t} \vert x_{1}\right)\right)$ \hfill Use algorithm \ref{alg:normalize_log}
+  \STATE $\log p\left(z_{1} \vert x_{1}\right) \leftarrow \log \tilde{p}\left(z_{t} \vert x_{1}\right) - \text{lse}\left(\log \tilde{p}\left(z_{t} \vert x_{1}\right)\right)$\hfill Use algorithm \ref{alg:normalize_log}
   \FOR{$t = 2 \dots T$}
-  \STATE $\log \tilde{p}\left(z_{t} \vert x_{1:t}\right) \leftarrow P \exp{\log p\left(z_{t - 1} \vert x_{1:t - 1}\right)} + \begin{pmatrix}  \log p_{\theta_{1}}\left(x_{t}\right) \\ \vdots \\ \log p_{\theta_{k}}\left(x_{t}\right) \end{pmatrix}$ 
-  \STATE $\log p\left(z_{t} \vert x_{1:t}\right) \leftarrow \texttt{normalize\_log\_space}\left(\log \tilde{p}\left(z_{t} \vert x_{1:t}\right)\right)$
+  \STATE $\log \tilde{p}\left(z_{t} \vert x_{1:t}\right) \leftarrow P \exp{\log p\left(z_{t - 1} \vert x_{1:t - 1}\right)} + \begin{pmatrix}  \log p_{\theta_{1}}\left(x_{t}\right) \\ \vdots \\ \log p_{\theta_{k}}\left(x_{t}\right) \end{pmatrix}$
+  \STATE $\log p\left(z_{1} \vert x_{1:t}\right) \leftarrow \log \tilde{p}\left(z_{t} \vert x_{1:t}\right) - \text{lse}\left(\log \tilde{p}\left(z_{t} \vert x_{1:t}\right)\right)$\hfill
   \ENDFOR
   \STATE {\bfseries Output:} Filtered log densities $\log p\left(z_{t} \vert x_{1:t}\right)$.
 \end{algorithmic}
@@ -971,7 +970,10 @@ The forwards pass of the Forwards-Backwards algorithm alternates these two steps
 
 \begin{algorithm}
   \begin{algorithmic}
-   \caption{Backwards pass for HMM Inference} 
+   \caption{Backwards pass for HMM Inference}
+   \label{alg:hmm_backwards}
+   \STATE {\bfseries Input:} Model parameters $\Theta = \{\pi_{1}, P, \theta_1, \dots, \theta_k\}$, observed sequence $x_{1:T}$, forwards pass output $\left(\log p\left(z_{t} \vert x_{1:t}\right)\right)_{t = 1}^{T}$
+   \STATE
   \end{algorithmic}
 \end{algorithm}
 
@@ -1039,11 +1041,71 @@ Next, we employ this approach on the same antibiotics data described in section
 \ref{subsubsec:antibiotics_application}. The results are summarized in Figure
 \ref{fig:hmm_mode} and Supplementary Figure \ref{fig:hmm_probs}, which display
 the modes and raw probabilities of the smoothed probabilities $p\left(z_{it}
-\vert x_{i(1:T)}\right)$ after applying EM. Rows correspond to individual
-species, while columns are samples sorted by time. The three main panels are the
-three subjects in the study. Here, rows $i$ are ordered according to a
-hierarchical clustering on the estimated sequences $\left(p\left(z_{i1} \vert
-x_{i(1:T)}\right), \dots, p\left(z_{iT} \vert x_{i(1:T)}\right)\right)$.
+\vert x_{i(1:T)}\right)$ after applying EM. As in Figure
+\ref{fig:centroid-euclidean-conditional} and its counterparts made through
+hierarchical clustering, rows correspond to individual species, while columns
+are samples sorted by time. The three main panels are the three subjects in the
+study. Here, rows $i$ are ordered according to a hierarchical clustering on the
+estimated model sequences $\left(\hat{z}_{i1}, \dots, \hat{z}_{iT}\right)$,
+where $\hat{z}_{it} = \arg \max_{k} p\left(z_{it} = k \vert x_{1:T}\right)$. The
+intensity of the shading of each cell corresponds to the average value
+$\hat{\mu}_{k}$ for that mode.
+
+We can think of Figure \ref{fig:hmm_mode} as a smoothed version of the raw
+heatmaps made through hierarchical clustering. By coarsening the raw values into
+cluster centers, certain patterns are more easily visible. For example, in
+addition to effect of the two antibiotics time courses across all subjects, we
+note that
+
+\begin{itemize}
+\item The effect of the first antibiotic time courses is more prolonged in
+  Subject F, and in some cases species disappear for most of the remainder of
+  the experiment. Some of these species seem to have also disappeared from
+  Subject D, but most others recovered in both Subject D and E.
+\item The phenomenon in which some species become \textit{more} abundant during
+  the time courses -- presumably filling in newly emptied niches -- is stronger
+  in Subject E than the others. Further, some species that exhibit this behavior
+  in Subject E respond differently within subjects D and F, becoming less
+  abundant rather than more.
+\end{itemize}
+
+Note that, while smoothing makes the antibiotic effect clearer among moderately
+and highly abundant species, variation among rarer species, to which all
+timepoints are assigned to the rare abundance state, is obscured. This could be
+remedied by increasing $K$, at the cost of increasing the complexity of
+interpretation for abundant species.
+
+Instead of displaying the sequence of modes $\hat{z}_{it}$, Supplemental Figure
+\ref{fig:hmm_probs} provides the individual probabilities $p\left(z_{it} = k
+\vert x_{1:T}\right)$ across $k$. The vertical panels distinguish between
+different $k$, while transparency represents the size of the probability --
+smaller probabilities are more transparent. The colors are associated with
+centroid means, as before. In this application, most probabilities seem near
+one, so this view adds little to that in \ref{fig:hmm_mode}. However, this does
+suggest the possibility of overfitting, which we address by introducing priors
+on $\Theta$ in section \ref{sec:sticky_hmms}.
+
+The estimated transition probabilities between states, ordered in terms of
+increasing $\hat{\mu}_{k}$, are displayed below.
+\begin{verbatim}
+      1     2     3     4
+1 0.810 0.159 0.028 0.003
+2 0.389 0.527 0.083 0.002
+3 0.077 0.094 0.810 0.019
+4 0.027 0.007 0.056 0.910
+\end{verbatim}
+Unsurprisingly, most transitions remain in the same state, and any departures
+are generally restricted to states with similar $\hat{\mu}_{k}$s. Generally,
+there appear to be more transitions downwards than upwards, and the sum of
+transitions into state 1 is higher than the sums for the rest. This can likely
+be attributed to the antibiotic effect, which reduces abundances of species that
+often never recover.
+
+As in Figure \ref{fig:centroid-euclidean-conditional}, the primary drawback of
+this display is the difficulty in linking observed species trajectories to
+species or taxonomic detail. To easily link the smoothed HMM estimates to raw
+time series values and species descriptions would require either splitting the
+view across taxonomies or introducing interactivity.
 
 - Application to antibiotics: heatmap, interpretation, and transition
 probability matrix
@@ -1052,21 +1114,23 @@ probability matrix
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/hmm_mode}
+  \includegraphics[width=0.9\textwidth]{figure/hmm_mode}
   \caption{The modal sequences according to the HMM estimated through
     EM. \label{fig:hmm_mode} }
 \end{figure}
 
 \subsubsection{Sticky HMMs}
+\label{sec:sticky_hmms}
 
-An interesting extension of ordinary HMMs are sticky HMMs. They are interesting
-both because (1) they incorporate extra, often more plausible, structure into
-the state transitions and (2) their estimation introduces novel inferential
-ideas that are useful in other extensions of HMMs.
+Sticky HMMs are an extension of ordinary HMMs designed to incorporate
+additional ``stickiness'' into state transitions -- states should be encouraged
+remain unchanged over longer sequences. To practically implement this basic
+idea, a bayesian view is useful, and we describe inference in detail. An
+application to the antibiotics data concludes this section.
 
 The modified model attempts to encourage an increased rate of self-transitions
 -- the latent states are ``sticky.'' This is achieved by introducing a
-``stickiness'' parameter $\alpha$ to the ordinary transition probability matrix.
+``stickiness'' parameter $\kappa$ to the ordinary transition probability matrix.
 
 \begin{figure}[ht]
   \centering
