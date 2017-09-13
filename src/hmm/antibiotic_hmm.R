@@ -67,6 +67,7 @@ melt_gamma <- function(gamma, dimn, samples, theta) {
   hres <- hclust(dist(as.matrix(gamma_mat[, -1])))
   rsv_order <- gamma_mat$rsv[hres$order]
 
+  gamma$mu <- means$mu[gamma$K]
   gamma$K <- factor(gamma$K, levels = k_order)
   gamma$rsv <- factor(gamma$rsv, levels = rsv_order)
   gamma
@@ -161,12 +162,13 @@ abt <- get(load("../../data/abt.rda")) %>%
   filter_taxa(function(x) { var(x) > 5 }, TRUE)
 samples <- sample_data(abt) %>%
   data.frame() %>%
-  rownames_to_column("sample")
+  mutate(time = str_pad(time, 2, "left", 0)) %>%
+  unite(sample, ind, time, sep = "")
 
 res <- get(load("hmm_em.rda"))
 gamma <- res$gamma
 K <- nrow(res$pi)
-dimn <- list(sample_names(abt), seq_len(K), taxa_names(abt))
+dimn <- list(samples$sample, seq_len(K), taxa_names(abt))
 gamma <- melt_gamma(gamma, dimn, samples, res$theta)
 
 p <- ggplot(gamma) +
