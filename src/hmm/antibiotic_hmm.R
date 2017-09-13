@@ -182,7 +182,7 @@ viri_scale <- scale_fill_viridis(
   direction = -1,
   limits = c(0, 5.2)
 )
-p <- ggplot(gamma) +
+ggplot(gamma) +
   geom_tile(
     aes(x = sample, y = rsv, alpha = gamma, fill = mu)
   ) +
@@ -192,7 +192,7 @@ p <- ggplot(gamma) +
   facet_grid(K ~ ind, space = "free", scales = "free")
 ggsave("../../doc//figure/hmm_probs.png", height = 3, width = 2)
 
-p <- ggplot(gamma_mode(gamma)) +
+ggplot(gamma_mode(gamma)) +
   geom_tile(
     aes(x = sample, y = rsv, fill = mu)
   ) +
