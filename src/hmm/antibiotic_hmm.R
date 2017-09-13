@@ -187,7 +187,11 @@ viri_scale <- scale_fill_viridis(
 legend_guide <- guides(
   fill = guide_colorbar(
     barwidth = 0.2,
-    ticks = FALSE,
+    ticks = FALSE
+  ),
+  alpha = guide_legend(
+    keywidth = unit(0.3, "cm"),
+    ticks = FALSE
   )
 )
 
@@ -212,9 +216,16 @@ ggplot(gamma_mode(gamma)) +
   facet_grid(. ~ ind, space = "free", scales = "free")
 ggsave("../../doc//figure/hmm_mode.png", height = 3, width = 2, dpi = 500)
 
+k_order <- extract_theta(res$theta)$mu_df %>%
+  na.omit() %>%
+  select(L1, mu) %>%
+  arrange(mu) %>%
+  .[["L1"]]
+
+res$pi <- res$pi[k_order, k_order]
 rownames(res$pi) <- 1:K
 colnames(res$pi) <- 1:K
-round(res$pi[levels(gamma$K), levels(gamma$K)], 3)
+round(res$pi, 3)
 
 ###############################################################################
 ## Block sampler for bayesian HMM
