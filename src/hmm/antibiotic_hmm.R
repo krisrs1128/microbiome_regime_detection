@@ -15,11 +15,26 @@ library("phyloseq")
 library("viridis")
 library("jsonlite")
 library("stringr")
-theme_set(ggscaffold::min_theme(list(
-                        "legend_position" = "right",
-                        "border_size" = 0.2
-                      ))
-          )
+
+scale_colour_discrete <- function(...)
+  scale_colour_brewer(..., palette="Set2")
+scale_fill_discrete <- function(...)
+  scale_fill_brewer(..., palette="Set2")
+
+theme_set(theme_bw())
+theme_update(
+  panel.border = element_blank(),
+  panel.grid = element_blank(),
+  axis.ticks = element_blank(),
+  legend.title = element_text(size = 5),
+  legend.text = element_text(size = 3),
+  legend.margin = margin(t = 0, r = 0, b = 0, l = 0.04, unit = "cm"),
+  axis.text = element_text(size = 6),
+  axis.title = element_text(size = 8),
+  strip.background = element_blank(),
+  strip.text = element_text(size = 8),
+  legend.key = element_blank()
+)
 
 ###############################################################################
 ## Some utilities
@@ -28,7 +43,13 @@ gamma_mode <- function(gamma) {
   gamma_group <- gamma %>%
     group_by(ind, sample, rsv) %>%
     summarise(k_max = K[which.max(gamma)])
-  gamma_group$k_max <- factor(gamma_group$k_max, levels(gamma$K))
+  mu <- gamma %>%
+    filter_(sprintf("sample == '%s'", gamma$sample[1])) %>%
+    dplyr::select(K, mu) %>%
+    unique()
+  mu <- setNames(mu$mu, mu$K)
+
+  gamma_group$mu <- mu[as.character(gamma_group$k_max)]
   gamma_group
 }
 
@@ -46,13 +67,14 @@ melt_gamma <- function(gamma, dimn, samples, theta) {
   k_order <- order(means$mu, decreasing = TRUE)
 
   gamma_mat <- gamma %>%
-    select(rsv, sample, K, gamma) %>%
+    dplyr::select(rsv, sample, K, gamma) %>%
     unite(sample_K, sample, K) %>%
     spread(sample_K, gamma)
 
   hres <- hclust(dist(as.matrix(gamma_mat[, -1])))
   rsv_order <- gamma_mat$rsv[hres$order]
 
+  gamma$mu <- means$mu[gamma$K]
   gamma$K <- factor(gamma$K, levels = k_order)
   gamma$rsv <- factor(gamma$rsv, levels = rsv_order)
   gamma
@@ -147,36 +169,63 @@ abt <- get(load("../../data/abt.rda")) %>%
   filter_taxa(function(x) { var(x) > 5 }, TRUE)
 samples <- sample_data(abt) %>%
   data.frame() %>%
-  rownames_to_column("sample")
+  mutate(time = str_pad(time, 2, "left", 0)) %>%
+  unite(sample, ind, time, sep = "", remove = FALSE)
 
 res <- get(load("hmm_em.rda"))
 gamma <- res$gamma
 K <- nrow(res$pi)
-dimn <- list(sample_names(abt), seq_len(K), taxa_names(abt))
+dimn <- list(samples$sample, seq_len(K), taxa_names(abt))
 gamma <- melt_gamma(gamma, dimn, samples, res$theta)
 
-p <- ggplot(gamma) +
+viri_scale <- scale_fill_viridis(
+  option = "magma",
+  direction = -1,
+  limits = c(0, 5.2),
+    breaks = c(0, 2, 4)
+)
+legend_guide <- guides(
+  fill = guide_colorbar(
+    barwidth = 0.2,
+    ticks = FALSE
+  ),
+  alpha = guide_legend(
+    keywidth = unit(0.3, "cm"),
+    ticks = FALSE
+  )
+)
+
+ggplot(gamma) +
   geom_tile(
-    aes(x = sample, y = rsv, alpha = gamma, fill = as.numeric(K))
+    aes(x = sample, y = rsv, alpha = gamma, fill = mu)
   ) +
-  scale_fill_viridis(option = "magma") +
+  viri_scale +
+  legend_guide +
   scale_alpha_continuous(range = c(0, 1)) +
-  theme(axis.text = element_blank(), legend.position = "none") +
+  theme(axis.text = element_blank()) +
   facet_grid(K ~ ind, space = "free", scales = "free")
-ggsave("~/Desktop/lab_meetings/20170705/figure/hmm_probs.pdf", height = 3, width = 2)
+ggsave("../../doc//figure/hmm_probs.png", height = 3, width = 2, dpi = 500)
 
-p <- ggplot(gamma_mode(gamma)) +
+ggplot(gamma_mode(gamma)) +
   geom_tile(
-    aes(x = sample, y = rsv, fill = as.numeric(k_max))
+    aes(x = sample, y = rsv, fill = mu)
   ) +
-  scale_fill_viridis(option = "magma") +
-  theme(axis.text = element_blank(), legend.position = "none") +
+  viri_scale +
+  legend_guide +
+  theme(axis.text = element_blank()) +
   facet_grid(. ~ ind, space = "free", scales = "free")
-ggsave("~/Desktop/lab_meetings/20170705/figure/hmm_mode.pdf", height = 3, width = 2)
+ggsave("../../doc//figure/hmm_mode.png", height = 3, width = 2, dpi = 500)
 
+k_order <- extract_theta(res$theta)$mu_df %>%
+  na.omit() %>%
+  select(L1, mu) %>%
+  arrange(mu) %>%
+  .[["L1"]]
+
+res$pi <- res$pi[k_order, k_order]
 rownames(res$pi) <- 1:K
 colnames(res$pi) <- 1:K
-round(res$pi[levels(gamma$K), levels(gamma$K)], 3)
+round(res$pi, 3)
 
 ###############################################################################
 ## Block sampler for bayesian HMM
@@ -221,10 +270,10 @@ pi_df <- pi %>%
   summarise(pi_mean = mean(pi_ij), se = sd(pi_ij))
 
 pi_mean <- pi_df %>%
-  select(-se) %>%
+  dplyr::select(-se) %>%
   spread(j, pi_mean) %>%
   ungroup %>%
-  select(-i)
+  dplyr::select(-i)
 pi_se <- pi_df %>%
   select(-pi_mean) %>%
   spread(j, se) %>%
@@ -253,7 +302,7 @@ p <- ggplot(gamma_mode(gamma)) +
   scale_fill_viridis(option = "magma") +
   theme(axis.text = element_blank(), legend.position = "none") +
   facet_grid(. ~ ind, space = "free", scales = "free")
-ggsave("~/Desktop/lab_meetings/20170705/figure/bayes_mode.pdf", height = 3, width = 2)
+ggsave("../../doc//figure/bayes_mode.png", height = 3, width = 2)
 
 mz <- melt_z(samp_data$z[,, 1000:1050], dimn, gamma)
 p <- ggplot(mz %>% filter(rsv %in% levels(gamma$rsv)[sample(1:600, 4)])) +
@@ -263,7 +312,7 @@ p <- ggplot(mz %>% filter(rsv %in% levels(gamma$rsv)[sample(1:600, 4)])) +
   scale_fill_viridis(option = "magma") +
   facet_wrap(~rsv) +
   theme(axis.text = element_blank())
-ggsave("~/Desktop/lab_meetings/20170705/figure/gibbs_samples.pdf", height = 1.8, width = 3)
+ggsave("../../doc//figure/gibbs_samples.png", height = 1.8, width = 3)
 write_gif(mz, "bayes_hmm_z")
 
 ###############################################################################
@@ -310,7 +359,7 @@ p <- ggplot(gamma_mode(gamma)) +
   scale_fill_viridis(option = "magma") +
   theme(axis.text = element_blank(), legend.position = "none") +
   facet_grid(. ~ ind, space = "free", scales = "free")
-ggsave("~/Desktop/lab_meetings/20170705/figure/hdp_antibiotics_mode.pdf", height = 3, width = 2)
+ggsave("../../doc//figure/hdp_antibiotics_mode.png", height = 3, width = 2)
 
 ## study mixing in z
 mz <- melt_z(samp_data$z[,, 1000:1050], dimn, gamma)
@@ -335,18 +384,18 @@ pi$j <- factor(pi$j, levels(gamma$K))
 
 pi_df <- pi %>%
   group_by(i, j) %>%
-  summarise(pi_mean = mean(pi_ij), se = sd(pi_ij))
+  dplyr::summarise(pi_mean = mean(pi_ij), se = sd(pi_ij))
 
 pi_mean <- pi_df %>%
-  select(-se) %>%
+  dplyr::select(-se) %>%
   spread(j, pi_mean) %>%
   ungroup %>%
-  select(-i)
+  dplyr::select(-i)
 pi_se <- pi_df %>%
-  select(-pi_mean) %>%
+  dplyr::select(-pi_mean) %>%
   spread(j, se) %>%
   ungroup %>%
-  select(-i)
+  dplyr::select(-i)
 
 round(pi_mean, 3)
 round(pi_se, 3)

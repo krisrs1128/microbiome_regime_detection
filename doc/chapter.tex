@@ -5,6 +5,9 @@
 \usepackage{hyperref}
 \usepackage{tikz}
 \usetikzlibrary{bayesnet}
+\usetikzlibrary{positioning}
+\usepackage{algorithm}
+\usepackage[noend]{algorithmic}
 \input{preamble.tex}
 
 \title{Inference of Dynamic Regimes in the Microbiome}
@@ -152,9 +155,9 @@ series. Three choices that we consider are,
   a high-dimensional space.
 \item Jaccard: This is a distance between pairs of length $p$ binary sequences
   $x_{i}$ and $x_{j}$ defined as
-\begin{align}
+\begin{align*}
   d\left(x_{i}, x_{j}\right) &= 1 - \frac{\sum_{k = 1}^{p} \indic{x_{ik} = x_{jk} = 1}}{p},
-\end{align}
+\end{align*}
 or one minus the fraction of coordinates that are 0/1. The motivation for this
 distance is that coordinates that are both 0 should not contribute to similarity
 between sequences, especially when they may be dominated by 0s. We apply this
@@ -195,13 +198,13 @@ by the antibiotic treatment, as well as how long they take to recover.
 
 \begin{figure}[ht]
   \centering
-  %\includegraphics[width=0.8\textwidth]{figure/heatmap-jaccard}
+  \includegraphics[width=0.8\textwidth]{figure/heatmap-jaccard}
   \caption{\label{fig:heatmap-jaccard} }
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  %\includegraphics[width=0.8\textwidth]{figure/heatmap-mix}
+  \includegraphics[width=0.8\textwidth]{figure/heatmap-mix}
   \caption{\label{fig:heatmap-mix} }
 \end{figure}
 
@@ -325,9 +328,9 @@ final fit.
 
 The structural model $\mathcal{F}$ is the class of functions that can be
 expressed as
-\begin{align}
+\begin{align*}
 f\left(x\right) &= \sum_{m = 1}^{M} c_{m} \indic{x \in R_{m}},
-\end{align}
+\end{align*}
 where $\left(R_{m}\right)_{m = 1}^{M}$ are some partition of the covariate space
 and $c_{m} \in \reals$ are constants associated with each partition element.
 
@@ -336,14 +339,14 @@ between $y_{i}$ and the $c_{m}$ associated with the $R_{m}$ within which the
 covariate $x_{i}$ lies -- we will denote this by $c\left(x_{i}\right)$. In
 classification, the corresponding criterion is the expected missclassification
 error. More precisely, we consider the empirical risks
-\begin{align}
+\begin{align*}
   \frac{1}{n} \sum_{i = 1}^{n} \left(y_{i} - c\left(x_{i}\right)\right)^{2},
-\end{align}
+\end{align*}
 
 for regression and
-\begin{align}
+\begin{align*}
   \frac{1}{n} \sum_{i = 1}^{n} L_{y_{i}, c\left(x_{i}\right)} \indic{y_{i} = c\left(x_{i}\right)},
-\end{align}
+\end{align*}
 for classification, where $L_{kk^{\prime}}$ is the loss induced by
 missclassifying $k$ as $k^{\prime}$. Since the empirical risk on the training
 data underestimates generalization error, these estimates are constructed on
@@ -363,17 +366,21 @@ input space, and then pruning away splits that seem less relevant. At the first
 step, the partition consists of a single $R_{1}$, equal to the entire covariate
 space, and it is split on covariate $j^{\ast}$ at position $t_{j1}^{\ast}$
 that solve the optimization
-\begin{align}
+\begin{align*}
   \left(j^{\ast}, t_{j1}^{\ast}\right) &= \arg \min_{\substack{j = 1, \dots, p \\ t_{j1} \in \reals}} \sum_{i \in R_{1, l}} \left(y_{i} - \bar{y}_{l}\right)^{2} + \sum_{i \in R_{1, r}} \left(y_{i} - \bar{y}_{r}\right)^{2}
-\end{align}
+\end{align*}
 where $R_{1, l}$ and $R_{1, r}$ (for ``left'' and ``right'') are a splitting of
 $R_{1}$ along feature $j$ feature at position $t_{j1}$.
 
 This procedure is iterated recursively. That is, at the $m^{th}$ iteration, the
 next split solves nearly the same optimization,
-\begin{align}
-  \left(m^{\ast}, j^{\ast}, t_{jm}^{\ast}\right) &= \arg \min_{\substack{j = 1, \dots, p \\ t_{jm} \in \reals}} \sum_{i \in R_{m, l}} \left(y_{i} - \bar{y}_{l}\right)^{2} + \sum_{i \in R_{m, r}} \left(y_{i} - \bar{y}_{r}\right)^{2},
-\end{align}
+
+\begin{align*}
+  \left(m^{\ast}, j^{\ast}, t_{jm}^{\ast}\right) = \arg \min_{\substack{j = 1, \dots, p \\ t_{jm} \in \reals}}
+  \sum_{i \in R_{m, l}} \left(y_{i} - \bar{y}_{l}\right)^{2} +
+  \sum_{i \in R_{m, r}} \left(y_{i} - \bar{y}_{r}\right)^{2},
+\end{align*}
+
 where the main difference is that we must now choose which of the $m$ previously
 defined partition elements to split.
 
@@ -382,12 +389,12 @@ potentially unecessarily highly resolved, and it can improve generalization
 error to introduce a pruning step. Define $C_{m}$ denote the ``cost'' of a
 (potentially intermediate) partition element $R_{m}$ according to,
 
-\begin{align}
+\begin{align*}
   C_{m} &= \begin{cases}
     \hat{r}_{m} + k & \text{if $m$ was never split} \\
     \sum_{m^\prime} C_{m^{\prime}} & \text{if $m$ was split into two $m^{\prime}$}
     \end{cases}
-\end{align}
+\end{align*}
 where $\hat{r}_{m} = \sum_{x_{i} \in R_{m}} \left(y_{i} - c_{m}\right)^{2}$. $k$
 can be interpreted as the amount of improvement to the score criterion that the
 split must provide in order to be accepted. The
@@ -474,17 +481,8 @@ series, or collections of independent ones. However, models that consider
 collections of related time series can be constructed from these, by introducing
 latent variables.
 
-\subsection{Linear dynamical systems}
-\ref{subsec:linear_dynamical_systems}
-
-- Review LDS graphical model
-- Derivation of Kalman Filter / Smoother
-  + Kalman filtering pseudocod
-  + Kalman smoothing pseudocode
-  + Link to some actual code
-
 \subsection{Gaussian Processes}
-\ref{subsec:gaussian_processes}
+\label{subsec:gaussian_processes}
 
 Gaussian Processes (GPs) provide a prior over classes of stationary, smoothly
 varying functions. Their appeal as a probabilistic modeling building block lies
@@ -493,17 +491,18 @@ complex functions as more data arrives -- while still admitting tractable
 inference. One of the simplest models involving GPs models observations
 $\left(x_{i}, y_{i}\right) \in \reals^{p}\times R$ as
 
-\begin{align}
+\begin{align*}
 y_{i} &= f\left(x_{i}\right) + \eps_{i}
-\end{align}
+\end{align*}
 
 where $f \sim GP\left(m, \kappa\right)$, meaning that for any collections of
 covariates $\left(x_{1}, \dots, x_{n}\right)$, we have
 
-\begin{align}
+\begin{align*}
   \left(f\left(x_{1}\right), \dots, f\left(x_{n}\right)\right) &\sim
   \Gsn\left( \begin{pmatrix} m\left(x_{1}\right) \\ \vdots \\ m\left(x_{n}\right) \end{pmatrix}, \begin{pmatrix} \kappa\left(x_{1}, x_{1}\right) & \dots & \kappa\left(x_{1}, x_{n}\right) \\ \vdots & & \vdots \\ \kappa\left(x_{n}, x_{1}\right) & \dots &\kappa\left(x_{n}, x_{n}\right) \end{pmatrix}\right)
-\end{align}
+\end{align*}
+
 $m$ and $\kappa$ are called the mean and covariance functions, respectively. We
 will denote this covariance matrix of $\kappa$'s applied to pairs of $x_{i}$ by
 $K\left(x, x\right)$.
@@ -512,14 +511,14 @@ It is common to initially center the data before analysis, in which case we can
 assume $m \equiv 0$. Further, any positive-definite covariance function $\kappa$
 can be used -- a common choice is the Gaussian covariance,
 
-\begin{align}
+\begin{align*}
 \kappa_{\sigma_{f}, M}\left(x_{p}, x_{q}\right) &= \sigma_{f}^{2}\exp{-\frac{1}{2}\left(x_{p} - x_{q}\right)^{T}M\left(x_{p} - x_{q}\right)},
-\end{align}
+\end{align*}
 
 where $M$ can be $\frac{1}{l^{2}}I_{n}$, which assumes similar degrees of smoothness
 across all coordinates, $\diag\left(l\right)^{-2}$, which allows different
 smoothness along different axes, or $\Lambda \Lambda^{T} + \diag\left(l\right)^{-2}$,
-which assumes variation along certain non-axes-aligned directions. While a
+which assumes variation along certain non-axes-align*ed directions. While a
 reasonable defult, it is good practice to adapt the covariance function to the
 data problem at hand, accounting for seasonality, multiple scales of variation,
 or the presence of outliers, see section 5.4.3 of \citep{rasmussen2006gaussian}
@@ -542,7 +541,7 @@ A plate diagram representing this model is provided in Figure \ref{fig:gp_plate}
     % Connect the nodes
     \edge {x, f, sigma} {y} ; %
     \edge {theta} {f} ; %
-    
+
     % Plates
     \plate {yx} {(x)(y)} {$n$} ;
   \end{tikzpicture}
@@ -555,7 +554,7 @@ In this model, the posterior of $f$ is available analytically, by virtue of
 Gaussian-Gaussian conjugacy. Consider evaluating the function $f$ at new points
 $x_{\ast}$, denoted by $f_{\ast} := f\left(x_{\ast}\right)$. Then, the joint of
 $y$ and $f^{\ast}$ is
-\begin{align}
+\begin{align*}
   \begin{pmatrix}
     y \\ f_{\ast}
   \end{pmatrix} &= \Gsn\left(
@@ -567,16 +566,17 @@ $y$ and $f^{\ast}$ is
   K\left(x_{\ast}, x\right) & K\left(x_{\ast}, x_{\ast}\right)
 \end{pmatrix}
   \right),
-\end{align}
+\end{align*}
 which yields the posterior,
-\begin{align}
+\begin{align*}
   f_{\ast} \vert y &\sim \Gsn\left(\Earg{f_{\ast} \vert y}, \Covarg{f_{\ast} \vert y}\right),
-\end{align}
+\end{align*}
 where
-\begin{align}
+\begin{align*}
   \Earg{f_{\ast} \vert y} &= K\left(x_{\ast}, x\right)\left(K\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}y \\
   \Covarg{f_{\ast} \vert y} &= K\left(x_{\ast}, x_{\ast}\right) - K\left(x_{\ast}, x\right)\left(K\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}K\left(x, x_{\ast}\right)
-\end{align}
+\end{align*}
+
 Note the $n\times n$ matrix inversion in the covariance calculation. This is the
 source of the $O\left(n^{3}\right)$ complexity of using standard GPs, though a
 variety of fast approximations have been proposed, exploiting the sparse,
@@ -589,15 +589,15 @@ known\footnote{For example, in the Gaussian covariance case, this has the form
 from the data. Two standard approaches are based on maximizing (1) the marginal
 likelihood of $y$ and (2) the cross-validated predictive likelihood. The first
 approach leverages the fact that the marginal likelihood,
-\begin{align}
+\begin{align*}
 \log p\left(y \vert x; \theta\right) &= -\frac{n}{2}\log 2\pi - \log\absarg{K_{\theta}\left(x, x\right) + \sigma^{2}I_{n}} - \frac{1}{2}y^{T}\left(K_{\theta}\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}y
-\end{align}
+\end{align*}
 and its gradients over $\theta$ have a closed form, and so can be optimized.
 
 The cross-validation approach instead maximizes the average predicted log probability,
-\begin{align}
+\begin{align*}
 \sum_{i = 1}^{n} \log p\left(y_{i} \vert x, y_{-i}; \theta\right),
-\end{align}
+\end{align*}
 which can also be found analytically, by conditioning the marginal for $y$.
 
 - Review GP graphical model
@@ -606,23 +606,614 @@ which can also be found analytically, by conditioning the marginal for $y$.
   + GP pseudocode
   + Link to some actual code
 
+\subsection{Linear dynamical systems}
+\label{subsec:linear_dynamical_systems}
+
+Linear dynamical systems model an observed time series as a transformation of
+temporally evolving latent states. The basic idea reminds me of trying to swat a
+fly. I might hear a buzzing noise, which gives some sense of where the fly is,
+and I might know that it can't move too far too quickly, but I might only get a
+few brief glimpses of the actual insect. The evolving latent state here is the
+true position of the fly, while the transformation that we observe is the
+loudness of the buzzing. There have been many proposals that allow general
+transformation and state evolution behavior, but a fundamental starting point is
+the linear-gaussian dynamical system,
+
+\begin{align*}
+  z_{t} &= A z_{t - 1} + \eps_{t} \\
+  x_{t} &= C z_{t} + \delta_{t} \\
+  w_{t} &\sim \Gsn\left(0, Q\right) \\
+  \eps_{t} &\sim \Gsn\left(0, R\right).
+\end{align*}
+
+The $z_{t}$'s are a markov chain of latent states, while the $x_{t}$'s represent
+the observed emissions from it. $A$ and $\Lambda$ govern the dynamics of the
+underlying process, while $C$ and $\Sigma$ describe the emission structure. The
+associated graphical model is provided in Figure \ref{fig:lds_graphical}.
+
+There are two conceptual components to fitting this model,
+
+\begin{itemize}
+\item Inference: Even if $\Theta = \{A, C, Q, R\}$ were known, there
+  is often value in estimating the latent $z_{i}$.
+\item Learning: Typically, the parameters $\Theta$ are unknown, and must
+  themselves be learned from the data.
+\end{itemize}
+
+Further, inference can be approached in several different ways, depending on
+problem context and constraints. Among the most common approaches are
+
+\begin{itemize}
+\item Filtering: Update beliefs of the current latent state in an online
+  fashion. Quantitatively, the goal is to estimate the distribution
+  $p\left(z_{t} \vert x_{1:t}\right)$.
+\item Smoothing: Use the full history to estimate beliefs of each latent state,
+  one at a time. This means to estimate $p\left(z_{t} \vert x_{1:T}\right)$ for
+  each $t = 1, \dots, T$.
+\item Forecasting: Predict the next few latent states given all observations so
+  far. For example, we might be interested in $p\left(z_{t + 1} \vert
+  x_{1:t}\right)$.
+\end{itemize}
+
+\begin{figure}[ht]
+  \centering
+  \begin{tikzpicture}
+    \node[latent] (z1) {$z_{1}$};
+    \node[latent, left=of z1] (z0) {$z_{0}$};
+    \node[obs, above=of z1] (x1) {$x_{1}$};
+    \node[latent, above=of x1] (delta1) {$\delta_{1}$};
+    \node[latent, below=of z1] (eps1) {$\eps_{1}$};
+    \node[latent, right=of z1] (z2) {$z_{2}$};
+    \node[obs, above=of z2] (x2) {$x_{2}$};
+    \node[latent, above=of x2] (delta2) {$\delta_{2}$};
+    \node[latent, below=of z2] (eps2) {$\eps_{2}$};
+    \node[const, right=of z2] (zdots) {$\dots$};
+    \node[latent, right=of zdots] (zT) {$z_{T}$};
+    \node[latent, below=of zT] (epsT) {$\eps_{T}$};
+    \node[obs, above=of zT] (xT) {$x_{T}$};
+    \node[latent, above=of xT] (deltaT) {$\delta_{T}$};
+
+    % Connect the nodes
+    \edge {z1} {x1} ; %
+    \edge {z2} {x2} ; %
+    \edge {z0} {z1} ; %
+    \edge {z1} {z2} ; %
+    \edge {z2} {zT} ; %
+    \edge {z2} {zdots} ; %
+    \edge {zdots} {zT} ; %
+    \edge {zT} {xT} ; %
+    \edge {eps1} {z1} ; %
+    \edge {eps2} {z2} ; %
+    \edge {epsT} {zT} ; %
+    \edge {delta1} {x1} ; %
+    \edge {delta2} {x2} ; %
+    \edge {deltaT} {xT} ; %
+  \end{tikzpicture}
+  \caption{\label{fig:lds_graphical} }
+\end{figure}
+
+We first describe inference in detail, before describe how inference and
+learning can be alternated to fit models on real data. Due to the linear
+gaussian assumption, the conditionals required by filtering and smoothing are
+still gaussian; however, their means and covariances are not immediately
+apparent. It turns out that, for both filtering and smoothing, they can be
+efficiently computed via dynamic programming recursions. In the literature,
+these are referred to as the Kalman Filtering and Rauch-Tung-Striebel Smoothing
+recursions.
+
+Consider the filter, where the goal is inference of $p\left(z_{t} \vert
+x_{1:t}\right)$. We will assume $z_{1} \sim \Gsn\left(0, Q\right)$. We
+could alternatively fix it to a constant -- the point is that the distribution
+for $z_{1}$ is known.
+
+For $t > 1$, define the \textit{one-step-ahead} and \textit{updated} means and
+covariances by
+\begin{align*}
+  \mu_{t \vert t - 1} &:= \Earg{z_{t} \vert y_{1:t - 1}} \\
+  \Sigma_{t \ vert t - 1} &:= \Covarg{z_{t} \vert y_{1:t - 1}} \\
+  \mu_{t} &:= \Earg{z_{t} \vert y_{1:t}} \\
+  \Sigma_{t} &:= \Covarg{z_{t} \vert y_{1:t}}.
+\end{align*}
+
+The update means and covariances $\mu_{t}$ and $\Sigma_{t}$ are the main
+quantities of interest in filtering. The filtering algorithm is detailed in in
+Algorithm \ref{alg:kalman_filter}. It can be thought of as a forwards pass
+through the observed sequence, updating means and covariances along the way.
+
+The derivation is as follows. For the predict step, use teh tower property and
+the law of total variance,
+
+\begin{align*}
+  \Earg{z_{t} \vert y_{1:t - 1}} &= \Earg{\Earg{z_{t} \vert z_{t - 1}, y_{1:t - 1}}} \\
+  & = \Earg{Az_{t - 1}\vert y_{1:t - 1}} \\
+  &= A\mu_{t - 1} \\
+  \Covarg{z_{t} \vert y_{1:t - 1}} &= \Covarg{\Earg{z_{t} \vert z_{t - 1}, y_{1:t - 1}}} + \Earg{\Covarg{z_{t} \vert z_{t - 1}, y_{1:t - 1}}} \\
+  &= \Covarg{Az_{t - 1} \vert z_{t - 1}, y_{1:t - 1}} + \Earg{Q} \\
+  &= A\Sigma_{t - 1}A^{T} + Q.
+\end{align*}
+
+For the update step, use gaussian conjugacy to obtain the required means and
+covariances and the matrix inversion lemma to express them more concisely.
+More precisely,
+
+\begin{align*}
+p\left(z_{t} \vert x_{1:t}\right) \propto p\left(x_{t} \vert z_{t}\right)p\left(z_{t} \vert y_{1:t}\right),
+\end{align*}
+and both densities on the right are gaussian -- the first is the likelihood of
+the observed $x_{t}$ while the second is the predict density derived above. By
+Bayes' rule, the posterior is gaussian with increased precision,
+\begin{align}
+  \label{eq:sigma_t_inv}
+\Sigma_{t}^{-1} &= \Sigma_{t \vert t - 1}^{-1} + C^{T}R^{-1}C
+\end{align}
+and shrunken mean,
+\begin{align}
+  \label{eq:mu_t}
+\mu_{t} &= \Sigma_{t}CR^{-1}x_{t} + \Sigma_{t}\Sigma_{t \vert t - 1}^{-1} \mu_{t \vert t - 1}.
+\end{align}
+
+Recall the matrix inversion lemma,
+\begin{align*}
+\left(A + UCV\right)^{-1} &= A^{-1} + A^{-1}U\left(C^{-1} + VA^{-1}U\right)^{-1}VA^{-1},
+\end{align*}
+and apply it to equation \ref{eq:sigma_t_inv} to find
+\begin{align*}
+  \Sigma_{t} &= \Sigma_{t \vert t - 1} - \Sigma_{t \vert t - 1}C\left(R^{-1} + C \Sigma_{t \vert t - 1}C^{T}\right)^{-1}C\Sigma_{t \vert t - 1} \\
+  &= \left(I - K_{t}C\right)\Sigma_{t \vert t - 1},
+\end{align*}
+according to the definition of $K_{t}$ in Algorithm
+\ref{algorithm:kalman_filter}.
+
+Substituting this expression, we can simplify equation \ref{eq:mu_t},
+\begin{align*}
+  \mu_{t} &= \left(I - K_{t} C\right)\Sigma_{t \vert t - 1}\left(C R^{-1}x_{t} + \Sigma_{t \vert t - 1}^{-1} \mu_{t \vert t - 1}\right) \\
+  &= \left(I - K_{t}C\right)\mu_{t \vert t - 1} + \left(I - K_{t} C\right)\Sigma_{t \vert t - 1}C R^{-1} x_{t} \\
+  &= \mu_{t \vert t - 1} + K_{t}\left(x_{t} - C\mu_{t \vert t- 1}\right),
+\end{align*}
+where for the simplification on the second half of the second line,
+\begin{align*}
+  \left(I - K_{t}C\right)\Sigma_{t \vert t - 1} C R^{-1} x_{t} &= \left(I - \left(\Sigma_{t \vert t - 1}^{-1} + C^{T} R C\right)^{-1}C^{T}R^{-1}C\right)\Sigma_{t \vert t - 1}C R^{-1} x_{t} \\
+  &= K_{t}x_{t},
+\end{align*}
+we again used the matrix inversion lemma.
+
+\begin{algorithm}
+   \caption{The Kalman filtering predict-update recursions.}
+   \label{alg:kalman_filter}
+\begin{algorithmic}
+  \STATE {\bfseries Input:} Model parameters $\Theta = \{A, C, Q, R\}$ and
+    observed sequence $x_{1:T}$.
+    \STATE $\mu_{0} \leftarrow 0, \Sigma_{0} \leftarrow Q$ \hfill initialize distribution of
+    $z_{0}$.
+    \FOR{$t = 1 \dots T$}
+    \STATE $\mu_{t \vert t - 1} \leftarrow A\mu_{t - 1}$ \hfill predict step
+    \STATE $\Sigma_{t \vert t - 1} \leftarrow A \Sigma_{t - 1} A^{T} + Q$
+    \STATE $\mu_{t} \leftarrow \mu_{t \vert t - 1} + K_{t}\left(x_{t} - C\mu_{t \vert t - 1}\right)$ \hfill update step
+    \STATE $\Sigma_{t} \leftarrow \left(I - K_{t}C\right)\Sigma_{t \vert t - 1}$
+    \STATE where $K_{t} \leftarrow \left(\Sigma_{t \vert t - 1}^{-1} + C^{T}R C\right)^{-1} C^{T}R^{-1}$
+    \ENDFOR
+    \STATE {\bfseries Output:} Filtered means and covariances $\left(\mu_{t},
+    \Sigma_{t}\right)_{t = 1}^{T}$.
+\end{algorithmic}
+\end{algorithm}
+
+While the Kalman filter makes a forwards pass over the observations to estimate
+the latent state means and covariances as data are made available, the RTS
+smoother can be understood as a pair of forwards-backwards sweeps that
+propogates information from all observations to the latent state estimates at
+previously measured timepoints. Introduce the notation,
+
+\begin{align*}
+\mu_{t \vert T} &= \Earg{z_{t} \vert y_{1:T}} \\
+\Sigma_{t \vert T} &= \Covarg{z_{t} \vert y_{1:T}},
+\end{align*}
+
+Which completely determine the smoothed distributions $p\left(z_{t} \vert
+x_{1:T}\right)$ of interest. The forwards pass in RTS smoothing is identical to
+the Kalman filter, and pseudocode for the backwards pass is provided in
+Algorithm \ref{alg_kalman_smoother}.
+
+\begin{algorithm}
+   \caption{The Kalman smoothing backwards pass.}
+   \label{alg:kalman_smoother}
+\begin{algorithmic}
+  \STATE {\bfseries Input:} Model parameters $\Theta = \{A, C, Q, R\}$,
+    observed sequence $x_{1:T}$, and filtering quantities $\left(\mu_{t},
+    \Sigma_{t}, \mu_{t \vert t - 1}, \Sigma_{t \vert t - 1}\right)$
+    \STATE $\mu_{T \vert T} \leftarrow \mu_{T}, \Sigma_{T \vert T} \leftarrow
+    \Sigma_{T}$ \hfill initialize distribution of $z_{T}$ using the results from
+    the Kalman filter.
+    \FOR{$t = T - 1 \dots 1$}
+    \STATE $\mu_{t \vert T} \leftarrow \mu_{t} + J_{t}\left(\mu_{t + 1 \vert T} - \mu_{t + 1 \vert t}\right)$
+    \STATE $\Sigma_{t \vert T} \leftarrow \Sigma_{t} + J_{t}\left(\Sigma_{t + 1 \vert T} - \Sigma_{t + 1 \vert t}\right)J_{t}^{T}$
+    \STATE where $J_{t} \leftarrow \Sigma_{t \vert t}A_{t + 1}^{T} \Sigma_{t + 1\vert t}^{-1}$
+    \ENDFOR
+    \STATE {\bfseries Output:} Smoothed means and covariances $\left(\mu_{t \vert T},
+    \Sigma_{t \vert T}\right)_{t = 1}^{T}$.
+\end{algorithmic}
+\end{algorithm}
+
+To see why this update works, first consider the joint behavior of neighboring
+times,
+
+\begin{align*}
+   \left(z_{t}, z_{t + 1} \vert x_{1:t}\right) &\sim \Gsn\left(
+\begin{pmatrix}
+  \mu_{t \vert t} \\
+  \mu_{t + 1 \vert t}
+\end{pmatrix},
+\begin{pmatrix}
+  \Sigma_{t \vert t} & \Sigma_{t} A^{T} \\
+  A \Sigma_{t} & \Sigma_{t + 1 \vert t}
+\end{pmatrix}\right),
+\end{align*}
+because
+\begin{align*}
+\Covarg{z_{t}, z_{t + 1} \vert x_{1:t}} &= \Covarg{z_{t}, Az_{t} + \eps_{t + 1} \vert x_{1:t}} \\
+&= \Sigma_{t}A^{T}.
+\end{align*}
+
+Conditioning, we obtain
+\begin{align*}
+  z_{t} \vert z_{t + 1}, x_{1:t} &\sim \Gsn\left(
+  z_{t} \vert \mu_{t \vert t} + J_{t}\left(z_{t + 1} - \mu_{t + 1 \vert t}\right),
+  \Sigma_{t \vert t} - J_{t} \Sigma_{t + 1 \vert t} J_{t}^{T}
+  \right).
+\end{align*}
+Since $x_{t}$ is independent of $x_{(t + 1): T}$ conditional on $z_{t + 1}$,
+this is enough to compute the full smoothed means and covariances. By the tower
+property,
+\begin{align*}
+  \mu_{t \vert T} &= \Earg{z_{t} \vert x_{1:T}} \\
+  &= \Earg{\Earg{z_{t} \vert z_{t + 1}, x_{1 : T}} \vert x_{1:T}} \\
+  &= \Earg{\Earg{z_{t} \vert z_{t + 1}, x_{1:t}} \vert x_{1:T}} \\
+  &= \mu_{t \vert t} + J_{t}\left(\mu_{t + 1 \vert T} - \mu_{t + 1 \vert t}\right)
+\end{align*}
+and similarly by the law of total covariance,
+\begin{align*}
+  \Sigma_{t\vert T} &= \Covarg{z_{t} \vert x_{1:T}} \\
+  &= \Covarg{\Earg{z_{t} \vert z_{t + 1}, x_{1:T}}} + \Earg{\Covarg{z_{t} \vert z_{t + 1}, x_{1:T}}} \\
+  &= \Covarg{\Earg{z_{t} \vert z_{t + 1}, x_{1:t}}} + \Earg{\Covarg{z_{t} \vert z_{t + 1}, x_{1:t}}} \\
+  &= \Sigma_{t \vert t} + J_{t}\left(\Sigma_{t + 1 \vert T} - \Sigma_{t + 1 \vert t}\right) J_{t}^{T}
+\end{align*}
+
 \section{Temporal mixture models}
 \label{sec:temporal_mixture_models}
 
+In all the models considered so far, all time windows exhibit comparable
+behavior. In the problem description of section \ref{sec:problem_description}
+however, we would expect changes in the behavior of the system during different
+temporal regimes. In this section, we describe probabilistic models that
+generate this sort of behavior. The unifying probabilistic ``trick'' that helps
+accomplish this goal is the introduction of latent variables specying which
+regime the system is in at any given timepoint.
+
 \subsection{Hidden Markov Modeling}
+
+The idea behind Hidden Markov Models (HMMs) is similar to that of LDSs, with the
+exception that the $z_{t}$ are no longer thought of as continuous latent
+variables. Instead, each $z_{t}$ is assigned one of a few discrete states,
+which switch between one another according to a Markov chain.
+
+An informal analogy is how I choose to listen to different music tracks. For a
+few days, I might be mostly listening to sonatas by Beethoven and Schubert,
+because I'm in a latent state that prefers German piano sonatas. I might be more
+likely to transition from here to French chamber music than, say, LA punk. So,
+my underlying style preferences evolve according to a Markov chain $z_{t}$,
+which is in turn reflected by the actual tracks $x_{t}$ that I listen to.
+
+More formally, we suppose $z_{1} \sim \pi_{0}$ comes from some initial
+distribution $\pi_{1} \in \simplex^{K - 1}$ and has some $K \times K$ transition
+probability matrix $P$ whose rows lie in $\simplex^{K - 1}$, where $\simplex^{K
+  - 1}$ denotes the $K - 1$ dimensional simplex. Conditional on $z_{t}$, $x_{t}$
+is emitted according to the density $p_{\theta_{z_{t}}}\left(x\right)$, one of
+$K$ emission densities $p_{\theta_{1}}\left(x\right), \dots,
+p_{\theta_{k}}\left(x\right)$. Concisely,
+\begin{align*}
+  x_{t} \vert z_{t} &\sim p_{\theta_{z_{t}}} \\
+  z_{1} &\sim \pi_{1} \\
+  z_{t} \vert z_{t - 1} &\sim P_{z_{t - 1}, z_{t}} \text{ for } t > 1.
+\end{align*}
+
+As in LDSs, fitting this model can be broken into an inference and a learning
+step, which estimate the distributions of the $z_{t}$ conditional on observed
+data and which fit the model parameters $\{P, \pi, \theta_{1}, \dots,
+\theta_{K}\}$. Alternating these two steps optimizes the Expected Complete Data
+Loglikelihood in an EM algorithm.
+
+The latent state inference (the $E$-step) is referred to as the
+Forwards-Backwards algorithm. This procedure parallels the Kalman filter
+(Forwards) and smoother (Backwards) algorithm for inference in LDSs. First,
+we find a simple expression for the analog of the filtered densities, based on
+the Markov assumption on the $z_{t}$'s,
+\begin{align*}
+  p\left(z_{t} \vert x_{1:t}\right) &\propto p\left(x_{t} \vert z_{t}, x_{1:t - 1}\right) p\left(z_{t} \vert x_{1:t - 1}\right) \\
+  &= p\left(x_{t} \vert z_{t}\right) p\left(z_{t} \vert x_{1:t - 1}\right) \\
+  &= p_{\theta_{z_{t}}}\left(x_{t}\right)p\left(z_{t} \vert x_{1:t - 1}\right).
+\end{align*}
+The first term is known by assumption, while the second can be computed directly
+from the previous filtered probabilities,
+\begin{align*}
+  p\left(z_{t} \vert x_{1:t - 1}\right) &= \sum_{k = 1}^{K} p\left(z_{t} \vert z_{t - 1} = k\right)p\left(z_{t - 1} = k \vert x_{1:t - 1} \right).
+\end{align*}
+
+The forwards pass of the Forwards-Backwards algorithm alternates these two steps
+(``update'' and ``predict''), after initializing $p\left(z_{1}\right) =
+\pi_{1}$, as described in algorithm \ref{alg:hmm_forwards}.
+
+\begin{algorithm}
+   \caption{Safe log-sum-exp}
+   \label{alg:normalize_log}
+   \begin{algorithmic}
+     \STATE {\bfseries Input:} $x \in \reals^{n}$
+     \STATE $m \leftarrow \max\left(x\right)$
+     \STATE {\bfseries Output:} $lse\left(x\right) \leftarrow x - \left(m + \log\left(\sum\exp{x_{i} - m}\right)\right)$
+   \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+   \caption{Forwards pass for HMM Inference}
+   \label{alg:hmm_forwards}
+\begin{algorithmic}
+  \STATE {\bfseries Input:} Model parameters $\{\pi_{1}, P, \theta_1, \dots, \theta_K\}$,
+  observed sequence $x_{1:T}$
+  \STATE $\log \tilde{p}\left(z_{1}\vert x_{1}\right) \leftarrow
+  \log\pi_{1} + \begin{pmatrix} \log p_{\theta_{1}}\left(x_{1}\right) \\ \vdots \\ \log p_{\theta_{k}}\left(x_{1}\right) \end{pmatrix}$ \hfill initialize distribution of $z_{1}$
+  \STATE $\log p\left(z_{1} \vert x_{1}\right) \leftarrow \log \tilde{p}\left(z_{t} \vert x_{1}\right) - \text{lse}\left(\log \tilde{p}\left(z_{t} \vert x_{1}\right)\right)$\hfill Use algorithm \ref{alg:normalize_log}
+  \FOR{$t = 2 \dots T$}
+  \STATE $\log \tilde{p}\left(z_{t} \vert x_{1:t}\right) \leftarrow P \exp{\log p\left(z_{t - 1} \vert x_{1:t - 1}\right)} + \begin{pmatrix}  \log p_{\theta_{1}}\left(x_{t}\right) \\ \vdots \\ \log p_{\theta_{k}}\left(x_{t}\right) \end{pmatrix}$
+  \STATE $\log p\left(z_{1} \vert x_{1:t}\right) \leftarrow \log \tilde{p}\left(z_{t} \vert x_{1:t}\right) - \text{lse}\left(\log \tilde{p}\left(z_{t} \vert x_{1:t}\right)\right)$\hfill
+  \ENDFOR
+  \STATE {\bfseries Output:} Filtered log densities $\log p\left(z_{t} \vert x_{1:t}\right)$.
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+  \begin{algorithmic}
+   \caption{Backwards pass for HMM Inference}
+   \label{alg:hmm_backwards}
+   \STATE {\bfseries Input:} Model parameters $\{\pi_{1}, P, \theta_1, \dots, \theta_k\}$, observed sequence $x_{1:T}$
+   \STATE $\log p\left(z_{T} \vert x_{1:T}\right) \leftarrow 0_{K}$ \hfill Initialize messages.
+   \FOR{$t = T  - 1\dots 1$}
+   \FOR{$k = 1 \dots K$}
+   \STATE $\log p\left(z_{t} = k \vert x_{1:T}\right) \leftarrow \text{lse}\left(\log p\left(z_{t + 1} = k \vert x_{1:T}\right)\right) + \log p_{\theta_{k}}\left(y_{t}\right) + \log \pi_{k}$
+   \ENDFOR
+   \ENDFOR
+   \STATE {\bfseries Output:} Smoothed densities $\log p\left(z_{t} \vert x_{1:T}\right)$.
+  \end{algorithmic}
+\end{algorithm}
+
+The backwards pass computes the analog of the smoothed densities, based on the
+observation\footnote{This is the same observation used in the derivation of the
+  Kalman smoother.} that $x_{t}$ is independent of the future conditional on
+$z_{t + 1}$,
+\begin{align*}
+  p\left(z_{t} \vert x_{1:T}\right) &\propto p\left(x_{t + 1:T} \vert z_{t}\right) p\left(z_{t} \vert x_{1:t}\right).
+\end{align*}
+The second term on the right hand side is available from the forwards pass. The
+first term is computed during the backwards pass, which initializes $p\left(x_{T
+  + 1} \vert z_{T}\right) = 1$ and then accumulates the ``future observation''
+densities from right to left,
+\begin{align*}
+  p\left(x_{t + 1: T} \vert z_{t}\right) &= \sum_{k = 1}^{K} p\left(z_{t + 1} = k, x_{t + 1 : T} \vert z_{t}\right) \\
+  &= \sum_{k = 1}^{K} p\left(x_{t + 2: T}\vert z_{t + 1} = k, x_{t + 1}, z_{t}\right) p\left(z_{t + 1} = k, x_{t + 1} \vert z_{t}\right) \\
+  &= \sum_{k = 1}^{K} p\left(x_{t + 2:T}\vert z_{t + 1} = k\right)p_{\theta_{z_{t + 1}}}\left(x_{t + 1}\right) \P_{z_{t}, k}.
+\end{align*}
+
+The backwards pass is summarized in algorithm \ref{alg:hmm_backwards}.
+
+In the learning step, the parameters $\left(\theta_{k}\right)$, $\pi_0$ and
+$\pi_{k, k^{\prime}}$ must be estimated. Estimation of the per-regime parameters
+can be done separately for each $k$. For example, if HMM has Gaussian emissions,
+$p_{\theta_{k}}\left(x_{t}\right) = \Gsn\left(x_{t} \vert \mu_{k},
+\Sigma_{k}\right)$, then
+\begin{align*}
+  \hat{\mu}_{k} &= \frac{\sum_{t = 1}^{T} \indic{z_{t} = k}x_{t}}{\sum_{t = 1}^{T}\indic{z_{t} = k}} \\
+  \hat{\Sigma}_{k} &= \frac{\sum_{t = 1}^{T} \indic{z_{t} = k}\left(x_{t} - \hat{\mu}_{k}\right)\left(x_{t} - \hat{\mu}_{k}\right)^{T}}
+      {\sum_{t = 1}^{T} \indic{z_{t} = k}},
+\end{align*}
+while, regardless of the emission structure, the Markov chain parameters can be
+estimated via
+\begin{align*}
+  \hat{\pi}_{k, k^{\prime}} &= \frac{\sum_{t = 1}^{T} \indic{z_{t} = k, z_{t + 1} = k^{\prime}}}{\sum_{t = 1}^{T} \indic{z_{t} = k}}.
+\end{align*}
 
 - Probabilistic approach that incorporates time structure directly
 - Draw the graphical model
-
-\subsubsection{Standard HMMs}
-
 - Write the model and provide an interpretation
+
+\subsubsection{HMM for for antibiotics}
+\label{subsubsec:hmm_for_antibiotics}
+
+In the context of regime detection in the microbiome, we imagine a few
+underlying states shared across all bacteria (ranging from high abundance to
+complete absence). Within each species, states evolve independently according to
+a Markov chain. Note that, while we do share across species when estimating
+underlying parameters $\left(\theta_{k}\right)$, we do not tie together latent
+indicators $z_{it}$ across species. Specifically, we use a DAG that factors
+across all species -- given $\theta$, all species abundances follow independent
+HMMs.
+
+Therefore, in the $E$-step (Forwards-Backwards algorithm), the $z_{it}$ can be
+estimated in parallel across all species. The $M$-step is modified so that
+mixture component parameters and transition probabilities are estimated
+simultaneously across all species, for example, the new mean update for cluster
+$k$ in the Gaussian HMM becomes
+\begin{align*}
+\hat{\mu}_{k} &= \frac{\sum_{i = 1}^{n}\sum_{t = 1}^{T} \indic{z_{t} = k}x_{it}}{\sum_{i = 1}^{n}\sum_{t = 1}^{T} \indic{z_{it} = k}}.
+\end{align*}
+
+Next, we employ this approach on the same antibiotics data described in section
+\ref{subsubsec:antibiotics_application}. The results are summarized in Figure
+\ref{fig:hmm_mode} and Supplementary Figure \ref{fig:hmm_probs}, which display
+the modes and raw probabilities of the smoothed probabilities $p\left(z_{it}
+\vert x_{i(1:T)}\right)$ after applying EM. As in Figure
+\ref{fig:centroid-euclidean-conditional} and its counterparts made through
+hierarchical clustering, rows correspond to individual species, while columns
+are samples sorted by time. The three main panels are the three subjects in the
+study. Here, rows $i$ are ordered according to a hierarchical clustering on the
+estimated model sequences $\left(\hat{z}_{i1}, \dots, \hat{z}_{iT}\right)$,
+where $\hat{z}_{it} = \arg \max_{k} p\left(z_{it} = k \vert x_{1:T}\right)$. The
+intensity of the shading of each cell corresponds to the average value
+$\hat{\mu}_{k}$ for that mode.
+
+We can think of Figure \ref{fig:hmm_mode} as a smoothed version of the raw
+heatmaps made through hierarchical clustering. By coarsening the raw values into
+cluster centers, certain patterns are more easily visible. For example, in
+addition to effect of the two antibiotics time courses across all subjects, we
+note that
+
+\begin{itemize}
+\item The effect of the first antibiotic time courses is more prolonged in
+  Subject F, and in some cases species disappear for most of the remainder of
+  the experiment. Some of these species seem to have also disappeared from
+  Subject D, but most others recovered in both Subject D and E.
+\item The phenomenon in which some species become \textit{more} abundant during
+  the time courses -- presumably filling in newly emptied niches -- is stronger
+  in Subject E than the others. Further, some species that exhibit this behavior
+  in Subject E respond differently within subjects D and F, becoming less
+  abundant rather than more.
+\end{itemize}
+
+Note that, while smoothing makes the antibiotic effect clearer among moderately
+and highly abundant species, variation among rarer species, to which all
+timepoints are assigned to the rare abundance state, is obscured. This could be
+remedied by increasing $K$, at the cost of increasing the complexity of
+interpretation for abundant species.
+
+Instead of displaying the sequence of modes $\hat{z}_{it}$, Supplemental Figure
+\ref{fig:hmm_probs} provides the individual probabilities $p\left(z_{it} = k
+\vert x_{1:T}\right)$ across $k$. The vertical panels distinguish between
+different $k$, while transparency represents the size of the probability --
+smaller probabilities are more transparent. The colors are associated with
+centroid means, as before. In this application, most probabilities seem near
+one, so this view adds little to that in \ref{fig:hmm_mode}. However, this does
+suggest the possibility of overfitting, which we address by introducing priors
+on $\Theta$ in section \ref{sec:sticky_hmms}.
+
+The estimated transition probabilities between states, ordered in terms of
+increasing $\hat{\mu}_{k}$, are displayed below.
+\begin{verbatim}
+      1     2     3     4
+1 0.810 0.159 0.028 0.003
+2 0.389 0.527 0.083 0.002
+3 0.077 0.094 0.810 0.019
+4 0.027 0.007 0.056 0.910
+\end{verbatim}
+Unsurprisingly, most transitions remain in the same state, and any departures
+are generally restricted to states with similar $\hat{\mu}_{k}$s. Generally,
+there appear to be more transitions downwards than upwards, and the sum of
+transitions into state 1 is higher than the sums for the rest. This can likely
+be attributed to the antibiotic effect, which reduces abundances of species that
+often never recover.
+
+As in Figure \ref{fig:centroid-euclidean-conditional}, the primary drawback of
+this display is the difficulty in linking observed species trajectories to
+species or taxonomic detail. To easily link the smoothed HMM estimates to raw
+time series values and species descriptions would require either splitting the
+view across taxonomies or introducing interactivity.
+
 - Application to antibiotics: heatmap, interpretation, and transition
 probability matrix
 - In order to understand extensions, briefly review actual inferential mechanism
 - What kinds of limitations have we encountered?
 
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figure/hmm_mode}
+  \caption{The modal sequences according to the HMM estimated through
+    EM. \label{fig:hmm_mode} }
+\end{figure}
+
 \subsubsection{Sticky HMMs}
+\label{sec:sticky_hmms}
+
+Sticky HMMs are an extension of ordinary HMMs designed to incorporate
+additional ``stickiness'' into state transitions -- states should be encouraged
+remain unchanged over longer sequences. To practically implement this basic
+idea, a bayesian view is useful, and we describe inference in detail. An
+application to the antibiotics data concludes this section.
+
+Consider the standard Bayesian HMM, which places $\Dir\left(\alpha\right)$
+priors on the rows of the transition probability matrix, $P_{1}, \dots, P_{K}$
+and conjugate priors on $\Theta$. The main idea of the sticky HMM is to
+introduce a ``stickiness'' parameter $\kappa$ to the Dirichlet
+prior\footnote{Here, $e_{k} := \left(0, \dots, 0, 1, 0, \dots, 0\right)$ is the
+  vector with a $1$ in the $k^{th}$ coordinate and zeros everywhere else.}:
+$P_{k} \sim \Dir\left(\alpha + \kappa e_{k}\right)$. This means that draws from
+the prior on $P$ will have larger weight along the diagonal, depending on the
+size of $\kappa$, and since diagonal elements correspond to self-transitions,
+chains drawn from the prior will be ``sticky.''
+
+To draw samples from $p\left(\left(z_{it}\right), P, \Theta \vert
+\left(x_{it}\right)\right)$, we consider a block gibbs sampling analog to EM
+\citep{fruhwirth2006finite}. In place of the $E$-step, we draw from the
+conditional $p\left(\left(z_{it}\right) \vert \left(x_{it}\right),
+\Theta\right)$ using a variation of the forwards-backwards algorithm, and in
+place of the $M$-step, we draw from $p\left(\Theta, \vert P, \left(z_{it}\right),
+\left(x_{it}\right)\right)$ and $p\left(P \vert \Theta, \left(z_{it}\right),
+\left(x_{it}\right)\right)$. We generally follow the derivation of
+\citep{fox2009bayesian}.
+
+First we consider sampling $p\left(\left(z_{it}\right) \vert P, \Theta\right)$.
+Note that since each sequence is independent of all others, given $\Theta$, we
+can sample the $z_{it}$ separately across each $i$, so for the explanation
+below, we drop this subscript. By the Markov property, the probability a single
+sequence can be decomposed according to
+\begin{align*}
+  \label{eq:sticky_block_z}
+p\left(z_{1:T} \vert x_{1:T}, \Theta, \pi, P\right) &= p\left(z_{1} \vert y_{1:T}, \Theta, \pi, P\right) \prod_{t = 2}^{T} p\left(z_{t} \vert z_{t - 1}, y_{1:T}, \Theta, \pi, P\right).
+\end{align*}
+If we could calculate each of these individual probabilities, then one mechanism
+for sampling the entire sequence $z_{1:T}$ would be to first sample $z_{1}$,
+then $z_{2}$ given $z_{1}$, etc. Note that the first term has a different
+structure than the rest (it doesn't depend on any previous $z_{t}$s), so we
+analyze it first,
+\begin{align*}
+  p\left(z_{1} \vert y_{1:T}, \Theta, \pi, P\right) &\propto p\left(z_{1} \vert \Theta, \pi, P\right) p\left(y_{1} \vert z_{1}, \Theta, \pi, P\right) p\left(y_{2:T} \vert z_{1}, \Theta, \pi, P\right) \\
+  &\propto \pi_{z_{1}} p\left(y_{1} \vert \theta_{z_{1}}\right) p\left(y_{2:T} \vert z_{1}, \Theta, \pi, P\right)
+\end{align*}
+where we used the fact that $y_{1} \independent y_{2:T} \vert z_{1}$, due to the
+structure of the HMM DAG. The first two terms are easy to sample, and we will
+show below that terms of the form $p\left(y_{t + 1:T} \vert z_{t}, \Theta, \pi,
+P\right)$ can be calculated efficiently using a backwards-pass type recursion.
+
+Consider now the terms in the product of equation \ref{eq:sticky_block_z}. By
+Bayes rule,
+\begin{align*}
+  p\left(z_{t} \vert z_{t - 1}, y_{1:T}, \Theta, \pi, P\right) &\propto p\left(y_{1:t - 1} \vert z_{t - 1}, z_{t}, \Theta, \pi, P\right)
+  p\left(y_{t} \vert z_{t}, \Theta, \pi, P\right)
+  p\left(y_{t + 1 : T} \vert z_{t}, \Theta, \pi, P\right) \\
+  &\propto p\left(y_{1:t - 1} \vert z_{t - 1}, z_t, \Theta, \pi, P\right) p\left(y_t \vert \theta_{z_t}\right) p\left(y_{t + 1 : T}\vert z_{t}, \Theta, \pi, P\right).
+\end{align*}
+The second term is a likelihood, and the third will be calculated by the
+backwards-pass. Note that the first term can be further reduced to
+\begin{align*}
+  p\left(y_{1:t - 1} \vert z_{t - 1}, z_t, \Theta, \pi, P\right) &\propto p\left(z_{t} \vert y_{1:t - 1}, z_{t - 1}, \Theta, \pi, P\right)p\left(y_{1:t - 1} \vert z_{t - 1}, \Theta, \pi, P\right) \\
+  &\propto p\left(z_{t} \vert z_{t - 1}, \Theta, \pi, P\right) \\
+  &= P_{z_{t - 1}, z_{t}},
+\end{align*}
+since we care only about the terms involving $z_{t}$ (we are sampling
+$p\left(z_{t} \vert z_{t - 1}, y_{1:T}, \Theta, \pi, P\right)$).
+
+Now, we describe how to compute the terms $p\left(y_{t + 1:T} \vert z_t, \Theta,
+\pi, P\right)$ efficiently, as promised above. Consider storing these terms in a
+$T \times K$ matrix, whose $tk^{th}$ element is $p\left(y_{t} \vert z_{t - 1} =
+k, \Theta, \pi, P\right)$. The bottom row is initialized according to
+\begin{align*}
+ \left(y_T \vert z_{T - 1}, \Theta, \pi, P\right)  &= \sum_{z_{T} = 1}^{K} p\left(y_{T} \vert \theta_{z_{T}}\right) P_{z_{T - 1}, z_{T}}.
+\end{align*}
+Then the recursion computes the $t^{th}$ row from the $t + 1^{st}$ according to
+\begin{align*}
+  p\left(y_{t + 1:T} \vert z_t, \Theta, \pi, P\right) &= \sum_{z_{t + 1} = 1}^{K} p\left(y_{t + 1 : T} \vert z_{t}, z_{t + 1} \Theta, \pi, P\right) P_{z_{t}, z_{t + 1}} \\
+  &= \sum_{z_{t + 1} = 1}^{K} p\left(y_{t + 1} \vert \theta_{z_{t + 1}}\right) p\left(y_{t + 2 : T} \vert z_{t + 1}, \Theta, \pi, P\right) P_{z_{t}, z_{t + 1}}.
+\end{align*}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figure/bayes_mode}
+  \caption{Mode from sticky HMM. \label{fig:bayes_mode} }
+\end{figure}
 
 - Modified model
 - Simulation example
@@ -636,6 +1227,13 @@ partitioning
 
 \subsubsection{Sticky HDP-HMMs}
 
+We describe a Bayesian nonparametric variation of sticky HMMs first proposed in
+\citep{fox2008hdp}. As it is nonparametric, the number of observed regimes can
+increase as more data are processed, though the rate at which new states are
+introduced is still controlled by user-specified parameters\footnote{In
+  particular, it is misleading to claim that the method ``discovers'' the
+  ``optimal'' number of clusters.}
+
 - Write the new model
 - Simulation example
 - Antibiotics case study
@@ -646,14 +1244,25 @@ partitioning
 
 \subsection{Mixture of Experts}
 
-- Switching state space models
+HMMs suppose that the observed system switches between a few regimes, but that
+within regimes observations are stationary. In certain situations, this is not
+quite plausible, and here we describe some alternatives that mix nonstationary
+processes. In particular, we focus on several efforts to merge the switching idea of
+HMMs with linear dynamical systems and gaussian processes, proposed in
+\citep{ghahramani1998variational, rasmussen2002infinite, fox2012multiresolution}.
+
+- Switching state space models (subsubsection)
    + Model description
    + Simulation example
    + Description of variational inference
-- Mixture of Gaussian processes
+- Mixture of Gaussian processes (subsubsection)
   + Model description
   + Simulation examples
   + Description of variational inference
+- Multiresolution gaussian processes (subsubsection)
+  + Model description
+  + Simulation examples
+  + Description of MCMC
 
 \subsection{Changepoint detection}
 
@@ -701,7 +1310,7 @@ partitioning
 
 \begin{figure}[ht]
   \centering
-  %\includegraphics[width=0.8\textwidth]{figure/rpart_binary_simple}
+  \includegraphics[width=0.8\textwidth]{figure/rpart_binary_simple}
   \caption{\label{fig:rpart_binary_simple} }
 \end{figure}
 
@@ -709,6 +1318,12 @@ partitioning
   \centering
   %\includegraphics[width=0.8\textwidth]{figure/rpart_conditional}
   \caption{\label{fig:rpart_conditional} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figure/hmm_probs}
+  \caption{\label{fig:hmm_probs} }
 \end{figure}
 
 \end{document}
