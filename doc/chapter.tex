@@ -917,7 +917,7 @@ p_{\theta_{k}}\left(x\right)$. Concisely,
 
 As in LDSs, fitting this model can be broken into an inference and a learning
 step, which estimate the distributions of the $z_{t}$ conditional on observed
-data and which fit the model parameters $\Theta = \{P, \pi, \theta_{1}, \dots,
+data and which fit the model parameters $\{P, \pi, \theta_{1}, \dots,
 \theta_{K}\}$. Alternating these two steps optimizes the Expected Complete Data
 Loglikelihood in an EM algorithm.
 
@@ -955,7 +955,7 @@ The forwards pass of the Forwards-Backwards algorithm alternates these two steps
    \caption{Forwards pass for HMM Inference}
    \label{alg:hmm_forwards}
 \begin{algorithmic}
-  \STATE {\bfseries Input:} Model parameters $\Theta = \{\pi_{1}, P, \theta_1, \dots, \theta_K\}$,
+  \STATE {\bfseries Input:} Model parameters $\{\pi_{1}, P, \theta_1, \dots, \theta_K\}$,
   observed sequence $x_{1:T}$
   \STATE $\log \tilde{p}\left(z_{1}\vert x_{1}\right) \leftarrow
   \log\pi_{1} + \begin{pmatrix} \log p_{\theta_{1}}\left(x_{1}\right) \\ \vdots \\ \log p_{\theta_{k}}\left(x_{1}\right) \end{pmatrix}$ \hfill initialize distribution of $z_{1}$
@@ -972,11 +972,11 @@ The forwards pass of the Forwards-Backwards algorithm alternates these two steps
   \begin{algorithmic}
    \caption{Backwards pass for HMM Inference}
    \label{alg:hmm_backwards}
-   \STATE {\bfseries Input:} Model parameters $\Theta = \{\pi_{1}, P, \theta_1, \dots, \theta_k\}$, observed sequence $x_{1:T}$
+   \STATE {\bfseries Input:} Model parameters $\{\pi_{1}, P, \theta_1, \dots, \theta_k\}$, observed sequence $x_{1:T}$
    \STATE $\log p\left(z_{T} \vert x_{1:T}\right) \leftarrow 0_{K}$ \hfill Initialize messages.
-   \FOR{t = T  - 1\dots 1}
-   \FOR{k = 1 \dots K}
-   $\log p\left(z_{t} = k \vert x_{1:T}\right) \leftarrow \text{lse}\left(\log p\left(z_{t + 1} = k \vert x_{1:T}\right)\right) + \log p_{\theta_{k}}\left(y_{t}\right) + \log \pi_{k}$
+   \FOR{$t = T  - 1\dots 1$}
+   \FOR{$k = 1 \dots K$}
+   \STATE $\log p\left(z_{t} = k \vert x_{1:T}\right) \leftarrow \text{lse}\left(\log p\left(z_{t + 1} = k \vert x_{1:T}\right)\right) + \log p_{\theta_{k}}\left(y_{t}\right) + \log \pi_{k}$
    \ENDFOR
    \ENDFOR
    \STATE {\bfseries Output:} Smoothed densities $\log p\left(z_{t} \vert x_{1:T}\right)$.
@@ -1134,25 +1134,80 @@ remain unchanged over longer sequences. To practically implement this basic
 idea, a bayesian view is useful, and we describe inference in detail. An
 application to the antibiotics data concludes this section.
 
-Consider the standard Bayesian HMM, which places
-$\Dir\left(\alpha\right)$ priors on the rows of the transition probability
-matrix, $P_{1}, \dots, P_{K}$ and conjugate priors on the remaining
-elements of $\Theta$. The main idea of the sticky HMM is to introduce a
-``stickiness'' parameter $\kappa$ to the Dirichlet prior\footnote{Here, $e_{k}
-  := \left(0, 0, \dots, 0, 1, 0, \dots, 0\right)$}: $P_{k} \sim
-\Dir\left(\alpha + \kappa e_{k}\right)$. This means that draws from the prior on
-$P$ will have larger weight along the diagonal, depending on the size of
-$\kappa$, and since diagonal elements correspond to self-transitions, chains
-drawn from the prior will be ``sticky.''
+Consider the standard Bayesian HMM, which places $\Dir\left(\alpha\right)$
+priors on the rows of the transition probability matrix, $P_{1}, \dots, P_{K}$
+and conjugate priors on $\Theta$. The main idea of the sticky HMM is to
+introduce a ``stickiness'' parameter $\kappa$ to the Dirichlet
+prior\footnote{Here, $e_{k} := \left(0, \dots, 0, 1, 0, \dots, 0\right)$ is the
+  vector with a $1$ in the $k^{th}$ coordinate and zeros everywhere else.}:
+$P_{k} \sim \Dir\left(\alpha + \kappa e_{k}\right)$. This means that draws from
+the prior on $P$ will have larger weight along the diagonal, depending on the
+size of $\kappa$, and since diagonal elements correspond to self-transitions,
+chains drawn from the prior will be ``sticky.''
 
-To draw samples from $p\left(\left(z_{it}\right), \Theta \vert
+To draw samples from $p\left(\left(z_{it}\right), P, \Theta \vert
 \left(x_{it}\right)\right)$, we consider a block gibbs sampling analog to EM
 \citep{fruhwirth2006finite}. In place of the $E$-step, we draw from the
 conditional $p\left(\left(z_{it}\right) \vert \left(x_{it}\right),
 \Theta\right)$ using a variation of the forwards-backwards algorithm, and in
-place of the $M$-step, we draw from $p\left(\Theta \vert \left(z_{it}\right),
-\left(x_{it}\right)\right)$. We describe these conditionals in more detail
-below.
+place of the $M$-step, we draw from $p\left(\Theta, \vert P, \left(z_{it}\right),
+\left(x_{it}\right)\right)$ and $p\left(P \vert \Theta, \left(z_{it}\right),
+\left(x_{it}\right)\right)$. We generally follow the derivation of
+\citep{fox2009bayesian}.
+
+First we consider sampling $p\left(\left(z_{it}\right) \vert P, \Theta\right)$.
+Note that since each sequence is independent of all others, given $\Theta$, we
+can sample the $z_{it}$ separately across each $i$, so for the explanation
+below, we drop this subscript. By the Markov property, the probability a single
+sequence can be decomposed according to
+\begin{align*}
+  \label{eq:sticky_block_z}
+p\left(z_{1:T} \vert x_{1:T}, \Theta, \pi, P\right) &= p\left(z_{1} \vert y_{1:T}, \Theta, \pi, P\right) \prod_{t = 2}^{T} p\left(z_{t} \vert z_{t - 1}, y_{1:T}, \Theta, \pi, P\right).
+\end{align*}
+If we could calculate each of these individual probabilities, then one mechanism
+for sampling the entire sequence $z_{1:T}$ would be to first sample $z_{1}$,
+then $z_{2}$ given $z_{1}$, etc. Note that the first term has a different
+structure than the rest (it doesn't depend on any previous $z_{t}$s), so we
+analyze it first,
+\begin{align*}
+  p\left(z_{1} \vert y_{1:T}, \Theta, \pi, P\right) &\propto p\left(z_{1} \vert \Theta, \pi, P\right) p\left(y_{1} \vert z_{1}, \Theta, \pi, P\right) p\left(y_{2:T} \vert z_{1}, \Theta, \pi, P\right) \\
+  &\propto \pi_{z_{1}} p\left(y_{1} \vert \theta_{z_{1}}\right) p\left(y_{2:T} \vert z_{1}, \Theta, \pi, P\right)
+\end{align*}
+where we used the fact that $y_{1} \independent y_{2:T} \vert z_{1}$, due to the
+structure of the HMM DAG. The first two terms are easy to sample, and we will
+show below that terms of the form $p\left(y_{t + 1:T} \vert z_{t}, \Theta, \pi,
+P\right)$ can be calculated efficiently using a backwards-pass type recursion.
+
+Consider now the terms in the product of equation \ref{eq:sticky_block_z}. By
+Bayes rule,
+\begin{align*}
+  p\left(z_{t} \vert z_{t - 1}, y_{1:T}, \Theta, \pi, P\right) &\propto p\left(y_{1:t - 1} \vert z_{t - 1}, z_{t}, \Theta, \pi, P\right)
+  p\left(y_{t} \vert z_{t}, \Theta, \pi, P\right)
+  p\left(y_{t + 1 : T} \vert z_{t}, \Theta, \pi, P\right) \\
+  &\propto p\left(y_{1:t - 1} \vert z_{t - 1}, z_t, \Theta, \pi, P\right) p\left(y_t \vert \theta_{z_t}\right) p\left(y_{t + 1 : T}\vert z_{t}, \Theta, \pi, P\right).
+\end{align*}
+The second term is a likelihood, and the third will be calculated by the
+backwards-pass. Note that the first term can be further reduced to
+\begin{align*}
+  p\left(y_{1:t - 1} \vert z_{t - 1}, z_t, \Theta, \pi, P\right) &\propto p\left(z_{t} \vert y_{1:t - 1}, z_{t - 1}, \Theta, \pi, P\right)p\left(y_{1:t - 1} \vert z_{t - 1}, \Theta, \pi, P\right) \\
+  &\propto p\left(z_{t} \vert z_{t - 1}, \Theta, \pi, P\right) \\
+  &= P_{z_{t - 1}, z_{t}},
+\end{align*}
+since we care only about the terms involving $z_{t}$ (we are sampling
+$p\left(z_{t} \vert z_{t - 1}, y_{1:T}, \Theta, \pi, P\right)$).
+
+Now, we describe how to compute the terms $p\left(y_{t + 1:T} \vert z_t, \Theta,
+\pi, P\right)$ efficiently, as promised above. Consider storing these terms in a
+$T \times K$ matrix, whose $tk^{th}$ element is $p\left(y_{t} \vert z_{t - 1} =
+k, \Theta, \pi, P\right)$. The bottom row is initialized according to
+\begin{align*}
+ \left(y_T \vert z_{T - 1}, \Theta, \pi, P\right)  &= \sum_{z_{T} = 1}^{K} p\left(y_{T} \vert \theta_{z_{T}}\right) P_{z_{T - 1}, z_{T}}.
+\end{align*}
+Then the recursion computes the $t^{th}$ row from the $t + 1^{st}$ according to
+\begin{align*}
+  p\left(y_{t + 1:T} \vert z_t, \Theta, \pi, P\right) &= \sum_{z_{t + 1} = 1}^{K} p\left(y_{t + 1 : T} \vert z_{t}, z_{t + 1} \Theta, \pi, P\right) P_{z_{t}, z_{t + 1}} \\
+  &= \sum_{z_{t + 1} = 1}^{K} p\left(y_{t + 1} \vert \theta_{z_{t + 1}}\right) p\left(y_{t + 2 : T} \vert z_{t + 1}, \Theta, \pi, P\right) P_{z_{t}, z_{t + 1}}.
+\end{align*}
 
 \begin{figure}[ht]
   \centering
