@@ -71,6 +71,8 @@
 \def\absarg#1{\left|#1\right|}
 \def\msarg#1{\left(#1\right)^{2}}
 \def\logarg#1{\log\left(#1\right)}
+\newcommand\independent{\protect\mathpalette{\protect\independenT}{\perp}}
+\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
 %~~~~~~~~~~~~~~~
 % Distributions
 %~~~~~~~~~~~~~~~
