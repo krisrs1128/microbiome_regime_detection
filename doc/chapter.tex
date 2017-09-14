@@ -972,8 +972,14 @@ The forwards pass of the Forwards-Backwards algorithm alternates these two steps
   \begin{algorithmic}
    \caption{Backwards pass for HMM Inference}
    \label{alg:hmm_backwards}
-   \STATE {\bfseries Input:} Model parameters $\Theta = \{\pi_{1}, P, \theta_1, \dots, \theta_k\}$, observed sequence $x_{1:T}$, forwards pass output $\left(\log p\left(z_{t} \vert x_{1:t}\right)\right)_{t = 1}^{T}$
-   \STATE
+   \STATE {\bfseries Input:} Model parameters $\Theta = \{\pi_{1}, P, \theta_1, \dots, \theta_k\}$, observed sequence $x_{1:T}$
+   \STATE $\log p\left(z_{T} \vert x_{1:T}\right) \leftarrow 0_{K}$ \hfill Initialize messages.
+   \FOR{t = T  - 1\dots 1}
+   \FOR{k = 1 \dots K}
+   $\log p\left(z_{t} = k \vert x_{1:T}\right) \leftarrow \text{lse}\left(\log p\left(z_{t + 1} = k \vert x_{1:T}\right)\right) + \log p_{\theta_{k}}\left(y_{t}\right) + \log \pi_{k}$
+   \ENDFOR
+   \ENDFOR
+   \STATE {\bfseries Output:} Smoothed densities $\log p\left(z_{t} \vert x_{1:T}\right)$.
   \end{algorithmic}
 \end{algorithm}
 
@@ -1128,16 +1134,31 @@ remain unchanged over longer sequences. To practically implement this basic
 idea, a bayesian view is useful, and we describe inference in detail. An
 application to the antibiotics data concludes this section.
 
-The modified model attempts to encourage an increased rate of self-transitions
--- the latent states are ``sticky.'' This is achieved by introducing a
-``stickiness'' parameter $\kappa$ to the ordinary transition probability matrix.
+Consider the standard Bayesian HMM, which places
+$\Dir\left(\alpha\right)$ priors on the rows of the transition probability
+matrix, $P_{1}, \dots, P_{K}$ and conjugate priors on the remaining
+elements of $\Theta$. The main idea of the sticky HMM is to introduce a
+``stickiness'' parameter $\kappa$ to the Dirichlet prior\footnote{Here, $e_{k}
+  := \left(0, 0, \dots, 0, 1, 0, \dots, 0\right)$}: $P_{k} \sim
+\Dir\left(\alpha + \kappa e_{k}\right)$. This means that draws from the prior on
+$P$ will have larger weight along the diagonal, depending on the size of
+$\kappa$, and since diagonal elements correspond to self-transitions, chains
+drawn from the prior will be ``sticky.''
+
+To draw samples from $p\left(\left(z_{it}\right), \Theta \vert
+\left(x_{it}\right)\right)$, we consider a block gibbs sampling analog to EM
+\citep{fruhwirth2006finite}. In place of the $E$-step, we draw from the
+conditional $p\left(\left(z_{it}\right) \vert \left(x_{it}\right),
+\Theta\right)$ using a variation of the forwards-backwards algorithm, and in
+place of the $M$-step, we draw from $p\left(\Theta \vert \left(z_{it}\right),
+\left(x_{it}\right)\right)$. We describe these conditionals in more detail
+below.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.8\textwidth]{figure/bayes_mode}
   \caption{Mode from sticky HMM. \label{fig:bayes_mode} }
 \end{figure}
-
 
 - Modified model
 - Simulation example

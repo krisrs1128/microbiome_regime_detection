@@ -70,7 +70,6 @@ vec sample_z(mat Pi, mat y, Rcpp::List theta, mat msg) {
   std::random_device rd;
   std::mt19937 gen(rd());
 
-
   for (int i = 2; i < time_len; i++) {
     vec log_y_dens = multi_dmvnorm(row_(y, i), theta);
     vec log_f = row_(logPi, z(i - 1)) + log_y_dens + row_(msg, i);
