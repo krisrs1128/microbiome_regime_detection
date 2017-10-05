@@ -36,7 +36,7 @@ theme_update(
 
 opts <- list(
   "dir" = file.path("..", "data", "changepoint"),
-  "k_filter" = 0.9
+  "k_filter" = 0.07
 )
 
 #' Prepare Samples for Plotting
