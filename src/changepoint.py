@@ -26,12 +26,12 @@ def reshape_samples(samples):
 #                               analysis script                                #
 ###############################################################################
 ## Gaussian mean / variance model
-X = np.loadtxt("../data/abt_asinh.csv", delimiter=",")
+X = np.loadtxt("../data/changepoint/abt_asinh.csv", delimiter=",")
 
 [samples, model_params, pi_q, q_vals] = BASIC.MCMC_sample(
     X,
     'normal_var',
-    sample_iters=1000,
+    sample_iters=200,
     MCEM_schedule=[10, 20, 40, 60, 100]
 )
 
