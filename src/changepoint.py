@@ -13,7 +13,7 @@ parser.add_argument(
 parser.add_argument(
     "--csv",
     type=str,
-    default="abt_asinh.csv",
+    default="abt.csv",
     help="CSV name with the data to apply BASIC to"
 )
 parser.add_argument(
@@ -64,7 +64,6 @@ def reshape_samples(samples):
 ###############################################################################
 #                               analysis script                                #
 ###############################################################################
-## Gaussian mean / variance model
 X = np.loadtxt(
     os.path.join(args.dir, args.csv),
     delimiter=","
