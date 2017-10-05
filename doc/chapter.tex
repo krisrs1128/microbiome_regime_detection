@@ -15,6 +15,42 @@
 \begin{document}
 \maketitle
 
+
+\begin{abstract}
+It is often of central interest to describe the stability and dynamics of the
+microbiome, and many studies have been performed to characterize these dynamics
+across a range of environmental contexts \citep{costello2012application,
+  stein2013ecological, faust2015metagenomics}. For example, frequently
+encoutered scientific objective is the identification of time intervals within
+which certain subsets of taxa have an interesting pattern of behavior. Viewed
+abstractly, these problems often have a flavor not just of time series modeling
+but also of regime detection, a problem with a history across a variety of
+applications, including speech recognition \citep{fox2011sticky}, finance
+\citep{lee2009optimal}, EEG analysis \citep{camilleri2014automatic}, and
+geophysics \citep{weatherley2002relationship}. However, in spite of the
+parallels, regime detection methods are rarely used in microbiome data analysis,
+most likely due to the fact that references for these methods are scattered
+across several literatures, descriptions are inaccessible outside limited
+research communities, implementations are difficult to come across. Finally, the
+correspondence between regime detection in these fields and in the microbiome is
+not always obvious.
+
+We distill the core ideas of different regime detection methods, provide example
+applications, and share reproducible code, making these techniques more
+accessible to microbiome researchers. Specifically, we reanalyze the data of
+\citep{dethlefsen2011incomplete} using Classification and Regression Trees
+(CART) \citep{breiman1984classification}, Hidden Markov Models (HMMs)
+\citep{rabiner1986introduction}, Bayesian nonparametric HMMs
+\citep{teh2010hierarchical}, mixtures of Gaussian Processes (GPs)
+\citep{rasmussen2002infinite}, switching dynamical systems
+\citep{fox2009sharing}, and multiple changepoint detection
+\citep{fan2015empirical}. Along the way, we summarize each method, their
+relevance to the microbiome, and the tradeoffs associated using them.
+Ultimately, our goal is to describe types of temporal or regime switching
+structure that, through careful modeling, can be incorporated into studies of
+microbiome dynamics.
+\end{abstract}
+
 A typical microbiome data set describes the abundances of bacterial species
 across samples. To this point, we have studied latent structure across species
 and samples separately. For example, we have developed interactive visualization
@@ -57,7 +93,7 @@ addresses these departures.
 \section{Problem description}
 \label{sec:problem_description}
 
-In latent variable modeling, our ultimate goal is a succint representation of
+In latent variable modeling, our ultimate goal is a succinct representation of
 complex data. In a way, we can think of the reduced representations as a type of
 data compression for human interpretation, and as in any (lossy) compression,
 there is a choice of what structure to preserve. Different reduced
@@ -1140,10 +1176,10 @@ and conjugate priors on $\Theta$. The main idea of the sticky HMM is to
 introduce a ``stickiness'' parameter $\kappa$ to the Dirichlet
 prior\footnote{Here, $e_{k} := \left(0, \dots, 0, 1, 0, \dots, 0\right)$ is the
   vector with a $1$ in the $k^{th}$ coordinate and zeros everywhere else.}:
-$P_{k} \sim \Dir\left(\alpha + \kappa e_{k}\right)$. This means that draws from
-the prior on $P$ will have larger weight along the diagonal, depending on the
-size of $\kappa$, and since diagonal elements correspond to self-transitions,
-chains drawn from the prior will be ``sticky.''
+$P_{k} \sim \Dir\left(P_{k} \vert \alpha + \kappa e_{k}\right)$. This means that
+draws from the prior on $P$ will have larger weight along the diagonal,
+depending on the size of $\kappa$, and since diagonal elements correspond to
+self-transitions, chains drawn from the prior will be ``sticky.''
 
 To draw samples from $p\left(\left(z_{it}\right), P, \Theta \vert
 \left(x_{it}\right)\right)$, we consider a block gibbs sampling analog to EM
@@ -1160,10 +1196,10 @@ Note that since each sequence is independent of all others, given $\Theta$, we
 can sample the $z_{it}$ separately across each $i$, so for the explanation
 below, we drop this subscript. By the Markov property, the probability a single
 sequence can be decomposed according to
-\begin{align*}
+\begin{align}
   \label{eq:sticky_block_z}
 p\left(z_{1:T} \vert x_{1:T}, \Theta, \pi, P\right) &= p\left(z_{1} \vert y_{1:T}, \Theta, \pi, P\right) \prod_{t = 2}^{T} p\left(z_{t} \vert z_{t - 1}, y_{1:T}, \Theta, \pi, P\right).
-\end{align*}
+\end{align}
 If we could calculate each of these individual probabilities, then one mechanism
 for sampling the entire sequence $z_{1:T}$ would be to first sample $z_{1}$,
 then $z_{2}$ given $z_{1}$, etc. Note that the first term has a different
@@ -1208,6 +1244,44 @@ Then the recursion computes the $t^{th}$ row from the $t + 1^{st}$ according to
   p\left(y_{t + 1:T} \vert z_t, \Theta, \pi, P\right) &= \sum_{z_{t + 1} = 1}^{K} p\left(y_{t + 1 : T} \vert z_{t}, z_{t + 1} \Theta, \pi, P\right) P_{z_{t}, z_{t + 1}} \\
   &= \sum_{z_{t + 1} = 1}^{K} p\left(y_{t + 1} \vert \theta_{z_{t + 1}}\right) p\left(y_{t + 2 : T} \vert z_{t + 1}, \Theta, \pi, P\right) P_{z_{t}, z_{t + 1}}.
 \end{align*}
+
+Next we consider sampling from the conditional $p\left(P \vert
+\left(x_{it}\right), \left(z_{it}\right), \Theta\right)$ of transition
+probabilities between the $K$ states. The main observation is that we can use
+Dirichlet-Multinomial conjugacy jointly across all sequences. That is, defining
+\begin{align*}
+ n_{k \cdot} &:= \begin{pmatrix} \sum_{i = 1}^{n} \sum_{t = 1}^{T - 1} \indic{z_{it} = k, z_{i,t + 1} = 1} \\ \vdots \\ \sum_{i = 1}^{n} \sum_{t = 1}^{T - 1} \indic{z_{it} = k, z_{i,t + 1} = K} \end{pmatrix},
+\end{align*}
+we have
+\begin{align*}
+n_{k\cdot} &\sim \Mult\left(n_{k\cdot} \vert \sum_{i = 1}^{n} \sum_{t = 1}^{T - 1} \indic{z_{it} = k}, P_{k}\right)
+\end{align*}
+and therefore 
+\begin{align*}
+  P_{k} \vert \left(z_{it}\right) &\sim \Dir\left(P_{k} \vert \alpha + \kappa e_{k} + n_{k\cdot}\right).
+\end{align*}
+Since given $\left(z_{it}\right)$, $P_{k}$ is independent of all other
+parameters and data, this completely specifies this Gibbs sampling step.
+
+To sample $p\left(\Theta \vert \left(x_{it}\right), \left(z_{it}\right)
+P\right)$, we use assumed conjugacy separately across each class $k$. For
+example, if $\theta_{k} = \left(\mu_{k}, \Sigma_{k}\right)$ and
+\begin{align*}
+  x_{it} \vert z_{it} = k &\sim \Gsn\left(x_{it} \vert \mu_{k}, \Sigma_{k}\right),
+\end{align*}
+and if 
+\begin{align*}
+  \mu_{k} &\sim \Gsn\left(\mu_{k} \vert \mu_{k}, \Sigma_{0}\right) \\
+  \Sigma_{k} &\sim \text{InvWish}\left(\Sigma_{k} \vert \nu, \Delta\right)
+\end{align*}
+then the usual Normal-Inverse Wishart posterior can be used, after subsetting to just those
+samples $\left(x_{it}\right)^{(k)}$ with $z_{it} = k$,
+\begin{align*}
+  \mu_{k} \vert \left(x_{it}\right)^{(k)} &\sim \Gsn\left(\theta_{k} \vert \bar{\Sigma}\left(\Sigma_0^{-1}\mu_{0} + \Sigma_{k}^{-1}\right) \sum_{i, t} x_{it}\indic{z_{it} = k}, \bar{\Sigma}\right) \\
+  \Sigma_{k} \vert \left(x_{it} \right)^{(k)} &\sim  \text{InvWish}\left(\nu + \sum_{i, t} \indic{z_{it} = k}, \nu \Delta + \left(x^{(k)} - \mathbf{1} \mu_{k}^{T}\right)\left(x^{(k)} - \mathbf{1} \mu_{k}^{T}\right)^{T}\right).
+\end{align*}
+An implementation of this sampler is available at
+\href{https://github.com/krisrs1128/tsc\_microbiome/blob/master/src/hmm/bayes\_hmm.R}{https://github.com/krisrs1128/tsc\_microbiome/blob/master/src/hmm/bayes\_hmm.R}.
 
 \begin{figure}[ht]
   \centering
