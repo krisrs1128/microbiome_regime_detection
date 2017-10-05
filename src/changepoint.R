@@ -36,7 +36,7 @@ theme_update(
 
 opts <- list(
   "dir" = file.path("..", "data", "changepoint"),
-  "k_filter" = 0.07
+  "k_filter" = 0.9
 )
 
 ###############################################################################
@@ -81,7 +81,6 @@ taxa$family <- factor(
   levels = names(sort(table(taxa$family), decreasing = TRUE))
 )
 
-
 ###############################################################################
 ## read samples from different methods
 ###############################################################################
@@ -111,8 +110,31 @@ sample_stats <- samples %>%
 ggplot(sample_stats) +
   geom_tile(
     aes(x = time, y = seq, alpha = n_draws, fill = family)
+  ) +
+  theme(
+    axis.text.y = element_blank()
   )
 
-q_values <- read_csv(
-  file.path("data", "")
-)
+## plot q values
+q_vals <- read_csv(file.path(opts$dir, "q_vals.csv"), col_names = "q")
+q_vals$index <- seq_len(nrow(q_vals))
+ggplot(q_vals) +
+  geom_bar(
+    aes(x = index, y = q),
+    width = 1,
+    stat = "identity"
+  ) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0))
+
+## plot pi_q
+pi_q <- read_csv(file.path(opts$dir, "pi_q.csv"), col_names = "pi_q")
+pi_q$index <- seq_len(nrow(pi_q))
+ggplot(pi_q) +
+  geom_bar(
+    aes(x = index, y = pi_q),
+    width = 1,
+    stat = "identity"
+  ) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0))
