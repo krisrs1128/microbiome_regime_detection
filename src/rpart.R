@@ -71,8 +71,7 @@ plot_grid <- function(mx, model, type = "raw", ...) {
   p <- ggplot(y_hat) +
     facet_grid(ind ~ ., scale = "free", space = "free") +
     theme(
-      axis.text = element_blank(),
-      legend.position = "bottom"
+      axis.text = element_blank()
     ) +
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0))
@@ -212,10 +211,12 @@ p[["rpart_binary_simple"]] <- plot_grid(mx, rpart_model, type = "prob")
 for (i in seq_along(p)) {
   ggsave(
     file = file.path("../doc/figure", paste0(names(p)[i], ".png")),
-    p[[i]][[1]]
+    p[[i]][[1]],
+    width = 6.0, height = 3.1, dpi = 500
   )
   ggsave(
     file = file.path("../doc/figure", paste0(names(p)[i], "_resid.png")),
-    p[[i]][[2]]
+    p[[i]][[2]],
+    width = 6.0, height = 3.1, dpi = 500
   )
 }
