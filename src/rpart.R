@@ -56,21 +56,19 @@ pred_grid <- function(X, model, type = "raw") {
   cbind(x_grid, y_hat)
 }
 
-plot_grid <- function(mx, model, ...) {
+plot_grid <- function(mx, model, type = "raw", ...) {
   X <- mx %>%
     select(ind, time, leaf_ix)
-  y_hat <- pred_grid(X, model, ...) %>%
+  y_hat <- pred_grid(X, model, type = type, ...) %>%
     left_join(mx)
 
-  if ("scaled" %in% colnames(y_hat)) {
+  if (type == "raw") {
     y_hat$residual <- y_hat$y_hat - y_hat$scaled
   } else {
     y_hat$residual <- y_hat$y_hat - y_hat$present
   }
 
   p <- ggplot(y_hat) +
-    scale_alpha(trans = "log1p", range = c(0, 1), guide = FALSE) +
-    scale_fill_discrete(guide = guide_legend(nrow = 2)) +
     facet_grid(ind ~ ., scale = "free", space = "free") +
     theme(
       axis.text = element_blank(),
@@ -79,15 +77,21 @@ plot_grid <- function(mx, model, ...) {
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0))
 
-
   plots <- list()
-  plots[["raw"]] <- p + geom_tile(
-        aes(x = leaf_ix, y = time, alpha = y_hat, fill = family)
-      )
+  plots[["raw"]] <- p +
+    geom_tile(
+      aes(x = leaf_ix, y = time, fill = y_hat)
+    ) +
+    scale_fill_viridis(
+      option = "magma",
+      guide = guide_colorbar(keyheight = 0.5, ticks = FALSE)
+    )
 
-  plots[["resid"]] <- p + geom_tile(
-        aes(x = leaf_ix, y = time, alpha = abs(residual), fill = family)
-      )
+  plots[["resid"]] <- p +
+    geom_tile(
+      aes(x = leaf_ix, y = time, fill = residual)
+    ) +
+    scale_fill_gradient2(midpoint = 0, low = "plum3", high = "limegreen")
 
   plots
 }
@@ -203,7 +207,7 @@ p[["rpart_binary"]] <- plot_grid(mx, rpart_model, type = "prob")
 ## during the antibiotics time course
 train_opts$tuneGrid <- data.frame("cp" = c(1e-4))
 rpart_model <- do.call(train, train_opts)
-p[["rpart_binary_simple"]] <- plot_grid(X, rpart_model, type = "prob")
+p[["rpart_binary_simple"]] <- plot_grid(mx, rpart_model, type = "prob")
 
 for (i in seq_along(p)) {
   ggsave(
