@@ -15,12 +15,32 @@
 ###############################################################################
 library("caret")
 library("tidyverse")
+library("forcats")
 library("viridis")
 library("phyloseq")
 library("dendextend")
 library("vegan")
 source("data.R")
-theme_set(ggscaffold::min_theme())
+
+scale_colour_discrete <- function(...)
+  scale_colour_brewer(..., palette="Set3", na.value = "black")
+scale_fill_discrete <- function(...)
+  scale_fill_brewer(..., palette="Set3", na.value = "black")
+
+theme_set(theme_bw())
+theme_update(
+  panel.border = element_rect(size = 0.5),
+  panel.grid = element_blank(),
+  axis.ticks = element_blank(),
+  legend.title = element_text(size = 8),
+  legend.text = element_text(size = 6),
+  axis.text = element_text(size = 6),
+  axis.title = element_text(size = 8),
+  strip.background = element_blank(),
+  strip.text = element_text(size = 8),
+  legend.key = element_blank()
+)
+
 
 pred_grid <- function(X, model, type = "raw") {
   x_grid <- expand.grid(
@@ -36,17 +56,40 @@ pred_grid <- function(X, model, type = "raw") {
   cbind(x_grid, y_hat)
 }
 
-plot_grid <- function(X, model, ...) {
-  ggplot(pred_grid(X, model, ...)) +
-    geom_tile(
-      aes(x = time, y = leaf_ix, fill = y_hat)
-    ) +
-    scale_fill_viridis(option = "magma") +
-    facet_grid(. ~ ind, scale = "free", space = "free") +
+plot_grid <- function(mx, model, ...) {
+  X <- mx %>%
+    select(ind, time, leaf_ix)
+  y_hat <- pred_grid(X, model, ...) %>%
+    left_join(mx)
+
+  if ("scaled" %in% colnames(y_hat)) {
+    y_hat$residual <- y_hat$y_hat - y_hat$scaled
+  } else {
+    y_hat$residual <- y_hat$y_hat - y_hat$present
+  }
+
+  p <- ggplot(y_hat) +
+    scale_alpha(trans = "log1p", range = c(0, 1), guide = FALSE) +
+    scale_fill_discrete(guide = guide_legend(nrow = 2)) +
+    facet_grid(ind ~ ., scale = "free", space = "free") +
     theme(
-      axis.text = element_blank()
+      axis.text = element_blank(),
+      legend.position = "bottom"
     ) +
+    scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0))
+
+
+  plots <- list()
+  plots[["raw"]] <- p + geom_tile(
+        aes(x = leaf_ix, y = time, alpha = y_hat, fill = family)
+      )
+
+  plots[["resid"]] <- p + geom_tile(
+        aes(x = leaf_ix, y = time, alpha = abs(residual), fill = family)
+      )
+
+  plots
 }
 
 ###############################################################################
@@ -68,6 +111,16 @@ samples <- sample_data(abt) %>%
 mx <- melted_counts(x) %>%
   left_join(samples)
 
+seq_families <- tax_table(abt) %>%
+  data.frame() %>%
+  rownames_to_column("rsv")
+seq_families[seq_families$Taxon_5 == "", "Taxon_5"] <- NA
+seq_families <- seq_families %>%
+  mutate(
+    family = fct_lump(Taxon_5, 10)
+  ) %>%
+  select(rsv, family)
+
 x_bin <- x > 0
 D_euclidean <- dist(t(x), method = "euclidean")
 D_jaccard <- vegdist(t(x_bin), method = "jaccard")
@@ -80,7 +133,8 @@ leaf_ix <- data_frame(
 )
 
 mx  <- mx %>%
-  left_join(leaf_ix)
+  left_join(leaf_ix) %>%
+  left_join(seq_families)
 
 ###############################################################################
 ## train an rpart model across RSVs (mapped to their hclust index), subject, and
@@ -100,23 +154,23 @@ train_opts <- list(
 )
 rpart_model <- do.call(train, train_opts)
 p <- list()
-p[["rpart_simple"]] <- plot_grid(X, rpart_model)
+p[["rpart_simple"]] <- plot_grid(mx, rpart_model)
 
 ###############################################################################
 ## different complexity penalization
 ###############################################################################
 train_opts$tuneGrid <- data.frame("cp" = c(1e-4))
 rpart_model <- do.call(train, train_opts)
-p[["rpart_complex"]] <- plot_grid(X, rpart_model)
+p[["rpart_complex"]] <- plot_grid(mx, rpart_model)
 
 ## notice differential recovery in F
 train_opts$tuneGrid <- data.frame("cp" = c(5e-4))
 rpart_model <- do.call(train, train_opts)
-p[["rpart_complex_2"]] <- plot_grid(X, rpart_model)
+p[["rpart_complex_2"]] <- plot_grid(mx, rpart_model)
 
 train_opts$tuneGrid <- data.frame("cp" = c(7.5e-4))
 rpart_model <- do.call(train, train_opts)
-p[["rpart_complex_3"]] <- plot_grid(X, rpart_model)
+p[["rpart_complex_3"]] <- plot_grid(mx, rpart_model)
 
 ###############################################################################
 ## Consider the conditionally positive models
@@ -131,7 +185,7 @@ train_opts$y <- mx %>%
 
 ## notice the lack of antibiotic timepoint splitting
 rpart_model <- do.call(train, train_opts)
-p[["rpart_conditional"]] <- plot_grid(X, rpart_model)
+p[["rpart_conditional"]] <- plot_grid(mx, rpart_model)
 
 ###############################################################################
 ## Consider the binarized models
@@ -143,7 +197,7 @@ train_opts$y <- mx %>%
   .[["present"]] %>%
   as.factor()
 rpart_model <- do.call(train, train_opts)
-p[["rpart_binary"]] <- plot_grid(X, rpart_model, type = "prob")
+p[["rpart_binary"]] <- plot_grid(mx, rpart_model, type = "prob")
 
 ## notice that there are some that go from being not present to being present
 ## during the antibiotics time course
@@ -154,6 +208,10 @@ p[["rpart_binary_simple"]] <- plot_grid(X, rpart_model, type = "prob")
 for (i in seq_along(p)) {
   ggsave(
     file = file.path("../doc/figure", paste0(names(p)[i], ".png")),
-    p[[i]]
+    p[[i]][[1]]
+  )
+  ggsave(
+    file = file.path("../doc/figure", paste0(names(p)[i], "_resid.png")),
+    p[[i]][[2]]
   )
 }
