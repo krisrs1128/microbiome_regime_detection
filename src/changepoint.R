@@ -16,9 +16,9 @@ library("treelapse")
 library("forcats")
 
 scale_colour_discrete <- function(...)
-  scale_colour_brewer(..., palette="Set3", na.value = "black")
+  scale_colour_brewer(..., palette="Set2", na.value = "black")
 scale_fill_discrete <- function(...)
-  scale_fill_brewer(..., palette="Set3", na.value = "black")
+  scale_fill_brewer(..., palette="Set2", na.value = "black")
 
 theme_set(theme_bw())
 theme_update(
@@ -43,11 +43,6 @@ opts <- list(
 process_samples <- function(samples, abt) {
   samples$seq <- taxa_names(abt)[1 + samples$row]
   samples$time <- sample_data(abt)$time[1 + samples$changepoint]
-
-  ## sort sequences according to a clustering on the changepoint locations
-  ## change_indic <- samples %>%
-  ##   dcast(seq ~ time)
-  ## D <- dist(log(1 + change_indic[, -1]))
   samples$seq <- factor(
     samples$seq,
     levels = names(sort(taxa_sums(abt), decreasing = TRUE))
@@ -69,7 +64,10 @@ plot_samples <- function(sample_stats) {
     scale_x_discrete(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
     scale_alpha(range = c(0, 1)) +
+    facet_grid(. ~ family, scale = "free", space = "free") +
     theme(
+      strip.text = element_blank(),
+      panel.spacing = unit(0, "cm"),
       axis.text.x = element_blank(),
       legend.position = "bottom"
     ) 
