@@ -16,9 +16,9 @@ library("treelapse")
 library("forcats")
 
 scale_colour_discrete <- function(...)
-  scale_colour_brewer(..., palette="Set2")
+  scale_colour_brewer(..., palette="Set3", na.value = "black")
 scale_fill_discrete <- function(...)
-  scale_fill_brewer(..., palette="Set2")
+  scale_fill_brewer(..., palette="Set3", na.value = "black")
 
 theme_set(theme_bw())
 theme_update(
@@ -36,7 +36,7 @@ theme_update(
 
 opts <- list(
   "dir" = file.path("..", "data", "changepoint"),
-  "k_filter" = 0.07
+  "k_filter" = 0.2
 )
 
 #' Prepare Samples for Plotting
@@ -45,12 +45,12 @@ process_samples <- function(samples, abt) {
   samples$time <- sample_data(abt)$time[1 + samples$changepoint]
 
   ## sort sequences according to a clustering on the changepoint locations
-  change_indic <- samples %>%
-    dcast(seq ~ time)
-  D <- dist(log(1 + change_indic[, -1]))
+  ## change_indic <- samples %>%
+  ##   dcast(seq ~ time)
+  ## D <- dist(log(1 + change_indic[, -1]))
   samples$seq <- factor(
     samples$seq,
-    levels = change_indic$seq[hclust(D)$order]
+    levels = names(sort(taxa_sums(abt), decreasing = TRUE))
   )
   taxa$seq <- factor(taxa$seq, levels = levels(samples$seq))
 
@@ -64,11 +64,15 @@ process_samples <- function(samples, abt) {
 plot_samples <- function(sample_stats) {
   ggplot(sample_stats) +
     geom_tile(
-      aes(x = time, y = seq, alpha = n_draws, fill = family)
+      aes(x = seq, y = time, alpha = n_draws, fill = family)
     ) +
+    scale_x_discrete(expand = c(0, 0)) +
+    scale_y_continuous(expand = c(0, 0)) +
+    scale_alpha(range = c(0, 1)) +
     theme(
-      axis.text.y = element_blank()
-    )
+      axis.text.x = element_blank(),
+      legend.position = "bottom"
+    ) 
 }
 
 #' Plot pi and q
@@ -141,7 +145,7 @@ taxa$family <- factor(
 ###############################################################################
 ## Gaussian mean / variance changepoint detection
 ###############################################################################
-system("python changepoint.py --dir ../data/changepoint/asinh/")
+system("python changepoint.py --dir ../data/changepoint/asinh/ --iter 100")
 samples <- read_csv(
   file.path(opts$dir, "asinh", "samples.csv"),
   col_names = c("iter", "changepoint", "row")
@@ -149,16 +153,19 @@ samples <- read_csv(
 samples %>%
   process_samples(abt) %>%
   plot_samples()
+ggsave("changepoint_posterior.png")
 
 ## plot q values
 q_vals <- read_csv(file.path(opts$dir, "asinh", "q_vals.csv"), col_names = "q")
 pi_q <- read_csv(file.path(opts$dir, "asinh", "pi_q.csv"), col_names = "pi_q")
-plot_pi_q(q_vals, pi_q)
+p <- plot_pi_q(q_vals, pi_q)
+ggsave("changepoint_q.png", p[[1]])
+ggsave("changepoint_eb_prior.png", p[[2]])
 
 ###############################################################################
 ## Bernoulli changepoint detection
 ###############################################################################
-system("python changepoint.py --dir ../data/changepoint/bern/ --model bernoulli")
+system("python changepoint.py --dir ../data/changepoint/bern/ --model bernoulli --iter 100")
 samples <- read_csv(
   file.path(opts$dir, "bern", "samples.csv"),
   col_names = c("iter", "changepoint", "row")
@@ -166,8 +173,11 @@ samples <- read_csv(
 samples %>%
   process_samples(abt) %>%
   plot_samples()
+ggsave("changepoint_bern_posterior.png")
 
 ## plot q values
 q_vals <- read_csv(file.path(opts$dir, "bern", "q_vals.csv"), col_names = "q")
 pi_q <- read_csv(file.path(opts$dir, "bern", "pi_q.csv"), col_names = "pi_q")
 plot_pi_q(q_vals, pi_q)
+ggsave("changepoint_bern_q.png", p[[1]])
+ggsave("changepoint_bern_eb_prior.png", p[[2]])
