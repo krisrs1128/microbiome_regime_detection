@@ -108,7 +108,7 @@ abt <- abt %>%
   subset_samples(ind == "F") %>%
   filter_taxa(function(x) mean(x > 0) > opts$k_filter, prune = TRUE)
 
-x_bern <- 1 * t(get_taxa(abt) > 0)
+x_bern <- 1 * (get_taxa(abt) > 0)
 x_asinh <- asinh(get_taxa(abt))
 
 write_csv(
@@ -151,14 +151,14 @@ samples <- read_csv(
 samples %>%
   process_samples(abt) %>%
   plot_samples()
-ggsave("changepoint_posterior.png")
+ggsave("../doc/figure/basic_heatmap.png", width = 7.65, height = 4.15)
 
 ## plot q values
 q_vals <- read_csv(file.path(opts$dir, "asinh", "q_vals.csv"), col_names = "q")
 pi_q <- read_csv(file.path(opts$dir, "asinh", "pi_q.csv"), col_names = "pi_q")
 p <- plot_pi_q(q_vals, pi_q)
-ggsave("changepoint_q.png", p[[1]])
-ggsave("changepoint_eb_prior.png", p[[2]])
+ggsave("../doc/figure/changepoint_q.png", p[[1]])
+ggsave("../doc/figure/changepoint_eb_prior.png", p[[2]])
 
 ###############################################################################
 ## Bernoulli changepoint detection
@@ -171,11 +171,11 @@ samples <- read_csv(
 samples %>%
   process_samples(abt) %>%
   plot_samples()
-ggsave("changepoint_bern_posterior.png")
+ggsave("../doc/figure/basic_bern_heatmap.png", width = 7.65, height = 4.15)
 
 ## plot q values
 q_vals <- read_csv(file.path(opts$dir, "bern", "q_vals.csv"), col_names = "q")
 pi_q <- read_csv(file.path(opts$dir, "bern", "pi_q.csv"), col_names = "pi_q")
 plot_pi_q(q_vals, pi_q)
-ggsave("changepoint_bern_q.png", p[[1]])
-ggsave("changepoint_bern_eb_prior.png", p[[2]])
+ggsave("../doc/figure/changepoint_bern_q.png", p[[1]])
+ggsave("../doc/figure/changepoint_bern_eb_prior.png", p[[2]])
