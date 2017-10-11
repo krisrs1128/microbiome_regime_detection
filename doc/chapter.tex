@@ -1257,7 +1257,7 @@ we have
 \begin{align*}
 n_{k\cdot} &\sim \Mult\left(n_{k\cdot} \vert \sum_{i = 1}^{n} \sum_{t = 1}^{T - 1} \indic{z_{it} = k}, P_{k}\right)
 \end{align*}
-and therefore 
+and therefore
 \begin{align*}
   P_{k} \vert \left(z_{it}\right) &\sim \Dir\left(P_{k} \vert \alpha + \kappa e_{k} + n_{k\cdot}\right).
 \end{align*}
@@ -1270,7 +1270,7 @@ example, if $\theta_{k} = \left(\mu_{k}, \Sigma_{k}\right)$ and
 \begin{align*}
   x_{it} \vert z_{it} = k &\sim \Gsn\left(x_{it} \vert \mu_{k}, \Sigma_{k}\right),
 \end{align*}
-and if 
+and if
 \begin{align*}
   \mu_{k} &\sim \Gsn\left(\mu_{k} \vert \mu_{k}, \Sigma_{0}\right) \\
   \Sigma_{k} &\sim \text{InvWish}\left(\Sigma_{k} \vert \nu, \Delta\right)
@@ -1349,7 +1349,7 @@ microbiome data sets.
   \centering
   \includegraphics[width=0.9\textwidth]{figure/gp_bandwidths}
   \caption{Each panel displays draws from the GP prior for a single kernel
-    bandwidth. While different bandwidths can model different degrees of
+    bandwidth. While different kernels can model different degrees of
     smoothness, for any single bandwidth, dynamics are relatively
     homogeneous. \label{fig:gp_bandwidths} }
 \end{figure}
@@ -1360,6 +1360,48 @@ mixture \citep{tresp2001mixtures, rasmussen2002infinite}, multiscale
 \citep{paciorek2003nonstationary} approaches have been proposed. Here, we
 describe the implementation and application of the approach of
 \citep{rasmussen2002infinite}.
+
+In this approach, timepoints are assigned to distinct GPs, each with their own
+kernel parameters. Let $\left(y_{i}\right)$ be a single observed time series,
+with $y_{i}$ measured at time $t_{i}$. We partition timepoints into (latent)
+distinct classes, with the class indicator for $t_i$ denoted by $z_i$. The set
+of $y_i$ associated with a particular $z_i = k$ are assumed to have been drawn
+from a GP with a class specific kernel $\kappa_{\theta_k}$. We will apply a
+one-dimensional Gaussian covariance kernel with $\theta = \{v_0, v_1, \sigma_f^2\}$,
+\begin{align*}
+  \kappa_\theta\left(x_i, x_i^\prime\right) &= v_0 \exp{\frac{1}{\sigma_f^2} \left(x_i - x_i^\prime\right)^2} + v_1.
+\end{align*}
+
+This overall mechanism corresponds to a complete data likelihood,
+\begin{align*}
+ y_i \vert \left(\kappa_k\right), \left(c_i\right) &\sim \prod_{k \in \text{unique}\left(c_i\right)} \Gsn\left(0, K_{\theta_k}\left(t^k\right)\right)
+\end{align*}
+where $K_{\theta_k}\left(t^k\right)$ denotes the covariance matrix obtained by
+evaluating the $k^{th}$ kernel at the timepoints $t^k$ for which $z_i = k$,
+\begin{align*}
+  K_{\theta_k}\left(t^k\right) &= \begin{pmatrix}
+    \kappa_{\theta_k}\left(t^k_1, t^k_1\right) & \dots  & \kappa_{\theta_k}\left(t^k_1, t^k_{n_k}\right) \\
+    \vdots & & \vdots \\
+    \kappa_{\theta_k}\left(t^k_{n_k}, t^k_1\right) & \dots  & \kappa_{\theta_k}\left(t^k_{n_k}, t^k_{n_k}\right) \\
+  \end{pmatrix}.
+\end{align*}
+
+To complete specification of the model, priors must be placed on the
+$\left(z_i\right)$ and $\left(\theta_k\right)$. \citep{rasmussen2002infinite}
+propose placing a Chinese Restaurant Process (CRP) prior on the class indicators,
+separate wide Gaussian priors on the logged kernel parameters, and a gamma
+hyperprior on the CRP diversity parameter $\alpha$,
+\begin{align*}
+  \left(z_i\right) &\sim \CRP\left(\alpha\right) \\
+  \log \theta_k &\sim \Gsn\left(0, \tau^2 I_3\right) \text{ for } k = 1, 2, \dots \\
+  \alpha &\sim \Gam\left(a, b\right)
+\end{align*}
+The use of a $\CRP\left(\alpha\right)$ prior explains the name \textit{infinite}
+mixture of GP experts. In our experiments, we find it sufficient to fix $\alpha$
+and treat it as a tuning parameter. Further, we find that Logistic, instead of
+Gaussian, priors on $\log \theta_k$ allow improved detection of different regime
+dynamics -- inference with this alternative prior can be done similarly to the
+Gaussian case.
 
 - Model motivation
     + GP itself is not suited to heterogeneity
