@@ -1421,7 +1421,7 @@ Polya-Urn sampling scheme,
 \begin{align*}
   p\left(z_i\vert z_{-i}\right) &\propto \begin{cases}
     k &\text{w.p.} \frac{n_{-i, k}}{n - 1 + \alpha} \\
-    K + 1 &\text{w.p.} \frac{\alpha}{\n - 1 + \alpha}
+    K + 1 &\text{w.p.} \frac{\alpha}{n - 1 + \alpha}
     \end{cases},
 \end{align*}
 where $n_{-i, k}$ counts the number of $z$s equal to $k$, excluding $z_i$ and $K
@@ -1436,10 +1436,10 @@ as \citep{rasmussen2006gaussian} for individual GPs. In particular, for the
 timepoints $t^k$ associated with a single class, the unnormalized posterior over
 $\theta_k$ can be evaluated,
 \begin{align*}
-  \log \Gsn\left(y^k \vert 0, K_\theta_k\left(t_k\right)\right) +
-  \log \text{Logist}\left(\log v_0 \vert a_0, b_0\right) +
-  \log \text{Logist}\left(\log v_1 \vert a_1, b_1\right) +
-  \log \text{Logist}\left(\log \sigma_f^2 \vert a_f, b_f\right),
+  \log \Gsn\left(y^k \vert 0, K_{\theta_k}\left(t_k\right)\right) +
+  &\log \text{Logist}\left(\log v_0 \vert a_0, b_0\right) +
+  \log \text{Logist}\left(\log v_1 \vert a_1, b_1\right) +\\
+  &\log \text{Logist}\left(\log \sigma_f^2 \vert a_f, b_f\right),
 \end{align*}
 along with its gradients with respect to $\log v_0, \log v_1$, and $\log
 \sigma_f^2$. This can be input to the generic HMC sampler in order to propogate
