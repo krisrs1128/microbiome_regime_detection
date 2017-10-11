@@ -1357,9 +1357,10 @@ microbiome data sets.
 To adapt GPs to the settings with more heterogeneous dynamics, a variety of
 mixture \citep{tresp2001mixtures, rasmussen2002infinite}, multiscale
 \citep{fox2012multiresolution, samostring}, adn time-varying
-\citep{paciorek2003nonstationary} approaches have been proposed. Here, we
-describe the implementation and application of the approach of
-\citep{rasmussen2002infinite}.
+\citep{paciorek2003nonstationary, heinonen2016non} approaches have been
+proposed. Here, we describe the implementation and application of the approach
+of \citep{rasmussen2002infinite}. Code is available at
+\url{https://github.com/krisrs1128/tsc_microbiome}.
 
 In this approach, timepoints are assigned to distinct GPs, each with their own
 kernel parameters. Let $\left(y_{i}\right)$ be a single observed time series,
@@ -1392,7 +1393,7 @@ propose placing a Chinese Restaurant Process (CRP) prior on the class indicators
 separate wide Gaussian priors on the logged kernel parameters, and a gamma
 hyperprior on the CRP diversity parameter $\alpha$,
 \begin{align*}
-  \left(z_i\right) &\sim \CRP\left(\alpha\right) \\
+  \left(z_i\right)_i^n &\sim \CRP\left(\alpha\right) \\
   \log \theta_k &\sim \Gsn\left(0, \tau^2 I_3\right) \text{ for } k = 1, 2, \dots \\
   \alpha &\sim \Gam\left(a, b\right)
 \end{align*}
@@ -1402,6 +1403,71 @@ and treat it as a tuning parameter. Further, we find that Logistic, instead of
 Gaussian, priors on $\log \theta_k$ allow improved detection of different regime
 dynamics -- inference with this alternative prior can be done similarly to the
 Gaussian case.
+
+We next describe an algorithm for fitting this model. There are two parts to
+this algorithm, inference of the latent classes $z_i$ and learning of the class
+kernel parameters $\theta_k$. For inference of the $z_i$, a collapsed Gibbs
+sampler can be applied, in the spirit of \citep{neal2000markov}'s Algorithm 3,
+can be used. In particular, note that the conditionals are of the form
+\begin{align}
+  p\left(z_i = k \vert z_{-i}, \left(y_i\right), \left(\theta_k\right)\right) &\propto p\left(\left(y_i\right) \vert \left(z_i\right),  \left(\theta_k\right)\right)
+  p\left(z_i = k \vert z_{-i}, \left(\theta_k\right)\right) \nonumber \\
+  &= p\left(\left(y_i\right) \vert \left(z_i\right), \left(\theta_i\right)\right)p\left(z_i = k \vert z_{-i}\right), \label{eq:igp_conditional}
+\end{align}
+which is tractable because the likelihood $p\left(\left(y_i\right) \vert
+\left(z_i\right), \left(\theta_i\right)\right)$ decouples across classes $\{i :
+z_i = k\}$ while the CRP predictive has a simple form, according to the
+Polya-Urn sampling scheme,
+\begin{align*}
+  p\left(z_i\vert z_{-i}\right) &\propto \begin{cases}
+    k &\text{w.p.} \frac{n_{-i, k}}{n - 1 + \alpha} \\
+    K + 1 &\text{w.p.} \frac{\alpha}{\n - 1 + \alpha}
+    \end{cases},
+\end{align*}
+where $n_{-i, k}$ counts the number of $z$s equal to $k$, excluding $z_i$ and $K
++ 1 = \max{z_{-i}}$ corresponds to the case of introducing a previously
+unobserved class. Note that we have conditioned on the infinite number
+of $\theta_k$'s, though only at most $n$ need to be tracked at any moment during
+the computation.
+
+For learning the kernel hyperparameters $\theta_k$, a separate Hamiltonian Monte
+Carlo (HMC) sampler is used for each of the observed GPs, using the same setup
+as \citep{rasmussen2006gaussian} for individual GPs. In particular, for the
+timepoints $t^k$ associated with a single class, the unnormalized posterior over
+$\theta_k$ can be evaluated,
+\begin{align*}
+  \log \Gsn\left(y^k \vert 0, K_\theta_k\left(t_k\right)\right) +
+  \log \text{Logist}\left(\log v_0 \vert a_0, b_0\right) +
+  \log \text{Logist}\left(\log v_1 \vert a_1, b_1\right) +
+  \log \text{Logist}\left(\log \sigma_f^2 \vert a_f, b_f\right),
+\end{align*}
+along with its gradients with respect to $\log v_0, \log v_1$, and $\log
+\sigma_f^2$. This can be input to the generic HMC sampler in order to propogate
+forwards from the current state in a way that samples from the posterior of
+these parameters.
+
+Finally, inference and learning are combined in every iteration of the mixture
+of GPs algorithm. That is, initialize with some setting of $z_i$ and
+corresponding $\theta_k$'s, and in each iteration
+\begin{itemize}
+\item Perform a full Gibbs sampling sweep of $z_1, \dots, z_n$ using the
+  conditionals in \label{eq:igp_conditional}, with fixed $\theta_k$. If new
+  classes $k^\ast$ are drawn, sample associated $\log \theta_k^\ast$s from their
+  prior.
+\item For a given configuration of of $z_1, \dots, z_n$, propogate the current
+  values of $\left(\log \theta_k\right)$ forwards according to HMC dynamics for
+  some number of leapfrog iterations (we use $5$ in our xperiments below, each
+  with stepsize $\eps = 0.005$).
+\end{itemize}
+
+While \citep{rasmussen2006} sample $\alpha$ and introduce some refinements to
+the Gibbs sampling update, we find this setup sufficient in our application, it
+also yields a cleaner implementation.
+
+Stepping back from this model description, we highlight that this method was
+proposed in the context of a single time series with several regimes. An
+extension to collections of related time series, as in the microbiome context,
+seems natural but as yet unstudied.
 
 - Model motivation
     + GP itself is not suited to heterogeneity
