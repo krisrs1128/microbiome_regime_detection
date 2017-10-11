@@ -1464,10 +1464,42 @@ While \citep{rasmussen2006} sample $\alpha$ and introduce some refinements to
 the Gibbs sampling update, we find this setup sufficient in our application, it
 also yields a cleaner implementation.
 
-Stepping back from this model description, we highlight that this method was
+Stepping back from this model description, we note that this method was
 proposed in the context of a single time series with several regimes. An
 extension to collections of related time series, as in the microbiome context,
 seems natural but as yet unstudied.
+
+
+\subsubsection{Example}
+\label{subsubsec:igp_mix_example}
+
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figure/igp_abt_fits}
+  \caption{Each panel represents displays the posteriors at one
+    iteration of the sampler. Posteriors for each process are displayed over the
+    full data range, even when the associated timepoints occupy a relatively
+    restricted range. \label{fig:abt_fits}}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.7\textwidth]{figure/igp_abt_states}
+  \caption{Each row is an iteration of the sampler, each column is a timepoint.
+    Tiles are shaded by their class assignments. Note the label switching that
+    occurs a few times. \label{fig:abt_states} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.5\textwidth]{figure/igp_abt_cooccurrence}
+  \caption{To bypass the label switching problem, we can count how often two
+    timepoints were placed in the same cluster (this statistic is invariant to
+    switching). We see clear antibiotic regime groups. \label{afig:abt_states}}
+\end{figure}
+
+
 
 - Model motivation
     + GP itself is not suited to heterogeneity
