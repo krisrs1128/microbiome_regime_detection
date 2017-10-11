@@ -41,7 +41,8 @@ accessible to microbiome researchers. Specifically, we reanalyze the data of
 \citep{dethlefsen2011incomplete} using Classification and Regression Trees
 (CART) \citep{breiman1984classification}, Hidden Markov Models (HMMs)
 \citep{rabiner1986introduction}, Bayesian nonparametric HMMs
-\citep{teh2010hierarchical}, mixtures of Gaussian Processes (GPs)
+\citep{teh2010hierarchical}, mixtures of Gaussian Proce
+sses (GPs)
 \citep{rasmussen2002infinite}, switching dynamical systems
 \citep{fox2009sharing}, and multiple changepoint detection
 \citep{fan2015empirical}. Along the way, we summarize each method, their
@@ -1316,7 +1317,7 @@ introduced is still controlled by user-specified parameters\footnote{In
   + Derivation of some nonobvious steps
   + Link to code
 
-\subsection{Mixture of Experts}
+\subsection{Mixtures in Temporal Modeling}
 
 HMMs suppose that the observed system switches between a few regimes, but that
 within regimes observations are stationary. In certain situations, this is not
@@ -1324,6 +1325,52 @@ quite plausible, and here we describe some alternatives that mix nonstationary
 processes. In particular, we focus on several efforts to merge the switching idea of
 HMMs with linear dynamical systems and gaussian processes, proposed in
 \citep{ghahramani1998variational, rasmussen2002infinite, fox2012multiresolution}.
+
+
+\subsubsection{Infinite Mixtures of Gaussian Process Experts}
+\label{subsec:label}
+
+GPs, as described in Section \ref{subsec:gaussian_processes} provide an
+alternative to LDS and HMM models for analyzing temporal data. However, in their
+original form, they are of only limited utility for the regime detection
+problem, because they assume a type of homogeneity in dynamics. In particular,
+once the kernel bandwidth for a GP is specified, it will tend to have
+fluctuations at the order of that bandwidth throughout its entire domain, see
+Figure \ref{fig:gp_bandwidths}. This makes it difficult to model differential
+dynamics -- e.g., gradual evolution in some domains and rapid changes in
+others\footnote{The need to specified a unified bandwidth is analogous to the
+  situation in spline smoothing, which motivates the development of wavelet
+  methods\citep{donoho1995adapting}. That there is such a connection is not
+  surprising, considering the parallel nature of GPs and splines
+  \citep{kimeldorf1970correspondence}} which is characteristic of longitudinal
+microbiome data sets.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figure/gp_bandwidths}
+  \caption{Each panel displays draws from the GP prior for a single kernel
+    bandwidth. While different bandwidths can model different degrees of
+    smoothness, for any single bandwidth, dynamics are relatively
+    homogeneous. \label{fig:gp_bandwidths} }
+\end{figure}
+
+To adapt GPs to the settings with more heterogeneous dynamics, a variety of
+mixture \citep{tresp2001mixtures, rasmussen2002infinite}, multiscale
+\citep{fox2012multiresolution, samostring}, adn time-varying
+\citep{paciorek2003nonstationary} approaches have been proposed. Here, we
+describe the implementation and application of the approach of
+\citep{rasmussen2002infinite}.
+
+- Model motivation
+    + GP itself is not suited to heterogeneity
+- Model description
+    + Description from slides, but replace class(ti) with better notation
+- Model inference
+    + Outline: decompose into gibbs sampling for states and HMC for parameters
+    + Gibbs sampling for steps is usual collapsed gibbs
+      - What does this look like (prior reweighted by likelihood)
+    + HMC for parameters is usual HMC for GPs
+    + How this can be sped up
 
 - Switching state space models (subsubsection)
    + Model description
