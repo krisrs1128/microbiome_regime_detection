@@ -112,7 +112,8 @@ plot_fits <- function(data, post, c_samples, min_iter = 0, max_iter = Inf) {
       data = data,
       aes(x = x, y = y, col = class_group)
     ) +
-    facet_wrap(~iter)
+    facet_wrap(~iter) +
+    coord_cartesian(xlim = c(0, 1), ylim = c(0, 30))
 }
 
 #' Plot Classes
@@ -199,8 +200,8 @@ c_samples <- read_csv("data/samples/c.csv", col_names = FALSE) %>%
   preprocess_c(data)
 
 plot_fits(data, post, c_samples, 0, 100)
-plot_fits(data, post, c_samples, 1800, 1900)
-ggsave("../../doc/figure/abt_fits.png", width = 7.5, height = 3.88)
+plot_fits(data, post, c_samples, 300, 470)
+ggsave("../../doc/figure/abt_fits.png", height = 7.76, height = 4.45)
 
 plot_c(c_samples)
 ggsave("../../doc/figure/abt_states.png", width = 5.24, height = 3.17)

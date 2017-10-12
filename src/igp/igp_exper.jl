@@ -12,7 +12,7 @@
 include("igp_mix.jl")
 srand(09142017)
 n = 60
-n_iter = 2000
+n_iter = 1000
 K = 3
 c = rand(1:K, n)
 update_ix = rand(1:n)
@@ -20,13 +20,13 @@ alpha = 1.0
 thetas = Dict{Int64, KernelParam}()
 
 a = GPHyper(
-  Distributions.Logistic(-6, 3),
-  Distributions.Logistic(-1, 1),
-  Distributions.Logistic(-1, 1)
+  Distributions.Logistic(-8, 1.5),
+  Distributions.Logistic(0, 0.5),
+  Distributions.Logistic(0, 0.5)
 )
 
 ## consider real microbiome series
-alpha = 0.1
+alpha = 0.15
 y = readcsv("data/raw_data.csv")[:]
 y += 0.01 * rand(length(y))
 x = collect(linspace(0, 1, length(y)))[:, :]
@@ -37,7 +37,7 @@ states = read_states(
   "data/samples/c.csv"
 )
 
-x_new = collect(minimum(x):0.01:maximum(x))[:, :]
+x_new = collect(minimum(x):0.005:maximum(x))[:, :]
 posteriors = mix_posteriors(x_new, states)
 write_posteriors("data/posteriors.csv", x_new, posteriors)
 writecsv("data/data.csv", [zeros(length(y)) x y])
