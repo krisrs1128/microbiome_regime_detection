@@ -1476,9 +1476,9 @@ We now apply this method to a single species abundance time series from the
 antibiotics data set \citep{dethlefsen2011incomplete}. We apply it to an
 Enterobacteria species, labeled in this data by Unc09aa7, which was chosen
 because it includes two differently structured spikes, along with long stretches
-of zeros during the antibiotics time courses. The sampler was run for 2000
-iterations, which takes about 5 minutes on a relatively standard
-machine\footnote{1.4GhZ, 4GB RAM.}. We manually set $\alpha = 0.1$ after
+of zeros during the antibiotics time courses. The sampler was run for 1000
+iterations, which takes about 30 minutes on a relatively standard
+machine\footnote{1.4GhZ, 4GB RAM.}. We manually set $\alpha = 0.15$ after
 comparing the number of clusters identified with different levels of $\alpha$.
 The sampler was initialized by assigning all timepoints to a single class and by
 drawing a random $\theta_1$ from the prior.
@@ -1499,22 +1499,27 @@ $\left(z_i\right)$ and $\left(\theta_k\right)$ for a subset of iterations. There
 tends to be some redundancy in the estimated mixture components, but there is
 almost always at least one processes that fits the zero and nonzero intervals,
 respectively. There is some differentiation of the very high points in the
-second peak from other points, including the earlier peak.
+second peak from other points, including those in the earlier peak.
 
 Interestingly, in light of our original motivation for fitting this model, the
 differentiation between different regimes can occur due to variations in noise
 levels in addition to bandwidth. For example, the process that is nearly always
-zero seems to have been identified because it has low variance, while the spikes
-before and after antibiotic regimes seem to be distinguished by having a small
-bandwidth. Somewhat unsatisfyingly, the zeros that occur early in the zeros are
-grouped along with the zeros during the antibiotic regime, though informally we
-think of these points as ``pre-antibiotic.'' However, this is not surprising in
-light of the model's estimation criterion, since there is no sense in which the
-labels $z_i$ are required to be close to one another when their associated $t_i$
-are close -- the choice is made entirely on the basis of cluster sizes and
-process likelihood. This is well-suited to the situation where there may be
-several processes in different $y$-axis scales and overlapping $t_i$, but when
-regime assignments should be more contiguous, the fit appears artificial.
+zero (the blue process) seems to have been identified because it has low
+variance, while spike after the first regime seems (the red process) to be
+distinguished by having a small bandwidth. The green process includes those
+nonzero points that are lower than the spike.
+
+Somewhat unsatisfyingly, the zeros that occur early in the zeros are grouped
+along with the zeros during the antibiotic regime, though informally we think of
+these points as ``pre-antibiotic.'' In fact, the timepoints seem to be clustered
+based mostly on their $y$-axis values, rather than requiring any sense of
+temporal continuity. However, this is not surprising in light of the model's
+estimation criterion, since there is no sense in which the labels $z_i$ are
+required to be close to one another when their associated $t_i$ are close -- the
+choice is made entirely on the basis of cluster sizes and process likelihood.
+This is well-suited to the situation where there may be several processes in
+different $y$-axis scales and overlapping $t_i$, but when regime assignments
+should be more contiguous, the fit appears artificial.
 
 \begin{figure}[ht]
   \centering
