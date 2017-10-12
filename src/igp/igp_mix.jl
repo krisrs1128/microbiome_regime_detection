@@ -609,7 +609,12 @@ function append_component(i::Int64,
                           x_new::Vector,
                           distn::Distributions.MvNormal)
   ones_d = ones(length(distn))
-  writecsv(x, [i * ones_d k * ones_d x_new mean(distn)])
+  mu = mean(distn)
+  sigmas = sqrt.(diag(cov(distn)))
+  writecsv(
+    x,
+    [i * ones_d k * ones_d x_new mean(distn) mu + 1.96 * sigmas mu - 1.96 * sigmas]
+  )
 end
 
 """Read States from File

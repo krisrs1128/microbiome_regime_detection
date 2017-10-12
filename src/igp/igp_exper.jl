@@ -20,8 +20,8 @@ alpha = 1.0
 thetas = Dict{Int64, KernelParam}()
 
 a = GPHyper(
-  Distributions.Logistic(-3, 2),
-  Distributions.Logistic(0, 0.1),
+  Distributions.Logistic(-6, 3),
+  Distributions.Logistic(-1, 1),
   Distributions.Logistic(-1, 1)
 )
 
@@ -37,7 +37,7 @@ states = read_states(
   "data/samples/c.csv"
 )
 
-x_new = collect(minimum(x):0.005:maximum(x))[:, :]
+x_new = collect(minimum(x):0.01:maximum(x))[:, :]
 posteriors = mix_posteriors(x_new, states)
 write_posteriors("data/posteriors.csv", x_new, posteriors)
 writecsv("data/data.csv", [zeros(length(y)) x y])
