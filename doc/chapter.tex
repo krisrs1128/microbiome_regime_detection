@@ -41,7 +41,8 @@ accessible to microbiome researchers. Specifically, we reanalyze the data of
 \citep{dethlefsen2011incomplete} using Classification and Regression Trees
 (CART) \citep{breiman1984classification}, Hidden Markov Models (HMMs)
 \citep{rabiner1986introduction}, Bayesian nonparametric HMMs
-\citep{teh2010hierarchical}, mixtures of Gaussian Processes (GPs)
+\citep{teh2010hierarchical}, mixtures of Gaussian Proce
+sses (GPs)
 \citep{rasmussen2002infinite}, switching dynamical systems
 \citep{fox2009sharing}, and multiple changepoint detection
 \citep{fan2015empirical}. Along the way, we summarize each method, their
@@ -1256,7 +1257,7 @@ we have
 \begin{align*}
 n_{k\cdot} &\sim \Mult\left(n_{k\cdot} \vert \sum_{i = 1}^{n} \sum_{t = 1}^{T - 1} \indic{z_{it} = k}, P_{k}\right)
 \end{align*}
-and therefore 
+and therefore
 \begin{align*}
   P_{k} \vert \left(z_{it}\right) &\sim \Dir\left(P_{k} \vert \alpha + \kappa e_{k} + n_{k\cdot}\right).
 \end{align*}
@@ -1269,7 +1270,7 @@ example, if $\theta_{k} = \left(\mu_{k}, \Sigma_{k}\right)$ and
 \begin{align*}
   x_{it} \vert z_{it} = k &\sim \Gsn\left(x_{it} \vert \mu_{k}, \Sigma_{k}\right),
 \end{align*}
-and if 
+and if
 \begin{align*}
   \mu_{k} &\sim \Gsn\left(\mu_{k} \vert \mu_{k}, \Sigma_{0}\right) \\
   \Sigma_{k} &\sim \text{InvWish}\left(\Sigma_{k} \vert \nu, \Delta\right)
@@ -1316,7 +1317,7 @@ introduced is still controlled by user-specified parameters\footnote{In
   + Derivation of some nonobvious steps
   + Link to code
 
-\subsection{Mixture of Experts}
+\subsection{Mixtures in Temporal Modeling}
 
 HMMs suppose that the observed system switches between a few regimes, but that
 within regimes observations are stationary. In certain situations, this is not
@@ -1324,6 +1325,244 @@ quite plausible, and here we describe some alternatives that mix nonstationary
 processes. In particular, we focus on several efforts to merge the switching idea of
 HMMs with linear dynamical systems and gaussian processes, proposed in
 \citep{ghahramani1998variational, rasmussen2002infinite, fox2012multiresolution}.
+
+
+\subsubsection{Infinite Mixtures of Gaussian Process Experts}
+\label{subsec:label}
+
+GPs, as described in Section \ref{subsec:gaussian_processes} provide an
+alternative to LDS and HMM models for analyzing temporal data. However, in their
+original form, they are of only limited utility for the regime detection
+problem, because they assume a type of homogeneity in dynamics. In particular,
+once the kernel bandwidth for a GP is specified, it will tend to have
+fluctuations at the order of that bandwidth throughout its entire domain, see
+Figure \ref{fig:gp_bandwidths}. This makes it difficult to model differential
+dynamics -- e.g., gradual evolution in some domains and rapid changes in
+others\footnote{The need to specified a unified bandwidth is analogous to the
+  situation in spline smoothing, which motivates the development of wavelet
+  methods\citep{donoho1995adapting}. That there is such a connection is not
+  surprising, considering the parallel nature of GPs and splines
+  \citep{kimeldorf1970correspondence}} which is characteristic of longitudinal
+microbiome data sets.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figure/gp_bandwidths}
+  \caption{Each panel displays draws from the GP prior for a single kernel
+    bandwidth. While different kernels can model different degrees of
+    smoothness, for any single bandwidth, dynamics are relatively
+    homogeneous. \label{fig:gp_bandwidths} }
+\end{figure}
+
+To adapt GPs to the settings with more heterogeneous dynamics, a variety of
+mixture \citep{tresp2001mixtures, rasmussen2002infinite}, multiscale
+\citep{fox2012multiresolution, samostring}, adn time-varying
+\citep{paciorek2003nonstationary, heinonen2016non} approaches have been
+proposed. Here, we describe the implementation and application of the approach
+of \citep{rasmussen2002infinite}. Code is available at
+\url{https://github.com/krisrs1128/tsc_microbiome}.
+
+In this approach, timepoints are assigned to distinct GPs, each with their own
+kernel parameters. Let $\left(y_{i}\right)$ be a single observed time series,
+with $y_{i}$ measured at time $t_{i}$. We partition timepoints into (latent)
+distinct classes, with the class indicator for $t_i$ denoted by $z_i$. The set
+of $y_i$ associated with a particular $z_i = k$ are assumed to have been drawn
+from a GP with a class specific kernel $\kappa_{\theta_k}$. We will apply a
+one-dimensional Gaussian covariance kernel with $\theta = \{v_0, v_1, \sigma_f^2\}$,
+\begin{align*}
+  \kappa_\theta\left(x_i, x_i^\prime\right) &= v_0 \exp{\frac{1}{\sigma_f^2} \left(x_i - x_i^\prime\right)^2} + v_1.
+\end{align*}
+
+This overall mechanism corresponds to a complete data likelihood,
+\begin{align*}
+ y_i \vert \left(\kappa_k\right), \left(c_i\right) &\sim \prod_{k \in \text{unique}\left(c_i\right)} \Gsn\left(0, K_{\theta_k}\left(t^k\right)\right)
+\end{align*}
+where $K_{\theta_k}\left(t^k\right)$ denotes the covariance matrix obtained by
+evaluating the $k^{th}$ kernel at the timepoints $t^k$ for which $z_i = k$,
+\begin{align*}
+  K_{\theta_k}\left(t^k\right) &= \begin{pmatrix}
+    \kappa_{\theta_k}\left(t^k_1, t^k_1\right) & \dots  & \kappa_{\theta_k}\left(t^k_1, t^k_{n_k}\right) \\
+    \vdots & & \vdots \\
+    \kappa_{\theta_k}\left(t^k_{n_k}, t^k_1\right) & \dots  & \kappa_{\theta_k}\left(t^k_{n_k}, t^k_{n_k}\right) \\
+  \end{pmatrix}.
+\end{align*}
+
+To complete specification of the model, priors must be placed on the
+$\left(z_i\right)$ and $\left(\theta_k\right)$. \citep{rasmussen2002infinite}
+propose placing a Chinese Restaurant Process (CRP) prior on the class indicators,
+separate wide Gaussian priors on the logged kernel parameters, and a gamma
+hyperprior on the CRP diversity parameter $\alpha$,
+\begin{align*}
+  \left(z_i\right)_i^n &\sim \CRP\left(\alpha\right) \\
+  \log \theta_k &\sim \Gsn\left(0, \tau^2 I_3\right) \text{ for } k = 1, 2, \dots \\
+  \alpha &\sim \Gam\left(a, b\right)
+\end{align*}
+The use of a $\CRP\left(\alpha\right)$ prior explains the name \textit{infinite}
+mixture of GP experts. In our experiments, we find it sufficient to fix $\alpha$
+and treat it as a tuning parameter. Further, we find that Logistic, instead of
+Gaussian, priors on $\log \theta_k$ allow improved detection of different regime
+dynamics -- inference with this alternative prior can be done similarly to the
+Gaussian case.
+
+We next describe an algorithm for fitting this model. There are two parts to
+this algorithm, inference of the latent classes $z_i$ and learning of the class
+kernel parameters $\theta_k$. For inference of the $z_i$, a collapsed Gibbs
+sampler can be applied, in the spirit of \citep{neal2000markov}'s Algorithm 3,
+can be used. In particular, note that the conditionals are of the form
+\begin{align}
+  p\left(z_i = k \vert z_{-i}, \left(y_i\right), \left(\theta_k\right)\right) &\propto p\left(\left(y_i\right) \vert \left(z_i\right),  \left(\theta_k\right)\right)
+  p\left(z_i = k \vert z_{-i}, \left(\theta_k\right)\right) \nonumber \\
+  &= p\left(\left(y_i\right) \vert \left(z_i\right), \left(\theta_i\right)\right)p\left(z_i = k \vert z_{-i}\right), \label{eq:igp_conditional}
+\end{align}
+which is tractable because the likelihood $p\left(\left(y_i\right) \vert
+\left(z_i\right), \left(\theta_i\right)\right)$ decouples across classes $\{i :
+z_i = k\}$ while the CRP predictive has a simple form, according to the
+Polya-Urn sampling scheme,
+\begin{align*}
+  p\left(z_i\vert z_{-i}\right) &\propto \begin{cases}
+    k &\text{w.p.} \frac{n_{-i, k}}{n - 1 + \alpha} \\
+    K + 1 &\text{w.p.} \frac{\alpha}{n - 1 + \alpha}
+    \end{cases},
+\end{align*}
+where $n_{-i, k}$ counts the number of $z$s equal to $k$, excluding $z_i$ and $K
++ 1 = \max{z_{-i}}$ corresponds to the case of introducing a previously
+unobserved class. Note that we have conditioned on the infinite number
+of $\theta_k$'s, though only at most $n$ need to be tracked at any moment during
+the computation.
+
+For learning the kernel hyperparameters $\theta_k$, a separate Hamiltonian Monte
+Carlo (HMC) sampler is used for each of the observed GPs, using the same setup
+as \citep{rasmussen2006gaussian} for individual GPs. In particular, for the
+timepoints $t^k$ associated with a single class, the unnormalized posterior over
+$\theta_k$ can be evaluated,
+\begin{align*}
+  &\log \Gsn\left(y^k \vert 0, K_{\theta_k}\left(t_k\right)\right) +
+  \log \text{Logist}\left(\log v_0 \vert a_0, b_0\right) +
+  \log \text{Logist}\left(\log v_1 \vert a_1, b_1\right) +\\
+  &\log \text{Logist}\left(\log \sigma_f^2 \vert a_f, b_f\right),
+\end{align*}
+along with its gradients with respect to $\log v_0, \log v_1$, and $\log
+\sigma_f^2$. This can be input to the generic HMC sampler in order to propogate
+forwards from the current state in a way that samples from the posterior of
+these parameters.
+
+Finally, inference and learning are combined in every iteration of the mixture
+of GPs algorithm. That is, initialize with some setting of $z_i$ and
+corresponding $\theta_k$'s, and in each iteration
+\begin{itemize}
+\item Perform a full Gibbs sampling sweep of $z_1, \dots, z_n$ using the
+  conditionals in \label{eq:igp_conditional}, with fixed $\theta_k$. If new
+  classes $k^\ast$ are drawn, sample associated $\log \theta_k^\ast$s from their
+  prior.
+\item For a given configuration of of $z_1, \dots, z_n$, propogate the current
+  values of $\left(\log \theta_k\right)$ forwards according to HMC dynamics for
+  some number of leapfrog iterations (we use $5$ in our xperiments below, each
+  with stepsize $\eps = 0.005$).
+\end{itemize}
+
+While \citep{rasmussen2006} sample $\alpha$ and introduce some refinements to
+the Gibbs sampling update, we find this setup sufficient in our application, it
+also yields a cleaner implementation.
+
+Stepping back from this model description, we note that this method was
+proposed in the context of a single time series with several regimes. An
+extension to collections of related time series, as in the microbiome context,
+seems natural but as yet unstudied.
+
+\subsubsection{Example}
+\label{subsubsec:igp_mix_example}
+
+We now apply this method to a single species abundance time series from the
+antibiotics data set \citep{dethlefsen2011incomplete}. We apply it to an
+Enterobacteria species, labeled in this data by Unc09aa7, which was chosen
+because it includes two differently structured spikes, along with long stretches
+of zeros during the antibiotics time courses. The sampler was run for 1000
+iterations, which takes about 30 minutes on a relatively standard
+machine\footnote{1.4GhZ, 4GB RAM.}. We manually set $\alpha = 0.15$ after
+comparing the number of clusters identified with different levels of $\alpha$.
+The sampler was initialized by assigning all timepoints to a single class and by
+drawing a random $\theta_1$ from the prior.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figure/igp_abt_fits}
+  \caption{Each panel represents displays the posteriors at one iteration of the
+    sampler. Each point is shaded according to its sampled stated $z_i$. Lines
+    and shaded shaded bands represent means and variance in the osteriors for
+    the processes associated with different $z_i$. The posteriors are displayed
+    over the full data range, even when the associated timepoints $t^k$ occupy a
+    relatively restricted range. \label{fig:igp_abt_fits}}
+\end{figure}
+
+In Figure \ref{fig:igp_abt_fits}, we display draws from the posterior over
+$\left(z_i\right)$ and $\left(\theta_k\right)$ for a subset of iterations. There
+tends to be some redundancy in the estimated mixture components, but there is
+almost always at least one processes that fits the zero and nonzero intervals,
+respectively. There is some differentiation of the very high points in the
+second peak from other points, including those in the earlier peak.
+
+Interestingly, in light of our original motivation for fitting this model, the
+differentiation between different regimes can occur due to variations in noise
+levels in addition to bandwidth. For example, the process that is nearly always
+zero (the blue process) seems to have been identified because it has low
+variance, while spike after the first regime seems (the red process) to be
+distinguished by having a small bandwidth. The green process includes those
+nonzero points that are lower than the spike.
+
+Somewhat unsatisfyingly, the zeros that occur early in the zeros are grouped
+along with the zeros during the antibiotic regime, though informally we think of
+these points as ``pre-antibiotic.'' In fact, the timepoints seem to be clustered
+based mostly on their $y$-axis values, rather than requiring any sense of
+temporal continuity. However, this is not surprising in light of the model's
+estimation criterion, since there is no sense in which the labels $z_i$ are
+required to be close to one another when their associated $t_i$ are close -- the
+choice is made entirely on the basis of cluster sizes and process likelihood.
+This is well-suited to the situation where there may be several processes in
+different $y$-axis scales and overlapping $t_i$, but when regime assignments
+should be more contiguous, the fit appears artificial.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figure/igp_abt_states}
+  \caption{Each row is an iteration of the sampler, each column is a timepoint.
+    Tiles are shaded by their class assignments. Note the label switching that
+    occurs a few times. \label{fig:igp_abt_states} }
+\end{figure}
+
+In Figure \ref{fig:igp_abt_states}, we display the class assignments over
+iterations of the sampler. This provides a more concise view of the estimated
+regime assignments. The antibiotic regimes and the peaks seem to have been
+distinguished from one another. This figure also illustrates some properties of
+the CRP prior -- some states are introduced briefly and then deleted forever,
+others may last some time before being swept out by classes with similar
+parameters $\theta_k$. When computing summary statistics over multiple
+iterations, this figure can be used to ensure averages are only computed over
+iterations where no label-switching has occured. Alternatively, it could be used
+to align similar clusters.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.7\textwidth]{figure/igp_abt_cooccurrence}
+  \caption{We can count how often two timepoints were placed in the same cluster
+    (note that this statistic is invariant to label-switching). We see clear
+    antibiotic regime groups. \label{fig:igp_abt_cooccurrence}}
+\end{figure}
+
+Figure \ref{fig:igp_abt_cooccurrence} provides an even more succinct
+representation of the different regimes. The number of times two points are
+assigned to the same state gives a measure of regime similarity, and block
+structure is evidence of distinct temporal regimes.
+
+- Model motivation
+    + GP itself is not suited to heterogeneity
+- Model description
+    + Description from slides, but replace class(ti) with better notation
+- Model inference
+    + Outline: decompose into gibbs sampling for states and HMC for parameters
+    + Gibbs sampling for steps is usual collapsed gibbs
+      - What does this look like (prior reweighted by likelihood)
+    + HMC for parameters is usual HMC for GPs
+    + How this can be sped up
 
 - Switching state space models (subsubsection)
    + Model description
