@@ -45,7 +45,7 @@ preprocess_c <- function(c_samples, data) {
 }
 
 preprocess_post <- function(post) {
-  colnames(post) <- c("iter", "class", "x", "y")
+  colnames(post) <- c("iter", "class", "x", "y", "yupper", "ylower")
   post$class <- as.factor(as.character(post$class))
   post
 }
@@ -102,6 +102,11 @@ plot_fits <- function(data, post, c_samples, min_iter = 0, max_iter = Inf) {
       data = post,
       aes(x = x, y = y, group = interaction(class, iter), col = class_group),
       size = 1
+    ) +
+    geom_ribbon(
+      data = post,
+      aes(x = x, ymin = ylower, ymax = yupper, group = interaction(class, iter), fill = class_group),
+      alpha = 0.2
     ) +
     geom_point(
       data = data,
@@ -194,14 +199,14 @@ c_samples <- read_csv("data/samples/c.csv", col_names = FALSE) %>%
   preprocess_c(data)
 
 plot_fits(data, post, c_samples, 0, 100)
-plot_fits(data, post, c_samples, 1700, 1900)
-ggsave("figure/abt_fits.png", width = 7.5, height = 3.88)
+plot_fits(data, post, c_samples, 1800, 1900)
+ggsave("../../doc/figure/abt_fits.png", width = 7.5, height = 3.88)
 
 plot_c(c_samples)
-ggsave("figure/abt_states.png", width = 5.24, height = 3.17)
+ggsave("../../doc/figure/abt_states.png", width = 5.24, height = 3.17)
 
 counts <- cooccurrence_counts(c_samples)
 plot_cooccurrence(counts, data) +
   coord_fixed() +
   theme(axis.text = element_blank())
-ggsave("figure/abt_cooccurrence.png", width = 4.88, height = 4.07)
+ggsave("../../doc/figure/abt_cooccurrence.png", width = 4.88, height = 4.07)
