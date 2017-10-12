@@ -1473,33 +1473,48 @@ seems natural but as yet unstudied.
 \subsubsection{Example}
 \label{subsubsec:igp_mix_example}
 
+We now apply this method to a single species abundance time series from the
+antibiotics data set \citep{dethlefsen2011incomplete}. We apply it to an
+Enterobacteria species, labeled in this data by Unc09aa7, which was chosen
+because it includes two differently structured spikes, along with long stretches
+of zeros during the antibiotics time courses. The sampler was run for 2000
+iterations, which takes about 5 minutes on a relatively standard
+machine\footnote{1.4GhZ, 4GB RAM.}. We manually set $\alpha = 0.1$ after
+comparing the number of clusters identified with different levels of $\alpha$.
+The sampler was initialized by assigning all timepoints to a single class and by
+drawing a random $\theta_1$ from the prior.
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/igp_abt_fits}
-  \caption{Each panel represents displays the posteriors at one
-    iteration of the sampler. Posteriors for each process are displayed over the
-    full data range, even when the associated timepoints occupy a relatively
-    restricted range. \label{fig:abt_fits}}
+  \includegraphics[width=\textwidth]{figure/igp_abt_fits}
+  \caption{Each panel represents displays the posteriors at one iteration of the
+    sampler. Posteriors for the processes associated with different $z_i$, are
+    displayed over the full data range, even when the associated timepoints
+    $t^k$ occupy a relatively restricted range. \label{fig:igp_abt_fits}}
 \end{figure}
 
+In Figure \ref{fig:igp_abt_fits}, we display draws from the posterior over
+$\left(z_i\right)$ and $\left(\theta_k\right)$ for a subset of iterations. There
+tends to be some redundancy in the estimated mixture components, but there is
+almost always at least one processes that fits the zero and nonzero intervals,
+respectively. However, there is typically no differentiation between the two
+spikes, even though they have very different magnitudes.
+
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.7\textwidth]{figure/igp_abt_states}
+  \includegraphics[width=\textwidth]{figure/igp_abt_states}
   \caption{Each row is an iteration of the sampler, each column is a timepoint.
     Tiles are shaded by their class assignments. Note the label switching that
-    occurs a few times. \label{fig:abt_states} }
+    occurs a few times. \label{fig:igp_abt_states} }
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.5\textwidth]{figure/igp_abt_cooccurrence}
+  \includegraphics[width=\textwidth]{figure/igp_abt_cooccurrence}
   \caption{To bypass the label switching problem, we can count how often two
     timepoints were placed in the same cluster (this statistic is invariant to
-    switching). We see clear antibiotic regime groups. \label{afig:abt_states}}
+    switching). We see clear antibiotic regime groups. \label{fig:igp_abt_states}}
 \end{figure}
-
-
 
 - Model motivation
     + GP itself is not suited to heterogeneity
