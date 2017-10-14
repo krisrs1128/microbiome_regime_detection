@@ -123,6 +123,8 @@ pcmat <- params %>%
   ) %>%
   as.matrix()
 
+pcmat[is.na(pcmat)] <- 0
+
 pc_res <- princomp(scale(pcmat))
 pc_df <- cbind(params, pc_res$scores)
 
@@ -170,4 +172,30 @@ ggplot(pc_load) +
   coord_fixed(sqrt(pc_res$sdev[2] / pc_res$sdev[1])) +
   theme(
     legend.position = "bottom"
+  )
+
+###############################################################################
+## heatmap of posterior means
+###############################################################################
+params$NA_NA <- NULL
+hm_df <- params %>%
+  gather(param, value, A_0, C_0, Q_0, R_0) %>%
+  group_by(param) %>%
+  mutate(value = value / max(value, na.rm = TRUE)) %>%
+  group_by(seq, time, param) %>%
+  summarise(
+    value = mean(value, na.rm = TRUE),
+    family = family[1]
+  )
+
+ggplot(hm_df) +
+  geom_tile(
+    aes(x = seq, y = time, fill = value)
+  ) +
+  facet_grid(param ~ family, scale = "free", space = "free") +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_fill_gradient2(low = "royalblue", high = "plum3") +
+  theme(
+    axis.text.x = element_blank()
   )
