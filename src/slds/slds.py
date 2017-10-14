@@ -68,4 +68,4 @@ def write_parameters(i, iter, reglist, outpath, pnames):
 ##  load data and run models
 ###############################################################################
 y = np.loadtxt("../../data/slds/abt.csv", delimiter=",")
-slds_fit(y[1:10, :], 200, 3, 1, "../../data/slds/")
+slds_fit(y, 200, 5, 1, "../../data/slds/")
