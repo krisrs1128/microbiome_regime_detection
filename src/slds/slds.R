@@ -10,6 +10,7 @@
 library("tidyverse")
 library("phyloseq")
 library("treelapse")
+library("forcats")
 data(abt)
 
 scale_colour_discrete <- function(...)
@@ -53,43 +54,120 @@ write_csv(
 )
 
 ###############################################################################
+## taxonomic and sample information
+###############################################################################
+taxa <- tax_table(abt) %>%
+  data.frame() %>%
+  rownames_to_column("seq")
+taxa$family <- taxa$Taxon_5
+taxa$family[taxa$family == ""] <- NA
+taxa$family <- fct_lump(taxa$family, 6)
+
+sample_df <- sample_data(abt) %>%
+  data.frame() %>%
+  rownames_to_column("sample")
+
+###############################################################################
 ## read parameter and state info
 ###############################################################################
 emission <- read_csv(
   file.path(opts$dir, "emission.csv"),
-  col_names = c("sample", "iter", "K", "param", "param_ix", "value")
+  col_names = c("seq_ix", "iter", "K", "param", "param_ix", "value")
 )
 
 dynamics <- read_csv(
   file.path(opts$dir, "dynamics.csv"),
-  col_names = c("sample", "iter", "K", "param", "param_ix", "value")
+  col_names = c("seq_ix", "iter", "K", "param", "param_ix", "value")
 )
 
 stateseq <- read_csv(
   file.path(opts$dir, "stateseq.csv"),
-  col_names = c("sample", "iter", seq_len(ncol(x_asinh)))
+  col_names = c("seq_ix", "iter", seq_len(ncol(x_asinh)))
 ) %>%
-  gather(time, K, -sample, -iter)
+  gather(sample_ix, K, -seq_ix, -iter)
+
+emit_dyn <- emission %>%
+  bind_rows(dynamics)
 
 ###############################################################################
 ## join parameter and state sequence information
 ###############################################################################
 params <- stateseq %>%
-  left_join(emission) %>%
+  left_join(emit_dyn) %>%
   unite(param_param_ix, param, param_ix) %>%
   spread(param_param_ix, value) %>%
   mutate(
-    time = as.integer(time),
+    sample_ix = as.integer(sample_ix),
+    R_0 = sqrt(R_0),
+    Q_0 = sqrt(Q_0)
+  ) %>%
+  mutate(
+    sample = colnames(x_asinh)[sample_ix],
+    seq = rownames(x_asinh)[1 + seq_ix]
+  ) %>%
+  left_join(taxa) %>%
+  left_join(sample_df) %>%
+  mutate(
+    time_bin = cut(time, seq(0, 60, by = 10), include.lowest = TRUE)
   )
 
+###############################################################################
+## Plot scores and loadings from PC on this matrix
+###############################################################################
 pcmat <- params %>%
-  select(-sample, -iter, -time, -K) %>%
+  select(
+    starts_with("A_"),
+    starts_with("C_"),
+    starts_with("Q_"),
+    starts_with("R_")
+  ) %>%
   as.matrix()
 
-pc_res <- princomp(pcmat)
-
-head(pc_res$scores)
-
+pc_res <- princomp(scale(pcmat))
 pc_df <- cbind(params, pc_res$scores)
+
 ggplot(pc_df) +
-  geom_point(aes(x = C_0, y = sqrt(R_0), col = time))
+  geom_point(
+    aes(x = Comp.1, y = Comp.2, size = Comp.3, col = family),
+    alpha = 0.01
+  ) +
+  geom_vline(xintercept = 0, alpha = 0.4, size = 0.5) +
+  geom_hline(yintercept = 0, alpha = 0.4, size = 0.5) +
+  facet_grid(. ~ time_bin) +
+  scale_size(
+    range = c(0.05, 1),
+    guide = guide_legend(override.aes = list("alpha" = 1, "size" = 1))
+  ) +
+  scale_color_brewer(
+    palette = "Set2",
+    guide = guide_legend(override.aes = list("alpha" = 1, "size" = 1))
+  ) +
+  theme(
+    strip.text.y = element_blank(),
+    panel.spacing.x = unit(0, "cm"),
+    legend.position = "bottom"
+  ) +
+  coord_fixed(sqrt(pc_res$sdev[2] / pc_res$sdev[1])) +
+  xlim(-3, 4)
+
+## plot the loadings
+pc_load <- loadings(pc_res)
+class(pc_load) <- "matrix"
+pc_load <- melt(pc_load) %>%
+  spread(Var2, value)
+
+ggplot(pc_load) +
+  geom_text(
+    aes(x = Comp.1, y = Comp.2, size = Comp.3, label = Var1)
+  ) +
+  geom_vline(xintercept = 0, alpha = 0.4, size = 0.5) +
+  geom_hline(yintercept = 0, alpha = 0.4, size = 0.5) +
+  geom_segment(
+    aes(x = 0, y = 0, xend = 0.9 * Comp.1, yend = 0.9 * Comp.2),
+    size = 0.5, alpha = 0.9
+  ) +
+  scale_size(range = c(2, 5)) +
+  coord_fixed(sqrt(pc_res$sdev[2] / pc_res$sdev[1])) +
+  theme(
+    legend.position = "bottom"
+  )
