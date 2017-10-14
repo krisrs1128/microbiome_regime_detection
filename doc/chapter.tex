@@ -949,7 +949,7 @@ p_{\theta_{k}}\left(x\right)$. Concisely,
 \begin{align*}
   x_{t} \vert z_{t} &\sim p_{\theta_{z_{t}}} \\
   z_{1} &\sim \pi_{1} \\
-  z_{t} \vert z_{t - 1} &\sim P_{z_{t - 1}, z_{t}} \text{ for } t > 1.
+  z_{t} \vert z_{t - 1} &\sim P_{z_{t - 1}} \text{ for } t > 1.
 \end{align*}
 
 As in LDSs, fitting this model can be broken into an inference and a learning
@@ -1189,14 +1189,14 @@ conditional $p\left(\left(z_{it}\right) \vert \left(x_{it}\right),
 \Theta\right)$ using a variation of the forwards-backwards algorithm, and in
 place of the $M$-step, we draw from $p\left(\Theta, \vert P, \left(z_{it}\right),
 \left(x_{it}\right)\right)$ and $p\left(P \vert \Theta, \left(z_{it}\right),
-\left(x_{it}\right)\right)$. We generally follow the derivation of
+\left(x_{it}\right)\right)$. We detail this below, following the derivation of
 \citep{fox2009bayesian}.
 
-First we consider sampling $p\left(\left(z_{it}\right) \vert P, \Theta\right)$.
-Note that since each sequence is independent of all others, given $\Theta$, we
-can sample the $z_{it}$ separately across each $i$, so for the explanation
-below, we drop this subscript. By the Markov property, the probability a single
-sequence can be decomposed according to
+First consider sampling $p\left(\left(z_{it}\right) \vert P, \Theta\right)$.
+Since each sequence is independent of all others, given $\Theta$, we can sample
+the $z_{it}$ separately across each $i$, so for the explanation below, we drop
+this subscript. By the Markov property, the probability a single sequence can be
+decomposed according to
 \begin{align}
   \label{eq:sticky_block_z}
 p\left(z_{1:T} \vert x_{1:T}, \Theta, \pi, P\right) &= p\left(z_{1} \vert y_{1:T}, \Theta, \pi, P\right) \prod_{t = 2}^{T} p\left(z_{t} \vert z_{t - 1}, y_{1:T}, \Theta, \pi, P\right).
@@ -1238,7 +1238,7 @@ Now, we describe how to compute the terms $p\left(y_{t + 1:T} \vert z_t, \Theta,
 $T \times K$ matrix, whose $tk^{th}$ element is $p\left(y_{t} \vert z_{t - 1} =
 k, \Theta, \pi, P\right)$. The bottom row is initialized according to
 \begin{align*}
- \left(y_T \vert z_{T - 1}, \Theta, \pi, P\right)  &= \sum_{z_{T} = 1}^{K} p\left(y_{T} \vert \theta_{z_{T}}\right) P_{z_{T - 1}, z_{T}}.
+ p\left(y_T \vert z_{T - 1}, \Theta, \pi, P\right)  &= \sum_{z_{T} = 1}^{K} p\left(y_{T} \vert \theta_{z_{T}}\right) P_{z_{T - 1}, z_{T}}.
 \end{align*}
 Then the recursion computes the $t^{th}$ row from the $t + 1^{st}$ according to
 \begin{align*}
@@ -1246,7 +1246,7 @@ Then the recursion computes the $t^{th}$ row from the $t + 1^{st}$ according to
   &= \sum_{z_{t + 1} = 1}^{K} p\left(y_{t + 1} \vert \theta_{z_{t + 1}}\right) p\left(y_{t + 2 : T} \vert z_{t + 1}, \Theta, \pi, P\right) P_{z_{t}, z_{t + 1}}.
 \end{align*}
 
-Next we consider sampling from the conditional $p\left(P \vert
+Next consider sampling from the conditional $p\left(P \vert
 \left(x_{it}\right), \left(z_{it}\right), \Theta\right)$ of transition
 probabilities between the $K$ states. The main observation is that we can use
 Dirichlet-Multinomial conjugacy jointly across all sequences. That is, defining
@@ -1258,9 +1258,10 @@ we have
 n_{k\cdot} &\sim \Mult\left(n_{k\cdot} \vert \sum_{i = 1}^{n} \sum_{t = 1}^{T - 1} \indic{z_{it} = k}, P_{k}\right)
 \end{align*}
 and therefore
-\begin{align*}
+\begin{align}
+  \label{eq:sticky_hmm_p_update}
   P_{k} \vert \left(z_{it}\right) &\sim \Dir\left(P_{k} \vert \alpha + \kappa e_{k} + n_{k\cdot}\right).
-\end{align*}
+\end{align}
 Since given $\left(z_{it}\right)$, $P_{k}$ is independent of all other
 parameters and data, this completely specifies this Gibbs sampling step.
 
@@ -1308,6 +1309,19 @@ increase as more data are processed, though the rate at which new states are
 introduced is still controlled by user-specified parameters\footnote{In
   particular, it is misleading to claim that the method ``discovers'' the
   ``optimal'' number of clusters.}
+
+alternative model -- distinguish the $k^th$ state from the rest
+
+Here, $H$ is the base measure.
+
+$P_k ~ Q_k$
+$P_k &\sim Q$
+$P_k &\sim HDP-HMM\left(\alpha, H\right)$
+$P_k &\sim \DP\left(\alpha, Q\right)$
+$Q &\sim DP\left(\alpha, H\right)$
+$Q_k &\sim \sum_{j = 1}^{\infty} \left(\beta_j + \delta \indic{j = k}\right) \delta_{\theta_j}$
+inference with block sampling
+
 
 - Write the new model
 - Simulation example
