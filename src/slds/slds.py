@@ -8,31 +8,64 @@ date: 10/13/2017
 import numpy as np
 import pyslds.models as slds
 
-K = 3               # Number of discrete latent states
-D_obs = 1           # Observed data dimension
-D_latent = 2        # Latent state dimension
-D_input = 0         # Exogenous input dimension
+###############################################################################
+## fitting functions
+###############################################################################
+def slds_fit(y, n_iter, K=3, D_latent=1, outdir="."):
+    outpaths = [
+        os.path.join(outdir, "emission.csv"),
+        os.path.join(outdir, "dynamics.csv"),
+        os.path.join(outdir, "stateseq.csv"),
+        os.path.join(outdir, "rvs.csv")
+    ]
+    for o in outpaths:
+        if os.path.exists(o):
+            os.remove(o)
 
-y = np.loadtxt("../../data/slds/abt.csv")
-y = y.reshape(len(y), 1)
-inputs = np.zeros((y.shape[0], 0))
-model = slds.DefaultSLDS(K, D_obs, D_latent, D_input)
-model.add_data(y)
+    inputs = np.zeros((y.shape[1], 0))
+    for i in range(y.shape[0]):
+        model = slds.DefaultSLDS(K, 1, D_latent, 0)
+        model.add_data(y[i, ].reshape(y.shape[1], 1))
 
-# Run the Gibbs sampler
-N_samples = 1000
-def update(model):
-    model.resample_model()
-    print(model.stateseqs)
-    return model.log_likelihood()
+        for iter in range(n_iter):
+            model.resample_model()
+            if (iter % 5 == 0):
+                print(
+                    "\t".join([str(s) for s in ["sequence", i, "iter ", iter]])
+                )
 
-lls = [update(model) for _ in range(N_samples)]
-
-## some other info we should probably track
-model.emission_distns[0].parameters
-model.dynamics_distns[0].parameters
-model.trans_distn.trans_matrix
+                write_parameters(i, iter, model.emission_distns, outpaths[0], ["C", "R"])
+                write_parameters(i, iter, model.dynamics_distns, outpaths[1], ["A", "Q"])
+                write_states(i, iter, model.stateseqs, outpaths[2])
+                write_rvs(i, iter, model.rvs(), outpaths[3])
 
 
-## could simulate from fitted models using code from
-## https://github.com/mattjj/pylds/blob/12fe0d4a4b2dc30926e8b263ea1a4de034f65186/pylds/models.py
+def write_states(i, iter, stateseqs, outpath):
+    with open(outpath, "a") as f:
+        cols = [i, iter] + stateseqs[0].tolist()
+        f.write(",".join([str(x) for x in cols]) + "\n")
+
+
+def write_rvs(i, iter, rvs, outpath):
+    with open(outpath, "a") as f:
+        list_rvs = sum(rvs.tolist(), [])
+        for l, v in enumerate(list_rvs):
+            cols = [i, iter, l, v]
+            f.write(",".join([str(x) for x in cols]) + "\n")
+
+
+def write_parameters(i, iter, reglist, outpath, pnames):
+    for k, reg in enumerate(reglist):
+        for j, theta in enumerate(reg.parameters):
+            list_params = sum(theta.tolist(), [])
+            with open(outpath, "a") as f:
+                for l, v in enumerate(list_params):
+                    cols = [i, iter, k, pnames[j], l, v]
+                    f.write(",".join([str(x) for x in cols]) + "\n")
+
+
+###############################################################################
+##  load data and run models
+###############################################################################
+y = np.loadtxt("../../data/slds/abt.csv", delimiter=",")
+slds_fit(y, 200, 5, 1, "../../data/slds/")
