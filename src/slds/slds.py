@@ -4,20 +4,16 @@ Script to apply SLDS to a single series
 author: sankaran.kris@gmail.com
 date: 10/13/2017
 """
+
 import numpy as np
 import pyslds.models as slds
 
 ###############################################################################
-#                       fitting parameters and functions                      #
+## fitting functions
 ###############################################################################
 def update(model):
     model.resample_model()
     return model.log_likelihood()
-
-###############################################################################
-#                           load data and run models                          #
-###############################################################################
-y = np.loadtxt("../../data/slds/abt.csv", delimiter=",")
 
 def slds_fit(y, n_iter, K=3, D_latent=1, outdir="."):
     outpaths = [
@@ -44,8 +40,23 @@ def slds_fit(y, n_iter, K=3, D_latent=1, outdir="."):
             model.resample_model()
             write_parameters(i, iter, model.emission_distns, outpaths[0], ["C", "R"])
             write_parameters(i, iter, model.dynamics_distns, outpaths[1], ["A", "Q"])
-            # write_states(i, iter, model.stateseqs, stateseq_file)
-            # write_rvs(i, iter, model.rvs, rvs_file)
+            write_states(i, iter, model.stateseqs, outpaths[2])
+            write_rvs(i, iter, model.rvs(), outpaths[3])
+
+
+def write_states(i, iter, stateseqs, outpath):
+    with open(outpath, "a") as f:
+        cols = [i, iter] + stateseqs[0].tolist()
+        f.write(",".join([str(x) for x in cols]) + "\n")
+
+
+def write_rvs(i, iter, rvs, outpath):
+    with open(outpath, "a") as f:
+        list_rvs = sum(rvs.tolist(), [])
+        for l, v in enumerate(list_rvs):
+            cols = [i, iter, l, v]
+            f.write(",".join([str(x) for x in cols]) + "\n")
+
 
 def write_parameters(i, iter, reglist, outpath, pnames):
     for k, reg in enumerate(reglist):
@@ -56,4 +67,8 @@ def write_parameters(i, iter, reglist, outpath, pnames):
                     cols = [i, iter, k, pnames[j], l, v]
                     f.write(",".join([str(x) for x in cols]) + "\n")
 
-slds_fit(y, 100, 3)
+###############################################################################
+##  load data and run models
+###############################################################################
+y = np.loadtxt("../../data/slds/abt.csv", delimiter=",")
+slds_fit(y[1:10, :], 20, 3)
