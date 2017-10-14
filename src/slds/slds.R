@@ -21,6 +21,7 @@ scale_fill_discrete <- function(...)
 theme_set(theme_bw())
 theme_update(
   panel.border = element_rect(size = 0.5),
+  panel.background = element_rect(fill = "#F7F7F7"),
   panel.grid = element_blank(),
   axis.ticks = element_blank(),
   legend.title = element_text(size = 8),
@@ -61,7 +62,7 @@ taxa <- tax_table(abt) %>%
   rownames_to_column("seq")
 taxa$family <- substr(taxa$Taxon_5, 0, 8)
 taxa$family[taxa$family == ""] <- NA
-taxa$family <- fct_lump(taxa$family, 6)
+taxa$family <- fct_lump(taxa$family, 7)
 
 sample_df <- sample_data(abt) %>%
   data.frame() %>%
@@ -127,6 +128,7 @@ pcmat[is.na(pcmat)] <- 0
 
 pc_res <- princomp(scale(pcmat))
 pc_df <- cbind(params, pc_res$scores)
+pc_df$family[is.na(pc_df$family)] <- "Other"
 
 ggplot(pc_df) +
   geom_point(
@@ -135,22 +137,24 @@ ggplot(pc_df) +
   ) +
   geom_vline(xintercept = 0, alpha = 0.4, size = 0.5) +
   geom_hline(yintercept = 0, alpha = 0.4, size = 0.5) +
-  facet_grid(. ~ time_bin) +
+  facet_grid(time_bin ~ family) +
   scale_size(
     range = c(0.05, 1),
-    guide = guide_legend(override.aes = list("alpha" = 1, "size" = 1))
+    guide = FALSE
   ) +
   scale_color_brewer(
-    palette = "Set2",
+    palette = "Set3",
     guide = guide_legend(override.aes = list("alpha" = 1, "size" = 1))
   ) +
   theme(
-    strip.text.y = element_blank(),
+    strip.text.x = element_blank(),
+    strip.text.y = element_text(angle = 90),
     panel.spacing.x = unit(0, "cm"),
     legend.position = "bottom"
   ) +
   coord_fixed(sqrt(pc_res$sdev[2] / pc_res$sdev[1])) +
-  xlim(-3, 4)
+  xlim(-3, 4) +
+  ylim(-3, 4)
 
 ## plot the loadings
 pc_load <- loadings(pc_res)
@@ -188,15 +192,20 @@ hm_df <- params %>%
     family = family[1]
   )
 
-seq_order <- names(sort(taxa_sums(abt), decreasing = TRUE))
+seq_order <- pc_df %>%
+  group_by(seq) %>%
+  summarise(c1 = mean(Comp.1, na.rm = TRUE)) %>%
+  arrange(c1) %>%
+  .[["seq"]]
+
 hm_df$seq <- factor(
   hm_df$seq,
   levels = seq_order
 )
 
 ## threshold some outliers
-hm_df$value[hm_df$value < -0.1] <- -0.1
-hm_df$value[hm_df$value > 0.1] <- 0.1
+hm_df$value[hm_df$value < -0.08] <- -0.08
+hm_df$value[hm_df$value > 0.08] <- 0.08
 
 ggplot(hm_df) +
   geom_tile(
