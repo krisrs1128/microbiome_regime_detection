@@ -47,7 +47,7 @@ abt <- abt %>%
 
 x_asinh <- asinh(get_taxa(abt))
 write_csv(
-  data.frame(x_asinh[3, ]),
+  data.frame(x_asinh),
   file.path(opts$dir, "abt.csv"),
   col_names = FALSE
 )
