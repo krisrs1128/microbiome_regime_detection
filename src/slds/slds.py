@@ -11,10 +11,6 @@ import pyslds.models as slds
 ###############################################################################
 ## fitting functions
 ###############################################################################
-def update(model):
-    model.resample_model()
-    return model.log_likelihood()
-
 def slds_fit(y, n_iter, K=3, D_latent=1, outdir="."):
     outpaths = [
         os.path.join(outdir, "emission.csv"),
@@ -67,8 +63,9 @@ def write_parameters(i, iter, reglist, outpath, pnames):
                     cols = [i, iter, k, pnames[j], l, v]
                     f.write(",".join([str(x) for x in cols]) + "\n")
 
+
 ###############################################################################
 ##  load data and run models
 ###############################################################################
 y = np.loadtxt("../../data/slds/abt.csv", delimiter=",")
-slds_fit(y[1:10, :], 20, 3)
+slds_fit(y[1:10, :], 20, 3, 1, "../../data/slds/")
