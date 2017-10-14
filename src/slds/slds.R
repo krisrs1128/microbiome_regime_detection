@@ -130,30 +130,28 @@ pc_res <- princomp(scale(pcmat))
 pc_df <- cbind(params, pc_res$scores)
 pc_df$family[is.na(pc_df$family)] <- "Other"
 
-ggplot(pc_df) +
-  geom_point(
-    aes(x = Comp.1, y = Comp.2, size = Comp.3, col = family),
-    alpha = 0.01
-  ) +
+ggplot(pc_df %>%
+       filter(iter > 150)
+       ) +
   geom_vline(xintercept = 0, alpha = 0.4, size = 0.5) +
   geom_hline(yintercept = 0, alpha = 0.4, size = 0.5) +
-  facet_grid(time_bin ~ family) +
-  scale_size(
-    range = c(0.05, 1),
-    guide = FALSE
+  geom_point(
+    aes(x = Comp.1, y = Comp.2, col = family),
+    alpha = 0.1, size = 0.1
   ) +
+  facet_grid(time_bin ~ family) +
   scale_color_brewer(
     palette = "Set3",
     guide = guide_legend(override.aes = list("alpha" = 1, "size" = 1))
   ) +
   theme(
     strip.text.x = element_blank(),
-    strip.text.y = element_text(angle = 90),
+    strip.text.y = element_text(angle = 0),
     panel.spacing.x = unit(0, "cm"),
     legend.position = "bottom"
   ) +
   coord_fixed(sqrt(pc_res$sdev[2] / pc_res$sdev[1])) +
-  xlim(-3, 4) +
+  xlim(-3.5, 4.2) +
   ylim(-3, 4)
 
 ## plot the loadings
