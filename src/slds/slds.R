@@ -188,12 +188,7 @@ hm_df <- params %>%
     family = family[1]
   )
 
-seq_order <- pc_df %>%
-  group_by(seq) %>%
-  summarise(c1 = mean(Comp.1, na.rm = TRUE)) %>%
-  arrange(desc(c1)) %>%
-  .[["seq"]]
-
+seq_order <- names(sort(taxa_sums(abt), decreasing = TRUE))
 hm_df$seq <- factor(
   hm_df$seq,
   levels = seq_order
