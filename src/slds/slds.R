@@ -59,7 +59,7 @@ write_csv(
 taxa <- tax_table(abt) %>%
   data.frame() %>%
   rownames_to_column("seq")
-taxa$family <- taxa$Taxon_5
+taxa$family <- substr(taxa$Taxon_5, 0, 8)
 taxa$family[taxa$family == ""] <- NA
 taxa$family <- fct_lump(taxa$family, 6)
 
@@ -188,6 +188,21 @@ hm_df <- params %>%
     family = family[1]
   )
 
+seq_order <- pc_df %>%
+  group_by(seq) %>%
+  summarise(c1 = mean(Comp.1, na.rm = TRUE)) %>%
+  arrange(desc(c1)) %>%
+  .[["seq"]]
+
+hm_df$seq <- factor(
+  hm_df$seq,
+  levels = seq_order
+)
+
+## threshold some outliers
+hm_df$value[hm_df$value < -0.1] <- -0.1
+hm_df$value[hm_df$value > 0.1] <- 0.1
+
 ggplot(hm_df) +
   geom_tile(
     aes(x = seq, y = time, fill = value)
@@ -197,5 +212,6 @@ ggplot(hm_df) +
   scale_x_discrete(expand = c(0, 0)) +
   scale_fill_gradient2(low = "royalblue", high = "plum3") +
   theme(
-    axis.text.x = element_blank()
+    axis.text.x = element_blank(),
+    strip.text.x = element_text(angle = 90, hjust = 0)
   )
