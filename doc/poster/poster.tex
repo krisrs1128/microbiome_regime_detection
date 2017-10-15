@@ -1,0 +1,141 @@
+\documentclass[final, 8pt]{beamer}
+
+\usepackage[size=custom,width=76.2,height=101.6,scale=0.85]{beamerposter}
+\usetheme{confposter}
+
+\newlength{\sepwid}
+\newlength{\onecolwid}
+\newlength{\twocolwid}
+\newlength{\threecolwid}
+\setlength{\paperwidth}{30in} % A0 width: 46.8in
+\setlength{\paperheight}{40in} % A0 height: 33.1in
+\setlength{\onecolwid}{0.3\paperwidth}
+\setlength{\twocolwid}{0.464\paperwidth}
+\setlength{\threecolwid}{0.708\paperwidth}
+\setbeamersize{text margin left=0.05cm,text margin right=0.05cm}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{natbib}
+\input{../preamble.tex}
+
+\title{Inference of Dynamic Regimes in the Microbiome}
+\author{Kris Sankaran and Susan P. Holmes}
+\institute{Department of Statistics, Stanford University}
+
+\begin{document}
+
+\begin{frame}
+
+\begin{columns}
+\begin{column}{\onecolwid}
+
+\begin{block}{Abstract}
+Many studies attempt to characterize microbiome stability and dynamics across
+environments \citep{costello2012application, stein2013ecological,
+  faust2015metagenomics}. These problems often have a flavor not just of time
+series modeling but also of regime detection, the partitioning of time into
+intervals with distinct behaviors, a problem with a rich history and application
+to speech recognition \citep{fox2011sticky}, finance \citep{lee2009optimal}, EEG
+analysis \citep{camilleri2014automatic} and geophysics
+\citep{weatherley2002relationship}. In spite of the parallels, regime detection
+methods are rarely used in microbiome data analysis.
+
+We distill the core ideas of different regime detection methods, provide example
+applications, and share reproducible code, making these techniques more
+accessible to microbiome researchers. Ultimately, our goal is to describe types
+of regime switching structure that, through careful modeling, can be
+incorporated into studies of microbiome dynamics. Code for all examples here is
+available at \url{https://github.com/krisrs1128/tsc\_microbiome}.
+\end{block}
+
+\begin{block}{Problem description}
+Statistical analysis provides succinct representations of complex data. We can
+think of the reduced representations as a type of data compression for human
+interpretation, and as in any (lossy) compression, there is a choice of what
+structure to preserve. Different reductions facilitate different comparisons --
+for example, clustering bacteria allows easy comparison of taxonomic categories,
+while clustering samples allows a comparison of full community states.
+
+In the regime detection problem, the comparisons we would like to facilitate are
+\begin{itemize}
+\item For each species, can we assign time intervals to different dynamic
+  regimes?
+\item Can we define subsets of species which have similar patterns of behavior,
+  in terms of these regimes?
+\end{itemize}
+
+Conceretely, we may expect that over the time course of a study, individual
+species may switch between stable / unstable, increasing / decreasing, or
+present / absent regimes, either due to natural ecological dynamics or
+experimentally induced perturbations. We would like to detect these alternative
+regimes automatically.
+\end{block}
+
+\begin{block}{Case study background}
+  
+\end{block}
+
+\begin{block}{Algorithmic approaches}
+\begin{itemize}
+\item Classification and Regression Trees [CART]: 
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{../figure/rpart_binary}
+  \caption{\label{fig:rpart_binary} }
+\end{figure}
+
+
+\item Hierarchical Clustering: 
+\end{itemize}
+
+\end{block}
+
+\end{column}
+
+\begin{column}{\onecolwid}
+
+\begin{block}{Parametric modeling}
+\begin{itemize}
+\item (Sticky) Hidden Markov Models (HMMs):
+
+\item Switching Linear Dynamical Systems (SLDS):
+
+\item Bayesian Analysis of Simultaneous Changepoints (BASIC):
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{../figure/basic_bern_heatmap}
+  \caption{\label{fig:basic_bern_heamtap} }
+\end{figure}
+
+\item Dynamic Tobit Models:
+\begin{figure}[!p]
+  \centering
+  \includegraphics[width=0.9\textwidth]{../figure/abt_scan}
+  \caption{\label{fig:abt_scan}}
+\end{figure}
+\end{itemize}
+
+\end{block}
+
+\begin{block}{Nonparametric modeling}
+\begin{itemize}
+\item Mixture of Gaussian Processes (mGPs)
+\item Sticky Hierarchical Dirichlet Process HMMs (HDP-HMMs)
+\end{itemize}
+\end{block}
+
+\begin{block}{Case Study}
+\end{block}
+
+\end{column}
+
+\begin{column}{\onecolwid}
+ \bibliographystyle{plainnat}
+ \bibliography{../bibliography.bib}
+\end{column}
+
+\end{columns}
+
+\end{frame}
+\end{document}
