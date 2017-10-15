@@ -1386,7 +1386,7 @@ efficiency -- larger $L$ brings us closer to the exact model but requires more
 involved computation.
 
 With this approximation in hand, we can now describe a tractable sampler. The
-full parameter set consists of $\{\left(\theta_k\right)_{k = 1}^{\infy},
+full parameter set consists of $\{\left(\theta_k\right)_{k = 1}^{\infty},
 \left(z_t\right)_{t = 1}^{T}, \left(\beta_{k}\right)_{k = 1}^{L},
 \left(P_{k}\right)_{k = 1}^{L} \}$. To facilitate sampling, three sets of
 auxiliary variables $\left(m_{jk}\right), \left(w_k\right)$, and
@@ -1404,7 +1404,7 @@ detailed derivation is provided in \citep{fox2009bayesian}.
 
 The conditional for $\beta$ is
 \begin{align*}
-  \beta &\sim \Dir\left(\frac{\gamma}{L} + \overbar{m}_{\cdot 1}, \dots, \frac{\gamma]{L} + \overbar{m}_{\cdot L}\right),
+  \beta &\sim \Dir\left(\frac{\gamma}{L} + \bar{m}_{\cdot 1}, \dots, \frac{\gamma}{L} + \bar{m}_{\cdot L}\right),
 \end{align*}
 where $\bar{m}_{\cdot l} = \sum_{j = 1}^{L} \bar{m}_{jl}$. The updates for
 $\left(\theta_k\right)$ and $\left(z_t\right)$ are the same as those for the
@@ -1412,7 +1412,7 @@ $\left(\theta_k\right)$ and $\left(z_t\right)$ are the same as those for the
 consider sampling the auxiliary variables.
 To sample $m_{jk}$, draw
 \begin{align*}
-m_{jk} &\sim \sum_{n = 1}^{n_{jk}} \Bern\left(\frac{\alpha \beta_{k} + \kappa\indic{j = k}}{n + \alpha \beta_{k} + \kappa \indic{j = k}}
+  m_{jk} &\sim \sum_{n = 1}^{n_{jk}} \Ber\left(\frac{\alpha \beta_{k} + \kappa\indic{j = k}}{n + \alpha \beta_{k} + \kappa \indic{j = k}}\right)
 \end{align*}
 where $n_{jk}$ counts the number of observed transitions from states $j$ to $k$
 among the $z_{t}$, which we have conditioned upon. This distribution is
@@ -1424,15 +1424,14 @@ For $w_k$, the conditional can be shown to be
 \begin{align*}
   w_k &\sim \Bin\left(m_{jj}, \rho\left(\rho + \beta_j\left(1 - \rho\right)\right)^{-1}\right),
 \end{align*}
-where $\rho = \frac{\kappa}{\alpha + \kappa}$. $\overbar{m}_{jk}$ is set
+where $\rho = \frac{\kappa}{\alpha + \kappa}$. $\bar{m}_{jk}$ is set
 deterministically, according to
 \begin{align*}
-  \overbar{m}_{jk} &= \begin{cases}
+  \bar{m}_{jk} &= \begin{cases}
     m_{jk} &\text{for } j \neq k\\
     m_{jj} - w_{j \cdot} &\text{ for } j = k.
   \end{cases}
 \end{align*}
-
 Cycling these updates provides a blocked Gibbs sampler for the sticky HDP-HMM.
 
 - Write the new model
