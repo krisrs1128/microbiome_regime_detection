@@ -201,13 +201,13 @@ c_samples <- read_csv("data/samples/c.csv", col_names = FALSE) %>%
 
 plot_fits(data, post, c_samples, 0, 100)
 plot_fits(data, post, c_samples, 300, 470)
-ggsave("../../doc/figure/abt_fits.png", height = 7.76, height = 4.45)
+ggsave("../../doc/figure/igp_abt_fits.png", width = 7.76, height = 4.45)
 
 plot_c(c_samples)
-ggsave("../../doc/figure/abt_states.png", width = 5.24, height = 3.17)
+ggsave("../../doc/figure/igp_abt_states.png", width = 5.24, height = 3.17)
 
 counts <- cooccurrence_counts(c_samples)
 plot_cooccurrence(counts, data) +
   coord_fixed() +
   theme(axis.text = element_blank())
-ggsave("../../doc/figure/abt_cooccurrence.png", width = 4.88, height = 4.07)
+ggsave("../../doc/figure/igp_abt_cooccurrence.png", width = 4.88, height = 4.07)

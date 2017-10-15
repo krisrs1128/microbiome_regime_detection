@@ -35,7 +35,7 @@ theme_update(
 )
 
 opts <- list(
-  "dir" = file.path("..", "data", "changepoint"),
+  "dir" = file.path("..", "..", "data", "changepoint"),
   "k_filter" = 0.2
 )
 

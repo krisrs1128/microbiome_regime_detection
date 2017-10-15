@@ -949,7 +949,7 @@ p_{\theta_{k}}\left(x\right)$. Concisely,
 \begin{align*}
   x_{t} \vert z_{t} &\sim p_{\theta_{z_{t}}} \\
   z_{1} &\sim \pi_{1} \\
-  z_{t} \vert z_{t - 1} &\sim P_{z_{t - 1}, z_{t}} \text{ for } t > 1.
+  z_{t} \vert z_{t - 1} &\sim P_{z_{t - 1}} \text{ for } t > 1.
 \end{align*}
 
 As in LDSs, fitting this model can be broken into an inference and a learning
@@ -1189,14 +1189,14 @@ conditional $p\left(\left(z_{it}\right) \vert \left(x_{it}\right),
 \Theta\right)$ using a variation of the forwards-backwards algorithm, and in
 place of the $M$-step, we draw from $p\left(\Theta, \vert P, \left(z_{it}\right),
 \left(x_{it}\right)\right)$ and $p\left(P \vert \Theta, \left(z_{it}\right),
-\left(x_{it}\right)\right)$. We generally follow the derivation of
+\left(x_{it}\right)\right)$. We detail this below, following the derivation of
 \citep{fox2009bayesian}.
 
-First we consider sampling $p\left(\left(z_{it}\right) \vert P, \Theta\right)$.
-Note that since each sequence is independent of all others, given $\Theta$, we
-can sample the $z_{it}$ separately across each $i$, so for the explanation
-below, we drop this subscript. By the Markov property, the probability a single
-sequence can be decomposed according to
+First consider sampling $p\left(\left(z_{it}\right) \vert P, \Theta\right)$.
+Since each sequence is independent of all others, given $\Theta$, we can sample
+the $z_{it}$ separately across each $i$, so for the explanation below, we drop
+this subscript. By the Markov property, the probability a single sequence can be
+decomposed according to
 \begin{align}
   \label{eq:sticky_block_z}
 p\left(z_{1:T} \vert x_{1:T}, \Theta, \pi, P\right) &= p\left(z_{1} \vert y_{1:T}, \Theta, \pi, P\right) \prod_{t = 2}^{T} p\left(z_{t} \vert z_{t - 1}, y_{1:T}, \Theta, \pi, P\right).
@@ -1238,7 +1238,7 @@ Now, we describe how to compute the terms $p\left(y_{t + 1:T} \vert z_t, \Theta,
 $T \times K$ matrix, whose $tk^{th}$ element is $p\left(y_{t} \vert z_{t - 1} =
 k, \Theta, \pi, P\right)$. The bottom row is initialized according to
 \begin{align*}
- \left(y_T \vert z_{T - 1}, \Theta, \pi, P\right)  &= \sum_{z_{T} = 1}^{K} p\left(y_{T} \vert \theta_{z_{T}}\right) P_{z_{T - 1}, z_{T}}.
+ p\left(y_T \vert z_{T - 1}, \Theta, \pi, P\right)  &= \sum_{z_{T} = 1}^{K} p\left(y_{T} \vert \theta_{z_{T}}\right) P_{z_{T - 1}, z_{T}}.
 \end{align*}
 Then the recursion computes the $t^{th}$ row from the $t + 1^{st}$ according to
 \begin{align*}
@@ -1246,7 +1246,7 @@ Then the recursion computes the $t^{th}$ row from the $t + 1^{st}$ according to
   &= \sum_{z_{t + 1} = 1}^{K} p\left(y_{t + 1} \vert \theta_{z_{t + 1}}\right) p\left(y_{t + 2 : T} \vert z_{t + 1}, \Theta, \pi, P\right) P_{z_{t}, z_{t + 1}}.
 \end{align*}
 
-Next we consider sampling from the conditional $p\left(P \vert
+Next consider sampling from the conditional $p\left(P \vert
 \left(x_{it}\right), \left(z_{it}\right), \Theta\right)$ of transition
 probabilities between the $K$ states. The main observation is that we can use
 Dirichlet-Multinomial conjugacy jointly across all sequences. That is, defining
@@ -1258,9 +1258,10 @@ we have
 n_{k\cdot} &\sim \Mult\left(n_{k\cdot} \vert \sum_{i = 1}^{n} \sum_{t = 1}^{T - 1} \indic{z_{it} = k}, P_{k}\right)
 \end{align*}
 and therefore
-\begin{align*}
+\begin{align}
+  \label{eq:sticky_hmm_p_update}
   P_{k} \vert \left(z_{it}\right) &\sim \Dir\left(P_{k} \vert \alpha + \kappa e_{k} + n_{k\cdot}\right).
-\end{align*}
+\end{align}
 Since given $\left(z_{it}\right)$, $P_{k}$ is independent of all other
 parameters and data, this completely specifies this Gibbs sampling step.
 
@@ -1301,13 +1302,137 @@ partitioning
   + Derivation of some nonobvious steps
 
 \subsubsection{Sticky HDP-HMMs}
+\label{sec:sticky_hdp_hmm}
 
 We describe a Bayesian nonparametric variation of sticky HMMs first proposed in
-\citep{fox2008hdp}. As it is nonparametric, the number of observed regimes can
-increase as more data are processed, though the rate at which new states are
-introduced is still controlled by user-specified parameters\footnote{In
-  particular, it is misleading to claim that the method ``discovers'' the
-  ``optimal'' number of clusters.}
+\citep{fox2008hdp}. The motivation for such a model comes from two sources,
+
+\begin{itemize}
+\item It is appealing to allow the complexity of the fitted model to increase as
+  more data becomes available. This drove the original HDP-HMM proposal of
+  \citep{teh2006hierarchical}.
+\item State persistence -- i.e., stickiness -- can yield better fitting and more
+  interpretable HMMs. This turns out to be especially relevant in the
+  nonparametric setting, where there is a danger of overfitting by introducing
+  many short-lived states.
+\end{itemize}
+
+The proposal of \citep{teh2006hierarchical} replaces the usual sticky-HMM
+$\Dir\left(\alpha\right)$ on rows of $P$ with a Hierarchical Dirichlet Process
+$\text{HDP}\left(\alpha, \gamma, H\right)$ prior. Note that a $\DP\left(\alpha,
+H\right)$ prior on its own would not be sufficient, since two separate draws
+from a $\DP\left(\alpha, H\right)$ prior with a continuous base measure would
+have distinct atoms almost surely. Hence, it would be impossible to align the
+rows $P_{k}$ of the transition matrix $P$ according to a set of common states.
+By using a $\DP\left(\alpha, H\right)$ base measure instead, the
+$\text{HDP}\left(\alpha, \gamma, H\right)$ prior allows sharing of states across
+$P_{k}$.
+
+More formally, an HDP-HMM models a sequence $x_{1}, \dots, x_{T}$, according to
+a latent Markov chain $z_t$,
+\begin{align*}
+  x_t \vert z_t &\sim P_{\theta_{z_t}} \\
+    z_1 &\sim \pi_1 \\
+    z_t \vert z_{t - 1} &\sim P_{z_{t - 1}}
+\end{align*}
+with a prior on the rows of the transition matrix given by
+\begin{align*}
+  P_k \vert Q &\sim \DP\left(\alpha, Q\right)
+  Q &\sim \DP\left(\gamma, H\right).
+\end{align*}
+Since each of the transition matrix rows $P_k$ are centered around the base
+measure $Q$, the rows are i.i.d., and there is no stickiness.
+
+To induce state persistence, first consider a stick breaking representation
+$\DP$ base measure $Q = \sum_{j = 1}^{\infty} \beta_j \delta_{\theta_j}$ where
+the sequence $\left(\beta_j\right)$ is drawn from a
+$\text{GEM}\left(\gamma\right)$ distribution. Cosider a modified base measure,
+$Q_k = \sum_{j = 1}^{\infty} \left(\beta_j + \indic{k =
+    j}\kappa\right)\delta_{\theta_j}$, which places $\kappa$ additional mass on
+  the atom for the $k^{th}$ latent state. Using $Q_k$ as a base measure for
+  $P_k$ encourages the $k^{th}$ state to return to itself. For completeness, the
+  prior for rows of the transition matrix now has the form,
+\begin{align*}
+  P_k \vert Q_k &\sim \DP\left(\alpha, Q_k\right)
+  Q_k \vert \left(\beta_j\right), \left(\theta_j\right) &\sim \sum_{j = 1}^{\infty} \left(\beta_j + \indic{k = j}\kappa\right)\delta_{\theta_j} \\
+  \left(\beta_j\right) &\sim \text{GEM}\left(\gamma\right)
+  \theta_j &\sim H \text{ for }j = 1, 2, \dots
+\end{align*}
+
+\citep{fox2009bayesian} describes two inferential approaches for this model: an
+exact one that extends Chinese Restaurant Franchise analogy developed by
+\citep{teh2006hierarchical} and an approximate blocked Gibbs sampler. Here, we
+describe the blocked Gibbs sampler, since while it is only approximate, it mixes
+more rapidly\footnote{Implementations of both approaches are available at
+  \url{http://github.com/krisrs1128/tsc\_microbiome}.}. This is because the exact
+  sampler can only swap cluster labels $z_t$ one at a time, which means it must
+  pass through low probability valleys in the posterior where a cluster is split
+  before reaching a potentially higher mode.
+
+The idea of the blocked Gibbs sampler is to sample all the assignments $z_t$
+simultaneously using the same Forwards-Backwards variant used for inference of
+the sticky HMM in Section \ref{sec:sticky_hmms}. A difficulty in directly
+applying this strategy is that we no longer have a finite $K$ of states from
+which to sample. To get around this issue, \citep{fox2008hdp} employs
+\citep{ishwaran2002exact}'s ``weak-limit'' approximation,
+
+\begin{align*}
+  \text{GEM}\left(\gamma\right) \approx \Dir\left(\frac{\gamma}{L}, \dots, \frac{\gamma}{L}\right),
+\end{align*}
+where $L$ is truncation level chosen large enough so that the number of clusters
+visible in the oserved data modeled by an exact $\DP$ would be smaller than $L$.
+However, there is a tradeoff here between statistical and computational
+efficiency -- larger $L$ brings us closer to the exact model but requires more
+involved computation.
+
+With this approximation in hand, we can now describe a tractable sampler. The
+full parameter set consists of $\{\left(\theta_k\right)_{k = 1}^{\infty},
+\left(z_t\right)_{t = 1}^{T}, \left(\beta_{k}\right)_{k = 1}^{L},
+\left(P_{k}\right)_{k = 1}^{L} \}$. To facilitate sampling, three sets of
+auxiliary variables $\left(m_{jk}\right), \left(w_k\right)$, and
+  $\left(\bar{m}_{jk}\right)$ are introduced. Each term is sampled one at a
+  time, from its full conditional.
+
+Some mnemonics to help with tracking notation are that (1) $m_{jk}$ would track
+the number of transitions from states $j$ to $k$ if there had been no
+stickiness, (2) $w_k$ counts the number of times stickiness is invoked in state
+$k$, and (3) $m_{jk}$ counts the number of transitions from $j$ to $k$ after
+accounting for state persistence.
+
+We simply state the conditionals required in each step of the Gibbs sampler. A
+detailed derivation is provided in \citep{fox2009bayesian}.
+
+The conditional for $\beta$ is
+\begin{align*}
+  \beta &\sim \Dir\left(\frac{\gamma}{L} + \bar{m}_{\cdot 1}, \dots, \frac{\gamma}{L} + \bar{m}_{\cdot L}\right),
+\end{align*}
+where $\bar{m}_{\cdot l} = \sum_{j = 1}^{L} \bar{m}_{jl}$. The updates for
+$\left(\theta_k\right)$ and $\left(z_t\right)$ are the same as those for the
+(finite) sticky HMM, described in Section \ref{sec:sticky_hmms}. Next we
+consider sampling the auxiliary variables.
+To sample $m_{jk}$, draw
+\begin{align*}
+  m_{jk} &\sim \sum_{n = 1}^{n_{jk}} \Ber\left(\frac{\alpha \beta_{k} + \kappa\indic{j = k}}{n + \alpha \beta_{k} + \kappa \indic{j = k}}\right)
+\end{align*}
+where $n_{jk}$ counts the number of observed transitions from states $j$ to $k$
+among the $z_{t}$, which we have conditioned upon. This distribution is
+sometimes called a Chinese Restaurant Table distribution, because it counts the
+total number of tables that have been occupied in a CRP after a certain number
+of customers have arrived \citep{zhou2012augment}.
+
+For $w_k$, the conditional can be shown to be
+\begin{align*}
+  w_k &\sim \Bin\left(m_{jj}, \rho\left(\rho + \beta_j\left(1 - \rho\right)\right)^{-1}\right),
+\end{align*}
+where $\rho = \frac{\kappa}{\alpha + \kappa}$. $\bar{m}_{jk}$ is set
+deterministically, according to
+\begin{align*}
+  \bar{m}_{jk} &= \begin{cases}
+    m_{jk} &\text{for } j \neq k\\
+    m_{jj} - w_{j \cdot} &\text{ for } j = k.
+  \end{cases}
+\end{align*}
+Cycling these updates provides a blocked Gibbs sampler for the sticky HDP-HMM.
 
 - Write the new model
 - Simulation example
@@ -1324,7 +1449,8 @@ within regimes observations are stationary. In certain situations, this is not
 quite plausible, and here we describe some alternatives that mix nonstationary
 processes. In particular, we focus on several efforts to merge the switching idea of
 HMMs with linear dynamical systems and gaussian processes, proposed in
-\citep{ghahramani1998variational, rasmussen2002infinite, fox2012multiresolution}.
+\citep{ghahramani1998variational, rasmussen2002infinite,
+  fox2012multiresolution}.
 
 
 \subsubsection{Infinite Mixtures of Gaussian Process Experts}
@@ -1460,7 +1586,7 @@ corresponding $\theta_k$'s, and in each iteration
   with stepsize $\eps = 0.005$).
 \end{itemize}
 
-While \citep{rasmussen2006} sample $\alpha$ and introduce some refinements to
+While \citep{rasmussen2006gaussian} sample $\alpha$ and introduce some refinements to
 the Gibbs sampling update, we find this setup sufficient in our application, it
 also yields a cleaner implementation.
 
