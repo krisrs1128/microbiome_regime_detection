@@ -1301,26 +1301,63 @@ partitioning
   + Algorithm psueodocode
   + Derivation of some nonobvious steps
 
+
 \subsubsection{Sticky HDP-HMMs}
 
+
 We describe a Bayesian nonparametric variation of sticky HMMs first proposed in
-\citep{fox2008hdp}. As it is nonparametric, the number of observed regimes can
-increase as more data are processed, though the rate at which new states are
-introduced is still controlled by user-specified parameters\footnote{In
-  particular, it is misleading to claim that the method ``discovers'' the
-  ``optimal'' number of clusters.}
+\citep{fox2008hdp}. The motivation for such a model comes from two sources,
 
-alternative model -- distinguish the $k^th$ state from the rest
+\begin{itemize}
+\item It is appealing to allow the complexity of the fitted model to increase as
+  more data becomes available. This drove the original HDP-HMM proposal of
+  \citep{teh2006hierarchical}.
+\item State persistence -- i.e., stickiness -- can yield better fitting and more
+  interpretable HMMs. This turns out to be especially relevant in the
+  nonparametric setting, where there is a danger of overfitting by introducing
+  many short-lived states.
+\end{itemize}
 
-Here, $H$ is the base measure.
+The proposal of \citep{teh2006hierarchical} replaces the usual sticky-HMM
+$\Dir\left(\alpha\right)$ on rows of $P$ with a Hierarchical Dirichlet Process
+$\text{HDP}\left(\alpha, H\right)$ prior. Note that a $\DP\left(\alpha,
+H\right)$ prior on its own would not be sufficient, since two separate draws
+from a $\DP\left(\alpha, H\right)$ prior with a continuous base measure would
+have distinct atoms almost surely. Hence, it would be impossible to align the
+rows $P_{k}$ of the transition matrix $P$ according to a set of common states.
+By using a $\DP\left(\alpha, H\right)$ base measure instead, the
+$\text{HDP}\left(\alpha\right)$ prior allows sharing of states across $P_{k}$.
 
-$P_k ~ Q_k$
-$P_k &\sim Q$
-$P_k &\sim HDP-HMM\left(\alpha, H\right)$
-$P_k &\sim \DP\left(\alpha, Q\right)$
-$Q &\sim DP\left(\alpha, H\right)$
-$Q_k &\sim \sum_{j = 1}^{\infty} \left(\beta_j + \delta \indic{j = k}\right) \delta_{\theta_j}$
-inference with block sampling
+More formally, an HDP-HMM models a sequence $x_{1}, \dots, x_{T}$, according to
+a latent Markov chain $z_t$,
+\begin{align*}
+  x_t \vert z_t &\sim P_{\theta_{z_t}}} \\
+    z_1 &\sim \pi_1 \\
+    z_t \vert z_{t - 1} &\sim P_z_{t - 1}
+\end{align*}
+with a prior on the rows of the transition matrix given by
+\begin{align*}
+  P_k \vert Q &\sim \DP\left(\alpha, Q\right)
+  Q &\sim \DP\left(\alpha, H\right).
+\end{align*}
+Since each of the transition matrix rows $P_k$ are centered around the base
+measure $Q$, the rows are i.i.d., and there is no stickiness.
+
+To induce state persistence, first consider a stick breaking representation
+$\DP$ base measure $Q = \sum_{j = 1}^{\infy} \beta_j \delta_{\theta_j}$ where
+the sequence $\left(\beta_j\right)$ is drawn from a
+$\text{GEM}\left(\alpha\right)$ distribution. Cosider a modified base measure,
+$Q_k = \sum_j = 1}^{\infy} \left(\beta_j + \indic{k =
+    j}\kappa\right)\delta_{\theta_j}$, which places $\kappa$ additional mass on
+  the atom for the $k^{th}$ latent state. Using $Q_k$ as a base measure for
+  $P_k$ encourages the $k^{th}$ state to return to itself. For completeness, the
+  prior for rows of the transition matrix now has the form,
+\begin{align*}
+  P_k \vert Q_k &\sim \DP\left(\alpha, Q_k\right)
+  Q_k \vert \left(\beta_j\right), \left(\theta_j\right) &\sim \sum_{j = 1}^{\infy} \left(\beta_j + \indic{k = j}\kappa\right)\delta_{\theta_j}\right) \\
+  \left(\beta_j\right) &\sim \text{GEM}\left(\alpha\right)
+  \theta_j &\sim H \text{ for }j = 1, 2, \dots
+\end{align*}
 
 
 - Write the new model
