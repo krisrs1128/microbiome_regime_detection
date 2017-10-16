@@ -89,6 +89,9 @@ ggplot() +
     data = my %>% filter(iter == 1),
     aes(x = i, y = y),
     size = 1.5
+  ) +
+  theme(
+    panel.background = element_rect(fill = "#F7F7F7")
   )
 ggsave("../..//doc/figure/abt_scan.png", width = 4.59, height = 2.21)
 
