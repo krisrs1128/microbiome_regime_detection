@@ -7,9 +7,9 @@
 \newlength{\onecolwid}
 \newlength{\twocolwid}
 \newlength{\threecolwid}
-\setlength{\paperwidth}{30in} % A0 width: 46.8in
-\setlength{\paperheight}{40in} % A0 height: 33.1in
-\setlength{\onecolwid}{0.3\paperwidth}
+\setlength{\paperwidth}{33in} % A0 width: 46.8in
+\setlength{\paperheight}{44in} % A0 height: 33.1in
+\setlength{\onecolwid}{0.28\paperwidth}
 \setlength{\twocolwid}{0.464\paperwidth}
 \setlength{\threecolwid}{0.708\paperwidth}
 \setbeamersize{text margin left=0.05cm,text margin right=0.05cm}
@@ -20,7 +20,7 @@
 \input{../preamble.tex}
 
 \title{Inference of Dynamic Regimes in the Microbiome}
-\author{Kris Sankaran and Susan P. Holmes}
+\author{Kris Sankaran\footnote{KS supported by a Weiland fellowship.} and Susan P. Holmes\footnote{SPH supported by NIH R01 grant AI112401.}}
 \institute{Department of Statistics, Stanford University}
 
 \begin{document}
@@ -35,7 +35,7 @@ Many studies attempt to characterize microbiome stability and dynamics across
 environments \citep{costello2012application, stein2013ecological,
   faust2015metagenomics}. These problems often have a flavor not just of time
 series modeling but also of regime detection, the partitioning of time into
-intervals with distinct behaviors, a problem with a rich history and application
+intervals with distinct behaviors, a problem with a rich history and applications
 to speech recognition \citep{fox2011sticky}, finance \citep{lee2009optimal}, EEG
 analysis \citep{camilleri2014automatic} and geophysics
 \citep{weatherley2002relationship}. In spite of the parallels, regime detection
@@ -43,10 +43,10 @@ methods are rarely used in microbiome data analysis.
 
 We distill the core ideas of different regime detection methods, provide example
 applications, and share reproducible code, making these techniques more
-accessible to microbiome researchers. Ultimately, our goal is to describe types
-of regime switching structure that, through careful modeling, can be
-incorporated into studies of microbiome dynamics. Code for all examples here is
-available at \url{https://github.com/krisrs1128/tsc\_microbiome}.
+accessible to microbiome researchers. We ultimately hope to describe types of
+regime switching that, through careful modeling, can be incorporated into
+studies of microbiome dynamics. Code for all examples is available at
+\url{https://github.com/krisrs1128/tsc\_microbiome}.
 \end{block}
 
 \begin{block}{Problem description}
@@ -59,7 +59,7 @@ while clustering samples allows a comparison of full community states.
 
 For regime detection, the comparisons we would like are
 \begin{itemize}
-\item For each species, can we assign time intervals to different dynamic
+\item For each species, can time intervals be assigned to different dynamic
   regimes?
 \item Can we define subsets of species which have similar patterns of behavior,
   in terms of these regimes?
@@ -73,25 +73,25 @@ bacterial populations in the human gut to antibiotic treatments. Generally,
 there is interest in characterizing dynamics and stability in the microbiome.
 
 This study collected 16s sequencing measurements for three subjects sampled over
-long time courses (~ 50 days), with two antibiotic interventions given in
+long time courses ($\sim 50$ days), with two antibiotic interventions given in
 between. Therefore, each subject served as their own control, and the effect of
 antibiotic perturbations could be analyzed within the context of natural long
 term variation.
 
 There are strong inter-subject effects in this data, and we will focus on
-subject F for further analysis. This subject had been found to have a microbiome
+subject F for most analysis. This subject had been found to have a microbiome
 that only partially recovered after the first antibiotic time courses.
 \end{block}
 
 \begin{block}{Tree-based methods}
 \begin{itemize}
-\item Classification and Regression Trees [CART]: A tree that uses $X$ to
+\item \textbf{Classification and Regression Trees (CART)}: A tree that uses $X$ to
   predict $y$ provides a partition of the $X$ space in a way that ensures $y$
   has lower variation within than between partitions
-  \citep{breiman1984classification}. We hierarchical clustering to obtain an
+  \citep{breiman1984classification}. We use hierarchical clustering to obtain an
   ordering $s_{j} \in \{1, \dots, n_{\text{species}}\}$ across species, then
   model the count for the $j^{th}$ species in the $i^{th}$ sample as $y_{ij}
-  \approx f\left(s_{j}, t_{i}\right)$ using $f \in \mathcal{T}$ the space of
+  \approx f\left(s_{j}, t_{i}\right)$ where $f \in \mathcal{T}$, the space of
   decision trees. The output is a fitted partition on $\left(s_{j},
   t_{i}\right)$, see Figure \ref{fig:rpart_binary}.
 
@@ -106,7 +106,7 @@ that only partially recovered after the first antibiotic time courses.
     a given species by timepoint combination. The long horizontal beige bars in
     subjects D and F correspond to the antibiotics time courses. Note the
     incomplete recovery among some species in Subject F, corresponding to large
-    beige partition rectangles.
+    beige rectangles.
     \label{fig:rpart_binary}}
 \end{figure}
 \end{itemize}
@@ -114,29 +114,28 @@ that only partially recovered after the first antibiotic time courses.
 \end{column}
 
 \begin{column}{\onecolwid}
-  \begin{block}{}
+\begin{block}{}
 \begin{itemize}
-\item Hierarchical Clustering: We can visualize species abundances after
-  ordering them according to a hierarchical clustering tree. The resulting
-  ordered heatmap could potentially resolve partitions in the species by time
-  space.
-
-This approach depends on several choices,
-\begin{itemize}
-\item Transformations: Some transformations ($\sqrt{x}, \log\left(1 +
-  x\right)$, ...) might more effectively capture variation of interest.
-\item Distance: Different distances reflect different data characteristics.
+\item \textbf{Hierarchical Clustering}: We can visualize species abundances after
+  ordering them according to a hierarchical clustering tree
+  \citep{johnson1967hierarchical}. The resulting ordered heatmap could
+  potentially resolve partitions in the species by time space. This approach
+  depends on several choices,
+  \begin{itemize}
+  \item Transformations: Some transformations ($\sqrt{x}, \log\left(1 +
+    x\right)$, ...) might more effectively capture variation of interest.
+  \item Distance: Different distances reflect different data characteristics.
 \end{itemize}
 \end{itemize}
 \end{block}
 
 \begin{block}{Parametric modeling}
 \begin{itemize}
-\item (Sticky) Hidden Markov Models (HMMs): Suppose $z_{1} \sim \pi_{0}$ comes
-  from some initial distribution $\pi_{1} \in \simplex^{K - 1}$ and has some $K
-  \times K$ transition probability matrix $P$ whose rows lie in $\simplex^{K -
-    1}$, where $\simplex^{K - 1}$ denotes the $K - 1$ dimensional simplex.
-  Conditional on $z_{t}$, $x_{t}$ is emitted according to the density
+\item \textbf{(Sticky) Hidden Markov Models}: Suppose $z_{1} \sim
+  \pi_{0}$ comes from some initial distribution $\pi_{1} \in \simplex^{K - 1}$
+  and has some $K \times K$ transition probability matrix $P$ whose rows lie in
+  $\simplex^{K - 1}$, where $\simplex^{K - 1}$ denotes the $K - 1$ dimensional
+  simplex. Conditional on $z_{t}$, $x_{t}$ is emitted according to the density
   $p_{\theta_{z_{t}}}\left(x\right)$, one of $K$ emission densities
   $p_{\theta_{1}}\left(x\right), \dots, p_{\theta_{k}}\left(x\right)$.
   Concisely,
@@ -158,69 +157,87 @@ sequences.
     the duration of the effect.\label{fig:hmm_mode} }
 \end{figure}
 
-\item Switching Linear Dynamical Systems (SLDS): In contrast to HMMs, which
-  assume data are i.i.d. within regimes, SLDSs only require constant dynamics
-  within regimes \citep{linderman2016recurrent}, modeling observations $y_t$
-  according to
+\item \textbf{Switching Linear Dynamical Systems (SLDS)}: In contrast to HMMs,
+  which assume data are i.i.d. within regimes, SLDSs only require constant
+  dynamics within regimes \citep{linderman2016recurrent}, modeling observations
+  $y_t$ according to
 \begin{align*}
-  y_{t} \vert x_{t}, z_{t} &\sim \Gsn\left(x_{t} \vert C_{z_t}x_{t}, R_{t}\right) \\
-  x_{t} \vert x_{t - 1} &\sim \Gsn\left(x_{t} \vert A_{z_{t}}x_{t - 1}, Q_t\right) \\
+  y_{t} \vert x_{t}, z_{t} &\sim \Gsn\left(x_{t} \vert C_{z_t}x_{t}, R_{z_t}\right) \\
+  x_{t} \vert x_{t - 1} &\sim \Gsn\left(x_{t} \vert A_{z_{t}}x_{t - 1}, Q_{z_t}\right) \\
   z_{t} \vert z_{t - 1} &\sim P_{z_{t - 1}} \text{ for } t > 1,
 \end{align*}
-
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\textwidth]{../figure/slds_parameter_heatmap}
-  \caption{Visualization of parameters fitted by parallel SLDS on the
+  \caption{Visualization of parameters fitted by parallel SLDSs on the
     antibiotics data. Each tile is posterior mean for a parameter from one
     species at one timepoint, after integrating out regimes $z_t$. $A_t$ and
     $Q_t$ give state dynamics, while $C_t$ and $R_t$ describe emissions.
     \label{fig:slds_pca_scores} }
 \end{figure}
-
 \end{itemize}
-
 \end{block}
 
 \end{column}
 \begin{column}{\onecolwid}
-
+\begin{block}{}
 \begin{itemize}
-\item Bayesian Analysis of Simultaneous Changepoints (BASIC):
+\item \textbf{Bayesian Analysis of Simultaneous Changepoints}: All the
+  parametric methods described so far model the regime switches for each species
+  separately. The changepoint detection approach of \citep{fan2015empirical}
+  instead directly pools information across sequences that seem to share common
+  regime switches.
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=\textwidth]{../figure/basic_bern_heatmap}
-  \caption{\label{fig:basic_bern_heamtap} }
+  \includegraphics[width=0.8\textwidth]{../figure/basic_bern_heatmap}
+  \caption{The estimated changepoint probabilities at different times (rows) for
+    different species (columns) when using binarized presence-absence data.
+    \label{fig:basic_bern_heamtap} }
 \end{figure}
-\item Dynamic Tobit Models:
-%% \begin{figure}[!p]
-%%   \centering
-%%   \includegraphics[width=0.8\textwidth]{../figure/abt_scan}
-%%   \caption{\label{fig:abt_scan}}
-%% \end{figure}
+\item \textbf{Dynamic Tobit Model (DTM)}: It can be useful to treat the zeros
+  observed in microbiome time series data differently from other abundances.
+  DTMs treat zeros as censored observations.
+\begin{figure}[!p]
+  \centering
+  \includegraphics[width=0.6\textwidth]{../figure/abt_scan}
+  \caption{``Imaginary'' observations (blue) consistent with an observed
+    abundance time series (black). Inference done through scan sampling
+    \citep{de1997scan}. \label{fig:abt_scan}}
+\end{figure}
 \end{itemize}
+\end{block}
 
 \begin{block}{Nonparametric modeling}
 \begin{itemize}
-\item Mixture of Gaussian Processes (mGPs)
+\item \textbf{Mixture of Gaussian Processes (mGPs)}: To capture capture switches
+  between regimes, mGPs fit separate GPs across regions that appear to have
+  different dynamics \citep{ghahramani1998variational, heinonen2016non}. This
+  yields different smoothness within different regimes.
 \begin{figure}[!p]
   \centering
   \includegraphics[width=0.8\textwidth]{../figure/igp_abt_states}
-  \caption{\label{fig:igp_abt_states}}
+  \caption{Evolution of state assignments (colors) in an mGP across Gibbs
+    sampling iterations (rows). The blue blocks correspond to the zero
+    regimes. \label{fig:igp_abt_states}}
 \end{figure}
 
 \begin{figure}[!p]
   \centering
-  \includegraphics[width=\textwidth]{../figure/igp_abt_fits}
-  \caption{\label{fig:igp_abt_fits}}
+  \includegraphics[width=0.8\textwidth]{../figure/igp_abt_fits}
+  \caption{Posterior means and 95\% intervals for the fitted mGPs. The red
+    process is associated with a peak after the second antibiotic intervention.
+    \label{fig:igp_abt_fits}}
 \end{figure}
 
-\item Sticky Hierarchical Dirichlet Process HMMs (HDP-HMMs)
+\item \textbf{Sticky Hierarchical Dirichlet Process HMMs}: The
+  nonparametric version of sticky HMMs \citep{fox2011sticky} increases the
+  number of estimated states as more data become available, providing adaptive
+  versions of Figure \ref{fig:hmm_mode}.
 \end{itemize}
 \end{block}
 
 \begingroup
-    \fontsize{14pt}{14pt}\selectfont
+    \fontsize{12.5pt}{12.5pt}\selectfont
  \bibliographystyle{plainnat}
  \bibliography{../bibliography.bib}
  \endgroup
