@@ -21,7 +21,7 @@ scale_fill_discrete <- function(...)
   scale_fill_brewer(..., palette="Set2")
 
 theme_set(theme_bw())
-min_theme <- theme_update(
+theme_update(
   panel.border = element_blank(),
   panel.grid = element_blank(),
   axis.ticks = element_blank(),

@@ -50,14 +50,14 @@ samples <- sample_data(abt) %>%
   rownames_to_column("sample")
 
 x_df <- x_df %>%
-  select(sample, rsv, scaled) %>%
+  dplyr::select(sample, rsv, scaled) %>%
   spread(rsv, scaled) %>%
   left_join(samples) %>%
   arrange(ind, time)
 
 sample_names <- x_df$sample
 x <- x_df %>%
-  select(-sample, -ind, -time, -condition) %>%
+  dplyr::select(-sample, -ind, -time, -condition) %>%
   as.matrix()
 rownames(x) <- sample_names
 y <- array(x, dim = c(dim(x), 1))
