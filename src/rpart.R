@@ -83,6 +83,7 @@ plot_grid <- function(mx, model, type = "raw", ...) {
     ) +
     scale_fill_viridis(
       option = "magma",
+      direction = -1,
       guide = guide_colorbar(keyheight = 0.5, ticks = FALSE)
     )
 
