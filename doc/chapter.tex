@@ -41,7 +41,7 @@ accessible to microbiome researchers. Specifically, we reanalyze the data of
 \citep{dethlefsen2011incomplete} using Classification and Regression Trees
 (CART) \citep{breiman1984classification}, Hidden Markov Models (HMMs)
 \citep{rabiner1986introduction}, Bayesian nonparametric HMMs
-\citep{teh2010hierarchical}, mixtures of Gaussian Proce
+\citep{teh2010hierarchical}, mixtures of Gaussian Pro9ce
 sses (GPs)
 \citep{rasmussen2002infinite}, switching dynamical systems
 \citep{fox2009sharing}, and multiple changepoint detection
@@ -1059,8 +1059,8 @@ estimated via
 - Draw the graphical model
 - Write the model and provide an interpretation
 
-\subsubsection{HMM for for antibiotics}
-\label{subsubsec:hmm_for_antibiotics}
+\subsubsection{Example}
+\label{subsubsec:hmm_example}
 
 In the context of regime detection in the microbiome, we imagine a few
 underlying states shared across all bacteria (ranging from high abundance to
@@ -1285,16 +1285,39 @@ samples $\left(x_{it}\right)^{(k)}$ with $z_{it} = k$,
 An implementation of this sampler is available at
 \href{https://github.com/krisrs1128/tsc\_microbiome/blob/master/src/hmm/bayes\_hmm.R}{https://github.com/krisrs1128/tsc\_microbiome/blob/master/src/hmm/bayes\_hmm.R}.
 
+\subsubsection{Example}
+\label{subsubsec:sticky_hmm_example}
+
+An application of the sticky HMM to antibiotics data is provided in Figure
+\ref{fig:bayes_mode}. As in Section \ref{subsubsec:hmm_example}, we choose $K =
+4$ and a Gaussian emission model. We set $\kappa = 1$. We have reordered species
+according to a hierarchical clustering on the new estimated means. The
+interpretation suggested by this figure is generally quite similar to those for
+the nonsticky HMM. As before, the antibiotic treatments are visible across all
+patients, especially D and F, with differential recovery rates among certain
+species, and some species in subject D that seem to increase in abundance during
+the first antibiotic time course and one timepoint during the interim. In
+contrast to the HMM fitted with EM, it is easier to pick out a block of species
+among the Ruminoccocus that are strongly affected by the first, but not second,
+antibiotics time courses. On the other hand, species that increase in Subject D
+during the first time course are now split across a few blocks, when they had
+been all grouped together in Figure \ref{fig:hmm_mode}. Overall, clustering
+seems somewhat more interpretable in the sticky HMM, though we have not
+quantitatively compared the homogeneity of the two clustering approaches.
+
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\textwidth]{figure/bayes_mode}
-  \caption{Mode from sticky HMM. \label{fig:bayes_mode} }
+  \caption{The analog of Figure \ref{fig:hmm_mode} for the sticky HMM,
+    representing means of modal states estimated at given timepoints for
+    particular species. Note that, compared to Figure \ref{fig:hmm_mode},
+    species have been reordered according to a hierarchical clustering on these
+    means. \label{fig:bayes_mode} }
 \end{figure}
 
-\subsubsection{Example}
-\label{subsec:example}
-
-mode from Bayes HMM
+As before, we can study the estimated transition matrices between pairs of
+states. These are printed below, with states sorted from lowest to highest
+emission means.
 \begin{verbatim}
        3     4     1     2
 3  0.775 0.113 0.044 0.068
@@ -1303,7 +1326,9 @@ mode from Bayes HMM
 2  0.025 0.083 0.083 0.809
 \end{verbatim}
 
-SE from Bayes HMM
+Unlike EM, Gibbs sampling can provide a sense of the uncertainty of these
+parameter estimates. The standard errors of the cells for these transition
+probabilities are printed below.
 \begin{verbatim}
        3     4     2     1
 3  0.005 0.007 0.002 0.004
@@ -1311,6 +1336,16 @@ SE from Bayes HMM
 1  0.009 0.014 0.031 0.011
 2  0.002 0.006 0.006 0.004
 \end{verbatim}
+
+Counterintuitively, while the sticky HMM was proposed to model state
+persistence, the probabilities of self-transitions estimated here are lower than
+those estimated for the ordinary HMM. One explanation is that the Dirichlet
+priors placed on the rows of the transition matrix in the sticky HMM serve as
+regularizers. Decreasing the Dirichlet concentration parameter would likely
+return us to more extreme self-transition estimates from EM. However, these
+regularized transition probabilities are perhaps more believable -- simply
+because certain transitions have not been previously observed doesn't mean they
+should be given probability 0.
 
 - Modified model
 - Simulation example
@@ -1358,7 +1393,7 @@ a latent Markov chain $z_t$,
 \end{align*}
 with a prior on the rows of the transition matrix given by
 \begin{align*}
-  P_k \vert Q &\sim \DP\left(\alpha, Q\right)
+  P_k \vert Q &\sim \DP\left(\alpha, Q\right) \\
   Q &\sim \DP\left(\gamma, H\right).
 \end{align*}
 Since each of the transition matrix rows $P_k$ are centered around the base
@@ -1374,9 +1409,9 @@ $Q_k = \sum_{j = 1}^{\infty} \left(\beta_j + \indic{k =
   $P_k$ encourages the $k^{th}$ state to return to itself. For completeness, the
   prior for rows of the transition matrix now has the form,
 \begin{align*}
-  P_k \vert Q_k &\sim \DP\left(\alpha, Q_k\right)
+  P_k \vert Q_k &\sim \DP\left(\alpha, Q_k\right) \\
   Q_k \vert \left(\beta_j\right), \left(\theta_j\right) &\sim \sum_{j = 1}^{\infty} \left(\beta_j + \indic{k = j}\kappa\right)\delta_{\theta_j} \\
-  \left(\beta_j\right) &\sim \text{GEM}\left(\gamma\right)
+  \left(\beta_j\right) &\sim \text{GEM}\left(\gamma\right) \\
   \theta_j &\sim H \text{ for }j = 1, 2, \dots
 \end{align*}
 
@@ -1459,19 +1494,20 @@ Cycling these updates provides a blocked Gibbs sampler for the sticky HDP-HMM.
 \label{subsubsec:sticky_hdp_hmm_example}
 
 An application of the HDP-HMM to the antibiotics data is summarized in Figure
-\ref{fig:hdp_antibiotics_mode}. We ran a Normal-Inverse Wishart emissions
-version of the sampler for 2000 iterations, initializing the model using the
-model using means and covariances from clusters found with $K$-means. We set
-$\alpha = 1e-4$, $\gamma = 1e-6$ and $\kappa = 0.1$.
+\ref{fig:hdp_mode}. We ran a Normal-Inverse Wishart emissions version of the
+sampler for 2000 iterations, initializing the model using the model using means
+and covariances from clusters found with $K$-means. We set $\alpha = 10^{-4}$,
+$\gamma = 10^{-6}$, $\kappa = 0.1$, and $\L = 10$.
 
 As in the original parametric HMM displayed in Figure \ref{fig:hmm_mode}, Figure
 \ref{fig:hdp_mode} clearly highlights the antibiotic regimes across subjects D
 and F, as well as the differential recovery rates among some species in subject
 F. However, with our choice of $\alpha$, there tend to be many transient states,
-even after introducing some stickiness $\kappa$. We can understand this figure
-as a kind of smoothing using a low bandwidth. Decreasing $\alpha$ and increasing
-$\kappa$ leads to fewer states, and a mroe strongly smoothed representation of
-the data.
+represented by the increased number of intermediate colors between light yellow
+and dark purple. We can understand this figure as a kind of smoothing using a
+low bandwidth. Decreasing $\alpha$ and increasing $\kappa$ leads to a higher
+concentration in few states , and a more strongly smoothed representation of the
+data.
 
 \begin{figure}[ht]
   \centering
@@ -1481,44 +1517,38 @@ the data.
     each column corresponds to a single species, each row is a timepoint, and
     panels represent different individuals. Color intensity gives the emission
     mean of the associated states for that $\time$ by species combination, over
-    many gibbs sampling iterations. With a choic eof $\alpha = 1e-4$ and $\kappa
-    = 0.1$, the sticky HDP-HMM introduces many more states than Figure
+    many gibbs sampling iterations. With a choice of $\alpha = 10^{-4}$ and
+    $\kappa = 0.1$, the sticky HDP-HMM introduces many more states than Figure
     \ref{fig:hmm_mode}, corresponding to a less smoothed out representation of
     the antibiotics data.
     \label{fig:hdp_mode} }
 \end{figure}
-
-\begin{figure}[ht]
-  \centering
-  \includegraphics[width=0.9\textwidth]{figure/bayes_mode}
-  \caption{\label{fig:bayes_mode} }
-\end{figure}
-
 Estimated transition probabilities are printed below. While in theory the
 transition matrix is infinite dimensional, the weak limit approximation provides
 $K$ clusters plus one additional category containing the rest of the mass from
 the DP for that row. States are ordered from lowest to highest emission mean.
 
 As in the other HMM-based methods, the sticky HDP-HMM places most mass in the
-transition matrix along the diagonal, corresponding to self-transitions.
-However, as in the sticky HMM, self-transitions are somewhat more regularized
-than in the HMM estimated through EM. Transitions from the highest to the lowest
-states are more common than transitions in the opposite directions. This
-corresponds to the fact that rapid drops after antibiotic time courses are
-somewhat more common than rapid recoveries.
+transition matrix along the diagonal, corresponding to self-transitions. As in
+the sticky HMM, self-transitions are somewhat more regularized than in the HMM
+estimated through EM. Transitions from the highest to the lowest states are more
+common than transitions in the opposite directions. This corresponds to the fact
+that rapid drops after antibiotic time courses are somewhat more common than
+rapid recoveries.
 
 In addition to summaries of the model results, it is informative to investigate
 properties of the sampling routine, to diagnose potential defects or
-limitations. Supplemental Figure \ref{fig:hdp_hmm_z_iter} displays the evolution
-of state assignments over iterations. Most states, especially those
-corresponding to low abundance states, seem relatively fixed across Gibbs
-sampling iterations. In some situations, this would be a marker of poor mixing
-of the block sampler, in spite of its performing full forwards and backwards
-sweeps during every sampling iteration. However, a more likely explanation in
-this situation is that the abundances across species can vary quite
-dramatically, so that the likelihood of alternative states is very low. This
-also suggests that an alternative likelihood model may provide both better
-mixing and fits than the Normal Inverse-Wishart likelihood applied here.
+limitations. Supplemental Figure \ref{fig:hdp_gibbs_samples} displays the
+evolution of state assignments over iterations. The variation in state colors at
+the bottom of the figure likely represents the initial burn-in period. Most
+states, especially those corresponding to low abundance states, seem relatively
+fixed across Gibbs sampling iterations. In some situations, this would be a
+marker of poor mixing of the block sampler, in spite of its performing full
+forwards and backwards sweeps during every sampling iteration. However, a more
+likely explanation in this situation is that the abundances across species can
+vary quite dramatically, so that the likelihood of alternative states is very
+low. This also suggests that an alternative likelihood model may provide both
+better mixing and fits than the Normal Inverse-Wishart likelihood applied here.
 
 \begin{verbatim}
        9     6     8     5     3     4    10     2     1     7
@@ -1861,26 +1891,45 @@ structure is evidence of distinct temporal regimes.
 
 \begin{figure}[ht]
   \centering
-  %\includegraphics[width=0.8\textwidth]{figure/rpart_conditional}
-  \caption{\label{fig:rpart_conditional} }
+  \includegraphics[width=0.8\textwidth]{figure/rpart_conditional}
+  \caption{CART partitions when predicting abundances for species $\times$
+    timepoint combinations, using a model trained on only nonzero cells of the
+    species abundance matrix. The resulting fit can be interpreted as the
+    predicted abundance conditional on being present, as in a standard hurdle
+    model. \label{fig:rpart_conditional} }
 \end{figure}
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.8\textwidth]{figure/hmm_probs}
-  \caption{\label{fig:hmm_probs} }
+  \caption{Fitted probabilities for each of the $K = 4$ states in the HMM
+    estimated by EM. Different rows of panels correspond to different
+    individuals, while different columns are different states. The colors across
+    columns represent the emission means for the associated states, while the
+    transparency of a cell in a certain column corresponds to the probability
+    that cell was generated by that column's state. \label{fig:hmm_probs} }
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.9\textwidth]{figure/bayes_gibbs_samples}
-  \caption{\label{fig:bayes_gibbs_samples} }
+  \includegraphics[width=\textwidth]{figure/bayes_gibbs_samples}
+  \caption{State mixing for the sticky HMM. Each panel represents a separate
+    species. Within each panel, columns indicate timepoints, while rows give
+    states $z_{it}$ at every $20^{th}$ Gibbs sampling iteration, sorted from
+    early (bottom) to late (top). Each color represents a different state. After
+    an initial burn-in, most timepoints seem to have a relatively fixed
+    state. \label{fig:bayes_gibbs_samples} }
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.9\textwidth]{figure/hdp_gibbs_samples}
-  \caption{\label{fig:hdp_gibbs_samples} }
+  \includegraphics[width=\textwidth]{figure/hdp_gibbs_samples}
+  \caption{
+    A summary of state mixing for the sticky HDP-HMM, read in the same as Figure
+    \ref{fig:bayes_gibbs_samples}. There are more states here than for the
+    sticky HMM, but nonetheless some timepoints are relatively fixed across
+    Gibbs sampling iterations.
+    \label{fig:hdp_gibbs_samples} }
 \end{figure}
 
 
