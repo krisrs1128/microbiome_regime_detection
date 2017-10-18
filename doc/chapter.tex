@@ -1291,6 +1291,25 @@ An implementation of this sampler is available at
   \caption{Mode from sticky HMM. \label{fig:bayes_mode} }
 \end{figure}
 
+\subsubsection{Example}
+\label{subsec:example}
+
+\begin{verbatim}
+       3     4     1     2
+3  0.775 0.113 0.044 0.068
+4  0.160 0.414 0.170 0.256
+1  0.073 0.300 0.196 0.431
+2  0.025 0.083 0.083 0.809
+\end{verbatim}
+
+\begin{verbatim}
+       3     4     2     1
+3  0.005 0.007 0.002 0.004
+4  0.010 0.017 0.011 0.017
+1  0.009 0.014 0.031 0.011
+2  0.002 0.006 0.006 0.004
+\end{verbatim}
+
 - Modified model
 - Simulation example
 - Antibiotics case study: Transition probabilities and heatmap. Interpretation
@@ -1489,8 +1508,15 @@ somewhat more common than rapid recoveries.
 In addition to summaries of the model results, it is informative to investigate
 properties of the sampling routine, to diagnose potential defects or
 limitations. Supplemental Figure \ref{fig:hdp_hmm_z_iter} displays the evolution
-of state assignments over iterations. In general, it seems that even the block
-sampler mixes relatively slowly.
+of state assignments over iterations. Most states, especially those
+corresponding to low abundance states, seem relatively fixed across Gibbs
+sampling iterations. In some situations, this would be a marker of poor mixing
+of the block sampler, in spite of its performing full forwards and backwards
+sweeps during every sampling iteration. However, a more likely explanation in
+this situation is that the abundances across species can vary quite
+dramatically, so that the likelihood of alternative states is very low. This
+also suggests that an alternative likelihood model may provide both better
+mixing and fits than the Normal Inverse-Wishart likelihood applied here.
 
 - Write the new model
 - Simulation example
@@ -1828,5 +1854,12 @@ structure is evidence of distinct temporal regimes.
   \includegraphics[width=0.8\textwidth]{figure/hmm_probs}
   \caption{\label{fig:hmm_probs} }
 \end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figure/hdp_hmm_z_iter}
+  \caption{\label{fig:hdp_hmm_z_iter} }
+\end{figure}
+
 
 \end{document}
