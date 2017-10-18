@@ -250,6 +250,6 @@ ggplot(hm_df) +
 
 ggsave(
   "../../doc/figure/slds_parameter_heatmap.png",
-  width = 6.42,
-  height = 4.08
+  width = 5.136,
+  height = 3.264
 )

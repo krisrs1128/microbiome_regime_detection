@@ -1157,7 +1157,7 @@ probability matrix
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.9\textwidth]{figure/hmm_mode}
+  \includegraphics[width=\textwidth]{figure/hmm_mode}
   \caption{The modal sequences according to the HMM estimated through
     EM. \label{fig:hmm_mode} }
 \end{figure}
@@ -1287,9 +1287,30 @@ An implementation of this sampler is available at
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/bayes_mode}
+  \includegraphics[width=\textwidth]{figure/bayes_mode}
   \caption{Mode from sticky HMM. \label{fig:bayes_mode} }
 \end{figure}
+
+\subsubsection{Example}
+\label{subsec:example}
+
+mode from Bayes HMM
+\begin{verbatim}
+       3     4     1     2
+3  0.775 0.113 0.044 0.068
+4  0.160 0.414 0.170 0.256
+1  0.073 0.300 0.196 0.431
+2  0.025 0.083 0.083 0.809
+\end{verbatim}
+
+SE from Bayes HMM
+\begin{verbatim}
+       3     4     2     1
+3  0.005 0.007 0.002 0.004
+4  0.010 0.017 0.011 0.017
+1  0.009 0.014 0.031 0.011
+2  0.002 0.006 0.006 0.004
+\end{verbatim}
 
 - Modified model
 - Simulation example
@@ -1433,6 +1454,85 @@ deterministically, according to
   \end{cases}
 \end{align*}
 Cycling these updates provides a blocked Gibbs sampler for the sticky HDP-HMM.
+
+\subsubsection{Example}
+\label{subsubsec:sticky_hdp_hmm_example}
+
+An application of the HDP-HMM to the antibiotics data is summarized in Figure
+\ref{fig:hdp_antibiotics_mode}. We ran a Normal-Inverse Wishart emissions
+version of the sampler for 2000 iterations, initializing the model using the
+model using means and covariances from clusters found with $K$-means. We set
+$\alpha = 1e-4$, $\gamma = 1e-6$ and $\kappa = 0.1$.
+
+As in the original parametric HMM displayed in Figure \ref{fig:hmm_mode}, Figure
+\ref{fig:hdp_mode} clearly highlights the antibiotic regimes across subjects D
+and F, as well as the differential recovery rates among some species in subject
+F. However, with our choice of $\alpha$, there tend to be many transient states,
+even after introducing some stickiness $\kappa$. We can understand this figure
+as a kind of smoothing using a low bandwidth. Decreasing $\alpha$ and increasing
+$\kappa$ leads to fewer states, and a mroe strongly smoothed representation of
+the data.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figure/hdp_mode}
+  \caption{
+    The analog of Figure \ref{fig:hmm_mode} for the sticky HDP-HMM. As before,
+    each column corresponds to a single species, each row is a timepoint, and
+    panels represent different individuals. Color intensity gives the emission
+    mean of the associated states for that $\time$ by species combination, over
+    many gibbs sampling iterations. With a choic eof $\alpha = 1e-4$ and $\kappa
+    = 0.1$, the sticky HDP-HMM introduces many more states than Figure
+    \ref{fig:hmm_mode}, corresponding to a less smoothed out representation of
+    the antibiotics data.
+    \label{fig:hdp_mode} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figure/bayes_mode}
+  \caption{\label{fig:bayes_mode} }
+\end{figure}
+
+Estimated transition probabilities are printed below. While in theory the
+transition matrix is infinite dimensional, the weak limit approximation provides
+$K$ clusters plus one additional category containing the rest of the mass from
+the DP for that row. States are ordered from lowest to highest emission mean.
+
+As in the other HMM-based methods, the sticky HDP-HMM places most mass in the
+transition matrix along the diagonal, corresponding to self-transitions.
+However, as in the sticky HMM, self-transitions are somewhat more regularized
+than in the HMM estimated through EM. Transitions from the highest to the lowest
+states are more common than transitions in the opposite directions. This
+corresponds to the fact that rapid drops after antibiotic time courses are
+somewhat more common than rapid recoveries.
+
+In addition to summaries of the model results, it is informative to investigate
+properties of the sampling routine, to diagnose potential defects or
+limitations. Supplemental Figure \ref{fig:hdp_hmm_z_iter} displays the evolution
+of state assignments over iterations. Most states, especially those
+corresponding to low abundance states, seem relatively fixed across Gibbs
+sampling iterations. In some situations, this would be a marker of poor mixing
+of the block sampler, in spite of its performing full forwards and backwards
+sweeps during every sampling iteration. However, a more likely explanation in
+this situation is that the abundances across species can vary quite
+dramatically, so that the likelihood of alternative states is very low. This
+also suggests that an alternative likelihood model may provide both better
+mixing and fits than the Normal Inverse-Wishart likelihood applied here.
+
+\begin{verbatim}
+       9     6     8     5     3     4    10     2     1     7
+ 9 0.016 0.008 0.007 0.003 0.002 0.002 0.003 0.006 0.004 0.007
+ 6 0.011 0.014 0.027 0.013 0.006 0.009 0.010 0.002 0.017 0.018
+ 8 0.012 0.019 0.035 0.029 0.015 0.010 0.017 0.000 0.027 0.034
+ 5 0.011 0.036 0.023 0.030 0.025 0.011 0.026 0.000 0.023 0.034
+ 3 0.009 0.037 0.010 0.019 0.027 0.020 0.041 0.000 0.021 0.037
+ 4 0.007 0.030 0.008 0.008 0.016 0.022 0.057 0.000 0.014 0.040
+10 0.001 0.008 0.006 0.016 0.020 0.037 0.284 0.000 0.059 0.176
+ 2 0.010 0.011 0.007 0.002 0.005 0.022 0.081 0.020 0.035 0.088
+ 1 0.005 0.021 0.011 0.009 0.011 0.014 0.051 0.000 0.020 0.008
+ 7 0.002 0.005 0.002 0.002 0.003 0.005 0.014 0.000 0.005 0.004
+\end{verbatim}
 
 - Write the new model
 - Simulation example
@@ -1770,5 +1870,18 @@ structure is evidence of distinct temporal regimes.
   \includegraphics[width=0.8\textwidth]{figure/hmm_probs}
   \caption{\label{fig:hmm_probs} }
 \end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figure/bayes_gibbs_samples}
+  \caption{\label{fig:bayes_gibbs_samples} }
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figure/hdp_gibbs_samples}
+  \caption{\label{fig:hdp_gibbs_samples} }
+\end{figure}
+
 
 \end{document}
