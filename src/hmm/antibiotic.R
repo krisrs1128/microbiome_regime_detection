@@ -107,7 +107,6 @@ taxa$family <- factor(
   names(sort(table(taxa$family), decreasing = TRUE))
 )
 
-
 gm <- gamma_mode(gamma) %>%
   left_join(taxa)
 ggplot(gm) +
@@ -125,8 +124,8 @@ ggplot(gm) +
   facet_grid(ind ~ family, space = "free", scales = "free")
 ggsave(
   "../../doc//figure/hmm_mode.png",
-  width = 6.09,
-  height = 2.35
+  width = 11.8,
+  height = 5.93
 )
 
 k_order <- extract_theta(res$theta)$mu_df %>%
@@ -191,8 +190,8 @@ pi_se <- pi_df %>%
   spread(j, se) %>%
   ungroup
 
-round(pi_mean[levels(gamma$K), ], 3)
-round(pi_se[levels(gamma$K), ], 3)
+round(pi_mean[, -1], 3)
+round(pi_se[, -1], 3)
 
 ggplot(pi) +
   geom_histogram(aes(x = pi_ij), binwidth = 0.005) +
@@ -206,6 +205,7 @@ ggplot(gamma) +
   theme(axis.text = element_blank()) +
   facet_grid(ind ~ K, space = "free", scales = "free")
 
+levels(taxa$asv) <- levels(gamma$asv)
 gm <- gamma_mode(gamma) %>%
   left_join(taxa)
 ggplot(gm) +
@@ -280,11 +280,12 @@ ggplot(gamma) +
   theme(axis.text = element_blank()) +
   facet_grid(ind ~ K, space = "free", scales = "free")
 
+levels(taxa$asv) <- levels(gamma$asv)
 gm <- gamma_mode(gamma) %>%
   left_join(taxa)
 ggplot(gm) +
   geom_tile(
-    aes(x = asv, y = sample, fill = as.numeric(k_max))
+    aes(x = asv, y = sample, fill = mu)
   ) +
   viri_scale +
   theme(
