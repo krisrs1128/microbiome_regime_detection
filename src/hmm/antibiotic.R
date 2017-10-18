@@ -14,6 +14,7 @@ library("reshape2")
 library("phyloseq")
 library("viridis")
 library("jsonlite")
+library("forcats")
 library("stringr")
 source("plot.R")
 
@@ -57,7 +58,7 @@ viri_scale <- scale_fill_viridis(
   option = "magma",
   direction = -1,
   limits = c(0, 5.2),
-    breaks = c(0, 2, 4)
+  breaks = c(0, 2, 4)
 )
 legend_guide <- guides(
   fill = guide_colorbar(
@@ -88,17 +89,40 @@ ggsave(
   height = 1.87
 )
 
-ggplot(gamma_mode(gamma)) +
+taxa <- tax_table(abt) %>%
+  data.frame() %>%
+  rownames_to_column("asv")
+taxa$asv <- factor(taxa$asv, levels(gamma$asv))
+taxa$family <- taxa$Taxon_5
+taxa$family[taxa$family == ""] <- NA
+taxa$family <- fct_lump(taxa$family, 7)
+taxa$family <- taxa$family %>%
+  recode(
+    Alcaligenaceae_Sutterella = "Sutterella",
+    Peptostreptococcaceae_1 = "Peptostreptococcaceae"
+  )
+taxa$family[is.na(taxa$family)] <- "Other"
+taxa$family <- factor(
+  taxa$family,
+  names(sort(table(taxa$family), decreasing = TRUE))
+)
+
+
+gm <- gamma_mode(gamma) %>%
+  left_join(taxa)
+ggplot(gm) +
   geom_tile(
     aes(x = asv, y = sample, fill = mu)
   ) +
   viri_scale +
-  legend_guide +
   theme(
     axis.text = element_blank(),
-    legend.position = "bottom"
+    legend.position = "none",
+    panel.spacing.x = unit(0.1 ,"cm"),
+    panel.border = element_rect(size = 1, fill = "transparent"),
+    strip.text.x = element_text(size = 7, hjust = 0, angle = 90)
   ) +
-  facet_grid(ind ~ ., space = "free", scales = "free")
+  facet_grid(ind ~ family, space = "free", scales = "free")
 ggsave(
   "../../doc//figure/hmm_mode.png",
   width = 6.09,
@@ -119,7 +143,7 @@ round(res$pi, 3)
 ###############################################################################
 ## Block sampler for bayesian HMM
 ###############################################################################
-file_pipe <- pipe("awk 'BEGIN{i=0}{i++;if (i%100==2) print $1}' < bayes_kappa_4.txt")
+file_pipe <- pipe("awk 'BEGIN{i=0}{i++;if (i%10==2) print $1}' < bayes_kappa_4.txt")
 samp_mcmc <- readLines(file_pipe)
 samp_mcmc <- lapply(samp_mcmc, fromJSON)
 K <- nrow(samp_mcmc[[1]]$Pi)
@@ -165,7 +189,7 @@ pi_mean <- pi_df %>%
 pi_se <- pi_df %>%
   select(-pi_mean) %>%
   spread(j, se) %>%
-  ungroup 
+  ungroup
 
 round(pi_mean[levels(gamma$K), ], 3)
 round(pi_se[levels(gamma$K), ], 3)
@@ -182,32 +206,13 @@ ggplot(gamma) +
   theme(axis.text = element_blank()) +
   facet_grid(ind ~ K, space = "free", scales = "free")
 
-taxa <- tax_table(abt) %>%
-  data.frame() %>%
-  rownames_to_column("asv")
-taxa$asv <- factor(taxa$asv, levels(gamma$asv))
-taxa$family <- taxa$Taxon_5
-taxa$family[taxa$family == ""] <- NA
-taxa$family <- fct_lump(taxa$family, 7)
-taxa$family <- taxa$family %>%
-  recode(
-    Alcaligenaceae_Sutterella = "Sutterella",
-    Peptostreptococcaceae_1 = "Peptostreptococcaceae"
-  )
-taxa$family[is.na(taxa$family)] <- "Other"
-taxa$family <- factor(
-  taxa$family,
-  names(sort(table(taxa$family), decreasing = TRUE))
-)
-
 gm <- gamma_mode(gamma) %>%
   left_join(taxa)
-
 ggplot(gm) +
   geom_tile(
-    aes(x = asv, y = sample, fill = as.numeric(k_max))
+    aes(x = asv, y = sample, fill = mu)
   ) +
-  scale_fill_viridis(option = "magma") +
+  viri_scale +
   theme(
     axis.text = element_blank(),
     legend.position = "none",
@@ -226,22 +231,26 @@ ggsave(
 mz <- melt_z(samp_data$z, dimn, gamma)
 ggplot(mz %>% filter(asv %in% levels(gamma$asv)[sample(1:600, 9)])) +
   geom_tile(
-    aes(x = sample, y = iter, fill = as.numeric(K))
+    aes(x = sample, y = iter, fill = K)
   ) +
-  scale_fill_viridis(option = "magma") +
+  scale_fill_brewer(palette = "Set3") +
   facet_wrap(~asv) +
   theme(axis.text = element_blank())
-## ggsave("../../doc//figure/gibbs_samples.png", height = 1.8, width = 3)
-ggsave("../../doc//figure/gibbs_samples.png", width = 11.8, height = 5.93)
+ggsave(
+  "../../doc//figure/bayes_gibbs_samples.png",
+  width = 11.8,
+  height = 5.93
+)
 ## write_gif(mz, "bayes_hmm_z")
 
 ###############################################################################
 ## Figures for HDP-HMM results
 ###############################################################################
-samp_mcmc <- readLines("hdp_kappa_01.txt") %>%
+file_pipe <- pipe("awk 'BEGIN{i=0}{i++;if (i%10==2) print $1}' < hdp_kappa_01.txt")
+samp_mcmc <- readLines(file_pipe) %>%
   lapply(fromJSON)
 K <- nrow(samp_mcmc[[1]]$Pi)
-dimn <- list(sample_names(abt), seq_len(K), taxa_names(abt))
+dimn <- list(samples$sample, seq_len(K), taxa_names(abt))
 
 samp_data <- extract_iteration_data(
   samp_mcmc,
@@ -254,7 +263,6 @@ gamma <- apply(samp_data$zgamma, c(1, 2, 3), mean)
 samp_data$zgamma <- NULL
 
 theta <- extract_theta(samp_data$mu)
-dimn[[2]] <- as.character(seq_len(ncol(gamma)))
 gamma <- melt_gamma(gamma, dimn, samples, theta$theta)
 
 theta$mu_df$K <- factor(theta$mu_df$K, levels(gamma$K))
@@ -266,31 +274,48 @@ ggplot(theta$mu_df) +
 
 ggplot(gamma) +
   geom_tile(
-    aes(x = sample, y = asv, alpha = gamma, fill = K)
+    aes(x = asv, y = sample, alpha = gamma, fill = K)
   ) +
   scale_alpha_continuous(range = c(0, 1)) +
   theme(axis.text = element_blank()) +
-  facet_grid(K ~ ind, space = "free", scales = "free")
+  facet_grid(ind ~ K, space = "free", scales = "free")
 
-p <- ggplot(gamma_mode(gamma)) +
+gm <- gamma_mode(gamma) %>%
+  left_join(taxa)
+ggplot(gm) +
   geom_tile(
-    aes(x = sample, y = asv, fill = as.numeric(k_max))
+    aes(x = asv, y = sample, fill = as.numeric(k_max))
   ) +
-  scale_fill_viridis(option = "magma") +
-  theme(axis.text = element_blank(), legend.position = "none") +
-  facet_grid(. ~ ind, space = "free", scales = "free")
-ggsave("../../doc//figure/hdp_antibiotics_mode.png", height = 3, width = 2)
+  viri_scale +
+  theme(
+    axis.text = element_blank(),
+    legend.position = "none",
+    panel.spacing.x = unit(0.1 ,"cm"),
+    panel.border = element_rect(size = 1, fill = "transparent"),
+    strip.text.x = element_text(size = 7, hjust = 0, angle = 90)
+  ) +
+  facet_grid(ind ~ family, space = "free", scales = "free")
+
+ggsave(
+  "../../doc//figure/hdp_antibiotics_mode.png",
+  width = 11.8,
+  height = 5.93
+)
 
 ## study mixing in z
-mz <- melt_z(samp_data$z[,, 1000:1050], dimn, gamma)
-ggplot(mz %>% filter(asv %in% levels(gamma$asv)[1:3])) +
+mz <- melt_z(samp_data$z, dimn, gamma)
+ggplot(mz %>% filter(asv %in% levels(gamma$asv)[sample(1:600, 9)])) +
   geom_tile(
-    aes(x = sample, y = iter, fill = as.numeric(K))
+    aes(x = sample, y = iter, fill = K)
   ) +
-  scale_fill_viridis(option = "magma") +
+  scale_fill_brewer(palette = "Set3") +
   facet_wrap(~asv) +
-  theme(axis.text = element_blank(),
-        legend.position = "none")
+  theme(axis.text = element_blank())
+ggsave(
+  "../../doc//figure/hdp_gibbs_samples.png",
+  width = 11.8,
+  height = 5.93
+)
 ## write_gif(mz, "hdp_hmm_z")
 
 ## look at transition probabilities
@@ -308,14 +333,10 @@ pi_df <- pi %>%
 
 pi_mean <- pi_df %>%
   dplyr::select(-se) %>%
-  spread(j, pi_mean) %>%
-  ungroup %>%
-  dplyr::select(-i)
+  spread(j, pi_mean)
 pi_se <- pi_df %>%
   dplyr::select(-pi_mean) %>%
-  spread(j, se) %>%
-  ungroup %>%
-  dplyr::select(-i)
+  spread(j, se)
 
-round(pi_mean, 3)
-round(pi_se, 3)
+round(pi_mean[, -1], 3)
+round(pi_se[, -1], 3)
