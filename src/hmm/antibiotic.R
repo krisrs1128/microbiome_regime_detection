@@ -263,8 +263,8 @@ ggplot(mz %>% filter(asv %in% levels(gamma$asv)[sample(1:600, 9)])) +
   theme(axis.text = element_blank())
 ggsave(
   "../../doc//figure/bayes_gibbs_samples.png",
-  width = 11.8,
-  height = 5.93
+  width = 8.26,
+  height = 4.151
 )
 ## write_gif(mz, "bayes_hmm_z")
 
@@ -351,8 +351,8 @@ ggplot(mz %>% filter(asv %in% levels(gamma$asv)[sample(1:600, 9)])) +
   theme(axis.text = element_blank())
 ggsave(
   "../../doc//figure/hdp_gibbs_samples.png",
-  width = 11.8,
-  height = 5.93
+  width = 8.26,
+  height = 4.151
 )
 ## write_gif(mz, "hdp_hmm_z")
 
