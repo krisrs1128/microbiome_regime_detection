@@ -1289,20 +1289,20 @@ An implementation of this sampler is available at
 
 An application of the sticky HMM to antibiotics data is provided in Figure
 \ref{fig:bayes_mode}. As in Section \ref{subsubsec:hmm_example}, we choose $K =
-4$ and a Gaussian emission model. We set $\kappa = 1$. We have reordered species
-according to a hierarchical clustering on the new estimated means. The
+4$ and a Gaussian emission model. We set $\kappa = 4$. We have reordered
+species according to a hierarchical clustering on the new estimated means. The
 interpretation suggested by this figure is generally quite similar to those for
 the nonsticky HMM. As before, the antibiotic treatments are visible across all
 patients, especially D and F, with differential recovery rates among certain
-species, and some species in subject D that seem to increase in abundance during
-the first antibiotic time course and one timepoint during the interim. In
-contrast to the HMM fitted with EM, it is easier to pick out a block of species
-among the Ruminoccocus that are strongly affected by the first, but not second,
-antibiotics time courses. On the other hand, species that increase in Subject D
-during the first time course are now split across a few blocks, when they had
-been all grouped together in Figure \ref{fig:hmm_mode}. Overall, clustering
-seems somewhat more interpretable in the sticky HMM, though we have not
-quantitatively compared the homogeneity of the two clustering approaches.
+species, and some species in subject D that seem to increase in abundance
+during the first antibiotic time course and one timepoint during the interim.
+In contrast to the HMM fitted with EM, it is easier to pick out a block of
+species among the Ruminoccocus that are strongly affected by the first, but not
+second, antibiotics time courses. On the other hand, species that increase in
+Subject D during the first time course are now split across a few blocks, when
+they had been all grouped together in Figure \ref{fig:hmm_mode}. Overall,
+clustering seems somewhat more interpretable in the sticky HMM, though we have
+not quantitatively compared the homogeneity of the two clustering approaches.
 
 \begin{figure}[ht]
   \centering
