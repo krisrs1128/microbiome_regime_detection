@@ -82,11 +82,10 @@ In section \ref{sec:problem_description}, we describe the scientific problem of
 interest in more detail and provide a high-level statistic formulation. In
 section \ref{sec:baseline}, we describe approaches which are easy to implement,
 but that fail to incorporate temporal structure -- these serve as reference
-points for evaluating more complex models.
-Sections \label{sec:temporal_probabilistic_models}
-and \label{sec:temporal_mixture_models} review and apply smoothing and mixture
-modeling techniques to this problem, while
-section \label{sec:alternative_probabilistic_models} highlights several
+points for evaluating more complex models. Sections
+\ref{sec:temporal_probabilistic_models} and \ref{sec:temporal_mixture_models}
+review and apply smoothing and mixture modeling techniques to this problem,
+while section \ref{sec:alternative_probabilistic_models} highlights several
 departures of typical microbiome data from the structure assumed by the
 techniques in previous sections, along with references to literature that
 addresses these departures.
@@ -469,10 +468,10 @@ bottom of the panel.
 
 Related views are given in Figures \ref{fig:rpart_simple} through
 \ref{fig:rpart_conditional}. Figures \ref {fig:rpart_simple} through
-\ref{rpart_complex_3} give analogous fits for different complexity parameters
-$k$. Figures \ref{fig:rpart_binary_simple} and \ref{fig:rpart_conditional}
-decompose the prediction problem into just a binary part and a
-conditional-on-positivity part, using the hurdle heuristic.
+\ref{fig:rpart_complex_3} give analogous fits for different complexity
+parameters $k$. Figures \ref{fig:rpart_binary_simple} and
+\ref{fig:rpart_conditional} decompose the prediction problem into just a binary
+part and a conditional-on-positivity part, using the hurdle heuristic.
 
 Two limitations become clear in this example application. First, partitioning
 across species seems hard to obtain simultaneously across all subjects -- in
@@ -799,7 +798,7 @@ and apply it to equation \ref{eq:sigma_t_inv} to find
   &= \left(I - K_{t}C\right)\Sigma_{t \vert t - 1},
 \end{align*}
 according to the definition of $K_{t}$ in Algorithm
-\ref{algorithm:kalman_filter}.
+\ref{alg:kalman_filter}.
 
 Substituting this expression, we can simplify equation \ref{eq:mu_t},
 \begin{align*}
@@ -848,7 +847,7 @@ previously measured timepoints. Introduce the notation,
 Which completely determine the smoothed distributions $p\left(z_{t} \vert
 x_{1:T}\right)$ of interest. The forwards pass in RTS smoothing is identical to
 the Kalman filter, and pseudocode for the backwards pass is provided in
-Algorithm \ref{alg_kalman_smoother}.
+Algorithm \ref{alg:kalman_smoother}.
 
 \begin{algorithm}
    \caption{The Kalman smoothing backwards pass.}
@@ -1706,7 +1705,7 @@ of GPs algorithm. That is, initialize with some setting of $z_i$ and
 corresponding $\theta_k$'s, and in each iteration
 \begin{itemize}
 \item Perform a full Gibbs sampling sweep of $z_1, \dots, z_n$ using the
-  conditionals in \label{eq:igp_conditional}, with fixed $\theta_k$. If new
+  conditionals in \ref{eq:igp_conditional}, with fixed $\theta_k$. If new
   classes $k^\ast$ are drawn, sample associated $\log \theta_k^\ast$s from their
   prior.
 \item For a given configuration of of $z_1, \dots, z_n$, propogate the current

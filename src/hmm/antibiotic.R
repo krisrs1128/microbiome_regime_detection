@@ -4,7 +4,7 @@
 ## Apply the different HMM algorithms to the antibiotics data set.
 ##
 ## author: sankaran.kris@gmail.com
-## date: 07/04/2017
+## date: 10/18/2017
 
 ###############################################################################
 ## setup
