@@ -243,7 +243,6 @@ ggplot(gm) +
     axis.text = element_blank(),
     legend.position = "none",
     panel.spacing.x = unit(0.1 ,"cm"),
-    panel.border = element_rect(size = 1, fill = "transparent"),
     strip.text.x = element_blank()
   ) +
   facet_grid(ind ~ family, space = "free", scales = "free")
@@ -329,7 +328,6 @@ ggplot(gm) +
     axis.text = element_blank(),
     legend.position = "none",
     panel.spacing.x = unit(0.1 ,"cm"),
-    panel.border = element_rect(size = 1, fill = "transparent"),
     strip.text.x = element_blank()
   ) +
   facet_grid(ind ~ family, space = "free", scales = "free")
