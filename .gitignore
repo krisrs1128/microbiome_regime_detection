@@ -5,6 +5,12 @@
 *.rda
 *.out
 *.DS_Store
+*.Rhistory
+*.bbl
+*.blg
+*.nav
+*.snm
+*.toc
 data
 !data/README.md
 doc/*.bbl

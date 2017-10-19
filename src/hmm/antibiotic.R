@@ -4,7 +4,7 @@
 ## Apply the different HMM algorithms to the antibiotics data set.
 ##
 ## author: sankaran.kris@gmail.com
-## date: 07/04/2017
+## date: 10/18/2017
 
 ###############################################################################
 ## setup
@@ -28,8 +28,8 @@ theme_update(
   panel.border = element_blank(),
   panel.grid = element_blank(),
   axis.ticks = element_blank(),
-  legend.title = element_text(size = 5),
-  legend.text = element_text(size = 3),
+  legend.title = element_text(size = 8),
+  legend.text = element_text(size = 8),
   legend.margin = margin(t = 0, r = 0, b = 0, l = 0.04, unit = "cm"),
   axis.text = element_text(size = 6),
   axis.title = element_text(size = 8),
@@ -80,13 +80,14 @@ ggplot(gamma) +
   scale_alpha_continuous(range = c(0, 1)) +
   theme(
     axis.text = element_blank(),
-    legend.position = "bottom"
+    legend.position = "bottom",
+    panel.border = element_rect(size = 1, fill = "transparent")
   ) +
   facet_grid(ind ~ K, space = "free", scales = "free")
 ggsave(
   "../../doc//figure/hmm_probs.png",
-  width = 7.64,
-  height = 1.87
+  width = 6.67,
+  height = 3.01
 )
 
 taxa <- tax_table(abt) %>%
@@ -95,7 +96,7 @@ taxa <- tax_table(abt) %>%
 taxa$asv <- factor(taxa$asv, levels(gamma$asv))
 taxa$family <- taxa$Taxon_5
 taxa$family[taxa$family == ""] <- NA
-taxa$family <- fct_lump(taxa$family, 7)
+taxa$family <- fct_lump(taxa$family, 7, ties.method = "first")
 taxa$family <- taxa$family %>%
   recode(
     Alcaligenaceae_Sutterella = "Sutterella",
@@ -113,19 +114,32 @@ ggplot(gm) +
   geom_tile(
     aes(x = asv, y = sample, fill = mu)
   ) +
+  geom_rect(
+    aes(
+      xmin = -Inf,
+      xmax = Inf,
+      ymin = -Inf,
+      ymax = Inf,
+      col = family
+    ),
+    fill = "transparent",
+    size = 0.9
+  ) +
   viri_scale +
+  legend_guide +
   theme(
     axis.text = element_blank(),
-    legend.position = "none",
+    legend.position = "bottom",
     panel.spacing.x = unit(0.1 ,"cm"),
-    panel.border = element_rect(size = 1, fill = "transparent"),
-    strip.text.x = element_text(size = 7, hjust = 0, angle = 90)
+    panel.border = element_blank(),
+    strip.text.x = element_blank()
   ) +
   facet_grid(ind ~ family, space = "free", scales = "free")
+
 ggsave(
-  "../../doc//figure/hmm_mode.png",
-  width = 11.8,
-  height = 5.93
+  "../../doc/figure/hmm_mode.png",
+  width = 6.87,
+  height = 3.53
 )
 
 k_order <- extract_theta(res$theta)$mu_df %>%
@@ -212,20 +226,30 @@ ggplot(gm) +
   geom_tile(
     aes(x = asv, y = sample, fill = mu)
   ) +
+  geom_rect(
+    aes(
+      xmin = -Inf,
+      xmax = Inf,
+      ymin = -Inf,
+      ymax = Inf,
+      col = family
+    ),
+    fill = "transparent",
+    size = 0.9
+  ) +
   viri_scale +
+  legend_guide +
   theme(
     axis.text = element_blank(),
-    legend.position = "none",
+    legend.position = "bottom",
     panel.spacing.x = unit(0.1 ,"cm"),
-    panel.border = element_rect(size = 1, fill = "transparent"),
-    strip.text.x = element_text(size = 7, hjust = 0, angle = 90)
+    strip.text.x = element_blank()
   ) +
   facet_grid(ind ~ family, space = "free", scales = "free")
-
 ggsave(
-  "../../doc//figure/bayes_mode.png",
-  width = 11.8,
-  height = 5.93
+  "../../doc/figure/bayes_mode.png",
+  width = 6.87,
+  height = 3.53
 )
 
 mz <- melt_z(samp_data$z, dimn, gamma)
@@ -238,8 +262,8 @@ ggplot(mz %>% filter(asv %in% levels(gamma$asv)[sample(1:600, 9)])) +
   theme(axis.text = element_blank())
 ggsave(
   "../../doc//figure/bayes_gibbs_samples.png",
-  width = 11.8,
-  height = 5.93
+  width = 8.26,
+  height = 4.151
 )
 ## write_gif(mz, "bayes_hmm_z")
 
@@ -287,20 +311,31 @@ ggplot(gm) +
   geom_tile(
     aes(x = asv, y = sample, fill = mu)
   ) +
+  geom_rect(
+    aes(
+      xmin = -Inf,
+      xmax = Inf,
+      ymin = -Inf,
+      ymax = Inf,
+      col = family
+    ),
+    fill = "transparent",
+    size = 0.9
+  ) +
   viri_scale +
+  legend_guide +
   theme(
     axis.text = element_blank(),
-    legend.position = "none",
+    legend.position = "bottom",
     panel.spacing.x = unit(0.1 ,"cm"),
-    panel.border = element_rect(size = 1, fill = "transparent"),
-    strip.text.x = element_text(size = 7, hjust = 0, angle = 90)
+    strip.text.x = element_blank()
   ) +
   facet_grid(ind ~ family, space = "free", scales = "free")
 
 ggsave(
-  "../../doc//figure/hdp_antibiotics_mode.png",
-  width = 11.8,
-  height = 5.93
+  "../../doc/figure/hdp_mode.png",
+  width = 6.87,
+  height = 3.53
 )
 
 ## study mixing in z
@@ -314,8 +349,8 @@ ggplot(mz %>% filter(asv %in% levels(gamma$asv)[sample(1:600, 9)])) +
   theme(axis.text = element_blank())
 ggsave(
   "../../doc//figure/hdp_gibbs_samples.png",
-  width = 11.8,
-  height = 5.93
+  width = 8.26,
+  height = 4.151
 )
 ## write_gif(mz, "hdp_hmm_z")
 
