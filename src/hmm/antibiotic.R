@@ -241,7 +241,7 @@ ggplot(gm) +
   legend_guide +
   theme(
     axis.text = element_blank(),
-    legend.position = "none",
+    legend.position = "bottom",
     panel.spacing.x = unit(0.1 ,"cm"),
     strip.text.x = element_blank()
   ) +
@@ -326,7 +326,7 @@ ggplot(gm) +
   legend_guide +
   theme(
     axis.text = element_blank(),
-    legend.position = "none",
+    legend.position = "bottom",
     panel.spacing.x = unit(0.1 ,"cm"),
     strip.text.x = element_blank()
   ) +
