@@ -1914,9 +1914,10 @@ independence graph linking the $x_i$'s. Define messages according to
 where $N\left(j\right)$ denotes the neighbors of node $j$.
 
 It turns out that we can always write
-\begin{align*}
+\begin{align}
+  \label{eq:message_update}
   p\left(x_{i} \vert y\right) &\propto \psi_{i}\left(x_{C_i}, y_i\right) \prod_{j \in N\left(i\right)} m_{ji}\left(x_{C_i}\right),
-\end{align*}
+\end{align}
 which parallels equation \ref{eq:message_passing_example}.
 
 One interesting application of this technique is a quick derivation of the
@@ -1927,9 +1928,27 @@ product of cliques made from latent states and their associated emission,
   p\left(x, z\right) &= p\left(z_1\right) \left[\prod_{t = 1}^{T - 1} p\left(z_{t + 1} \vert z_t\right)\right]
   \left[\prod_{t = 1}^{T} p\left(x_t \vert z_t\right)\right] \\
     &= \psi_1\left(z_1\right) \left[\prod_{t = 1}^{T - 1} \psi_{t, t + 1}\left(z_t, z_t +
-    1\right)\right] \left[\prod_{t = 1}^{T} \psi_t\left(z_t, y_t\right)\right],
+    1\right)\right] \left[\prod_{t = 1}^{T} \psi_t\left(z_t, x_t\right)\right],
 \end{align*}
-where we defined $\psi_{t, t + 1}$ and $\psi_t$ so the two equations match.
+where we defined $\psi_{t, t + 1}$ and $\psi_t$ so that the last two equations
+match. By definition, the messages have the form
+\begin{align*}
+  m_{t - 1, t}\left(z_{t}\right) &= \sum_{z_{t - 1} = 1}^{K} \psi_{t - 1, t}\left(z_{t - 1}, z_t\right) \psi_{t}\left(z_t, x_t\right) \\
+  &= \sum_{z_{t - 1} = 1}^{K} p\left(z_t \vert z_{t - 1}\right)p\left(x_t \vert z_t\right)m_{t - 2, t - 1}\left(z_{t - 1}\right)
+\end{align*}
+for those going left-to-right and
+\begin{align*}
+  m_{t + 1, t}\left(z_t\right) &= \sum_{z_{t + 1} = 1}^{K} p\left(z_{t + 1}\vert z_t\right)p\left(x_t \vert z_t\right)m_{t + 2, t + 1}\left(z_{t + 1}\right),
+\end{align*}
+for those going right-to-left.
+
+According to the message passing update \ref{eq:message_update}, the marginals
+of interest have the form
+\begin{align*}
+  p\left(z_{t} \vert y_{1:T}\right) &\propto p\left(x_t \vert z_t\right) m_{t - 1, t}\left(z_t\right)m_{t + 1, t}\left(z_t\right)
+\end{align*}
+which has the exactly the same form as found during the derivation of the
+forwards-backwards algorithm.
 
 - Switching state space models (subsubsection)
    + Model description
@@ -1944,6 +1963,10 @@ where we defined $\psi_{t, t + 1}$ and $\psi_t$ so the two equations match.
   + Simulation examples
   + Description of MCMC
 
+As demonstrated in the HMM example, the belief propagation abstraction can be
+used to compute complex marginals in a way that avoids what can otherwise become
+tedious calculation. Consider again the Switching Linear Dynamical System
+example. 
 
 \subsection{Changepoint detection}
 
