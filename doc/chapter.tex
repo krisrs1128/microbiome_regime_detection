@@ -1868,6 +1868,69 @@ will we make a brief detour into the basics of message passing.
 \paragraph{Message passing basics}
 \label{paragraph:message_passing}
 
+Message passing is a device for efficiently organizing high-dimensional
+integrals. It is particularly useful in probabilistic modeling settings, where
+we our goal may be to evaluate the marginal of a large joint density, but one
+which can be be decomposed into many conditionally independent components. As a
+concrete example, following \citep{fox2009bayesian}, suppose we can write
+\begin{align*}
+p\left(x\right) &\propto \psi_{12}\left(x_1, x_2\right)\psi_{23}\left(x_2, x_3\right)\psi_{24}\left(x_2, x_4\right) \prod_{i = 1}^{4}\psi_{i}\left(x_i\right)
+\end{align*}
+and that we would like a closed-form for the marginal $p\left(x_1\right)$. Note
+that we can order the necessary integrals according to
+\begin{align*}
+  p\left(x_1\right) &\propto \psi_1\left(x_1\right)
+  \int_{X_2}\left[\psi_{12}\left(x_1, x_2\right)\psi_2\left(x_2\right)
+    \int_{X_3} \psi_{23}\left(x_2, x_3\right) \psi_3\left(x_3\right) dx_3
+    \int_{X_4} \psi_{24}\left(x_2, x_4\right)\psi_4\left(x_4\right) dx_4
+    \right]
+\end{align*}
+which avoids redundant computation.
+
+To suggest the more general lesson, define a set of messages
+$m_{ji}\left(x_i\right)$, which integrate over the $j^{th}$ variable and are
+functions of the $i^{th}$,
+\begin{align*}
+  m_{32}\left(x_2\right) &= \int_{X_3} \psi_{23}\left(x_2, x_3\right)\psi_3\left(x_3\right) dx_3 \\
+  m_{42}\left(x_2\right) &= \int_{X_4} \psi_{24}\left(x_2, x_4\right)\psi_4\left(x_4\right) dx_4
+  m_{21}\left(x_1\right) &= \int_{X_2} \psi_{12}\left(x_1, x_2\right) \psi_2\left(x_2\right) m_{32}\left(x_2\right) m_{42}\left(x_2\right) dx_2.
+\end{align*}
+Observe then that the marginal of interest can be concisely written as
+\begin{align}
+  \label{eq:message_passing_example}
+  p\left(x_1\right) &\propto \psi_1\left(x_1\right) m_{21}\left(x_1\right).
+\end{align}
+
+Next we consider arbitrary distributions that can be decomposed as
+\begin{align*}
+  p\left(x_i\right) &= \prod_{C_j} \psi_{C_j}\left(x_{C_j}\right)\psi_{j}\left(x_{C_j}, y_{j}\right),
+\end{align*}
+where the $y_i$ are fixed in advanced (typically this is data upon which we
+condition). Each $C_i$ is a \textit{clique} in the undirected conditional
+independence graph linking the $x_i$'s. Define messages according to
+\begin{align*}
+  m_{ji}\left(x_{C_i}\right) &= \int_{X_{C_{j}}} \psi_{C_i}\left(x_{C_{i}}\right) \psi_{i}\left(x_{C_{i}}, y_{i}\right) \prod_{k \in N\left(j\right)} m_{kj}\left(x_{C_{j}}\right) dx_{c_{j}},
+\end{align*}
+where $N\left(j\right)$ denotes the neighbors of node $j$.
+
+It turns out that we can always write
+\begin{align*}
+  p\left(x_{i} \vert y\right) &\propto \psi_{i}\left(x_{C_i}, y_i\right) \prod_{j \in N\left(i\right)} m_{ji}\left(x_{C_i}\right),
+\end{align*}
+which parallels equation \ref{eq:message_passing_example}.
+
+One interesting application of this technique is a quick derivation of the
+forwards-backwards algorithm for HMMs. Denote observations by $\left(x_t\right)$
+and latent states by $\left(z_t\right)$. Note that we can write the joint as a
+product of cliques made from latent states and their associated emission,
+\begin{align*}
+  p\left(x, z\right) &= p\left(z_1\right) \left[\prod_{t = 1}^{T - 1} p\left(z_{t + 1} \vert z_t\right)\right]
+  \left[\prod_{t = 1}^{T} p\left(x_t \vert z_t\right)\right] \\
+    &= \psi_1\left(z_1\right) \left[\prod_{t = 1}^{T - 1} \psi_{t, t + 1}\left(z_t, z_t +
+    1\right)\right] \left[\prod_{t = 1}^{T} \psi_t\left(z_t, y_t\right)\right],
+\end{align*}
+where we defined $\psi_{t, t + 1}$ and $\psi_t$ so the two equations match.
+
 - Switching state space models (subsubsection)
    + Model description
    + Simulation example
