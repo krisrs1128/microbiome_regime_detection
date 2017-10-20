@@ -15,7 +15,6 @@
 \begin{document}
 \maketitle
 
-
 \begin{abstract}
 It is often of central interest to describe the stability and dynamics of the
 microbiome, and many studies have been performed to characterize these dynamics
@@ -924,7 +923,8 @@ generate this sort of behavior. The unifying probabilistic ``trick'' that helps
 accomplish this goal is the introduction of latent variables specying which
 regime the system is in at any given timepoint.
 
-\subsection{Hidden Markov Modeling}
+\subsection{Hidden Markov Models}
+\label{subsec:hmms}
 
 The idea behind Hidden Markov Models (HMMs) is similar to that of LDSs, with the
 exception that the $z_{t}$ are no longer thought of as continuous latent
@@ -1818,6 +1818,56 @@ structure is evidence of distinct temporal regimes.
     + HMC for parameters is usual HMC for GPs
     + How this can be sped up
 
+
+\subsubsection{Switching Linear Dynamical Systems}
+\label{subsubsec:switching_dynamical}
+
+Switching Linear Dynamical Systems (SDLSs) are a blend of HMMs (section
+\ref{subsec:hmms} and LDSs \ref{subsec:linear_dynamical_systems}
+  \citep{ghahramani1998variational, linderman2016recurrent}. The motivation for
+  such a model is that there may be good reason to believe that the system
+  exhibits regime switching behavior, but that the HMM's assumption that samples
+  arise independently conditional on latent regimes may be naive. A more
+  plausible assumption may be that, within a regime, observations follow
+  homogeneous dynamics, though neighboring timepoints may be dependent on one
+  another. Consider an imaginative example from \citep{linderman2016recurrent}:
+  when a mouse notices a predator, it suddenly begins to move rapidly to evade
+  any threat. The dynamics of the mouse's movements are stable within each of
+  the two regimes, even though its average position is not\footnote{More
+    traditional examples include the trajectories of fighter aircraft executing
+    different types of maneuvers, the prices of stocks in response to world
+    events, or patterns of EEG waveforms during different activities. We will of
+    course be interested in trajectories of bacterial abundances across
+    environmental shifts.}.
+
+To encode this intuition into a mathematical model, we suppose a time series
+$\left(y_{t}\right)$ evolves according to different LDSs during different time
+intervals. Following the formulation of \citep{linderman2016recurrent},
+\begin{align*}
+  y_{t} \vert  x_t, z_t &\sim \Gsn\left(C_{z_t}, x_t, R_{z_t}\right) \\
+  x_{t} \vert x_{t - 1}, z_{t} &\sim \Gsn\left(A_{z_t}x_{t - 1}, Q_{z_t}\right) \\
+  z_t \vert z_{t - 1} &\sim P_{z_{t - 1}}.
+\end{align*}
+$z_t \in \{1, \dots, K\}$ describes what regime the series is in at time $t$
+while $x_t$ describes underlying state dynamics. The collections $\{C_k,
+R_k\}_{k = 1}^{K}$ and $\{A_k, Q_k\}$ correspond to $K$ sets of emission and
+state evolution parameters, respectively. We will think of $\left(x_t\right)$
+and $\left(z_t\right)$ as latent data, while $\Theta = \{P, A_k, Q_k, C_k, R_k\}$
+are parameters that must be learned. Conjugate priors are placed on $\Theta$ --
+each row $P_k$ of $P$ is given a $\Dir\left(\alpha\right)$ prior, while each
+$\left(A_k, Q_k\right)$ and $\left(C_k, R_k\right)$ pair is given a MNIW prior.
+
+Inference can be done by blocked Gibbs sampling. The conditional for $\Theta$
+can be decomposed across each of the $K$ sets of parameters, and is tractable
+due to conjugacy. Conditionals for $\left(z_t\right)$ and $\left(x_t\right)$ can
+be derived using elementary calculations analogous to those for blocked sampling
+for the Sticky HMM, as detailed in section \label{sec:sticky_hmms}. However, a
+more enlightened approach to the same updates makes use of message passing, so
+will we make a brief detour into the basics of message passing.
+
+\paragraph{Message passing basics}
+\label{paragraph:message_passing}
+
 - Switching state space models (subsubsection)
    + Model description
    + Simulation example
@@ -1830,6 +1880,7 @@ structure is evidence of distinct temporal regimes.
   + Model description
   + Simulation examples
   + Description of MCMC
+
 
 \subsection{Changepoint detection}
 
