@@ -2011,6 +2011,50 @@ is a discrete sum rather than an integral). The updates for $\Theta$ are
 available by conjugacy. Together, these three updates allow efficient block
 Gibbs sampling of the SLDS.
 
+\subsection{Example}
+\label{subsec:slds_example}
+
+We next provide an example application of SLDS to the antibiotics data. We use
+an implementation provided by the pyslds package, available at
+\url{https://github.com/mattjj/pyslds}. The purpose of this analysis is to
+determine both a regime segmentation of timepoints for each series, along with a
+characterization of the dynamics within individual regimes.
+
+It is necessary to decide whether to share the parameters $\Theta$ across all
+speries or not. There is a tradeoff between the two alternatives,
+\begin{itemize}
+\item If we share regime parameters across all species, then information can be
+  shared across species with similar dynamics.
+\item If we estimate parameters for each species separately, then there will be
+  no need to consider parameters associated with species with very different
+  overall abundances or dynamics.
+\end{itemize}
+Ideally, it would be possible to limit the sets of parameters that are available
+to each species, so that only similar species shared information. This type of
+partial sharing was proposed in \citep{fox2009sharing} for a similar multiple
+time series model, for example.
+
+In this example, we fit species specific models, however. In addition to the
+tradeoff above, our decision is based on the fact that we have already seen the
+second approach in Section \ref{sec:hmm_example} as well as the practical
+limitation that the implementation in pyslds provides only state estimation for
+individual sequences.
+
+Note that the state identities $z_{it}$ will no longer be aligned across
+sequences $i$, since estimation is performed across each species $i$ separately.
+Instead of attempting to align the estimated state sequences, which is
+complicated even in the (rare) case that states are actually shared across all
+species, we visualize cluster the estimated parameter sequences.
+
+In more detail, we study the parameters $\Theta_{ik} := \{C_{ik}, R_{ik},
+A_{ik}, Q_{ik}\}$ associated with the dynamic state of species $i$ at time $t$,
+$z_{it} = k$. Not only does this allow us to avoid the label-switching problem,
+it provides a way of inspecting gradients of variation in dynamic regimes,
+according to smooth evolution of the associated parameters.
+
+To this end, we have clustered species according the posterior mean of their
+$\left(\Theta_{ik}\right)_{k =1}^{K}$. While this does not account for the fact that 
+
 \subsection{Changepoint detection}
 
 - Description of the model
