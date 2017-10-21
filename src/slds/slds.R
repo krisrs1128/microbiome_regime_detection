@@ -205,34 +205,39 @@ seq_order <- pc_df %>%
   arrange(c1) %>%
   .[["seq"]]
 
+order_df <- hm_df %>%
+  ungroup %>%
+  unite(param_time, param, time) %>%
+  spread(param_time, value)
+hc_order <- order_df %>%
+  select(-seq, -family) %>%
+  as.matrix() %>%
+  dist() %>%
+  hclust()
+
 hm_df$seq <- factor(
   hm_df$seq,
-  levels = seq_order
+  levels = order_df$seq[hc_order$order]
 )
 
 ## threshold some outliers
 hm_df$value[hm_df$value < -0.08] <- -0.08
 hm_df$value[hm_df$value > 0.08] <- 0.08
 
-hm_df <- hm_df %>%
-  ungroup() %>%
-  mutate(
-    family = recode(
-      family,
-      Alistipes = "Al.",
-      Ruminococcaceae = "Rumino.",
-      Lachnospiraceae = "Lachno.",
-      Streptococcaceae = "Strep.",
-      Parabacteroides = "Parab.",
-      Peptostreptococcaceae = "PStrep.",
-      Suterella = "Sutter.",
-      Veillonellaceae = "Veill."
-    )
-  )
-
 ggplot(hm_df) +
   geom_tile(
     aes(x = seq, y = time, fill = value)
+  ) +
+  geom_rect(
+    aes(
+      xmin = -Inf,
+      xmax = Inf,
+      ymin = -Inf,
+      ymax = Inf,
+      col = family
+    ),
+    fill = "transparent",
+    size = 0.9
   ) +
   facet_grid(param ~ family, scale = "free", space = "free") +
   scale_y_continuous(expand = c(0, 0), breaks = c(0, 20, 40)) +
@@ -243,8 +248,9 @@ ggplot(hm_df) +
   ) +
   theme(
     panel.spacing.x = unit(0, "cm"),
+    panel.border = element_blank(),
     axis.text.x = element_blank(),
-    strip.text.x = element_text(angle = 90, hjust = 0, size = 5),
+    strip.text.x = element_blank(),
     legend.position = "bottom"
   )
 
