@@ -249,7 +249,6 @@ ggplot(hm_df) +
     strip.text.x = element_blank(),
     legend.position = "bottom"
   )
-
 ggsave(
   "../../doc/figure/slds_parameter_heatmap.png",
   width = 5.136,

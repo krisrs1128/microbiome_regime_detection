@@ -2018,7 +2018,9 @@ We next provide an example application of SLDS to the antibiotics data. We use
 an implementation provided by the pyslds package, available at
 \url{https://github.com/mattjj/pyslds}. The purpose of this analysis is to
 determine both a regime segmentation of timepoints for each series, along with a
-characterization of the dynamics within individual regimes.
+characterization of the dynamics within individual regimes. Our code is
+available at
+\url{https://github.com/krisrs1128/tsc_microbiome/tree/master/src/slds}.
 
 It is necessary to decide whether to share the parameters $\Theta$ across all
 speries or not. There is a tradeoff between the two alternatives,
@@ -2052,10 +2054,50 @@ $z_{it} = k$. Not only does this allow us to avoid the label-switching problem,
 it provides a way of inspecting gradients of variation in dynamic regimes,
 according to smooth evolution of the associated parameters.
 
-To this end, we have clustered species according the posterior mean of their
-$\left(\Theta_{ik}\right)_{k =1}^{K}$. While this does not account for the fact that 
+To this end, we have clustered species according the posterior mean of the
+parameters $\left(\Theta_{ik}\right)_{k =1}^{K}$ after laying them out across
+timepoints. In more detail, we represent species $i$ by the vector
+$\left(\Theta_{i z_{i1}}, \dots, \Theta_{i z_{iT}\right)$, hierarchically
+  cluster them using a Euclidean distance, and then order species according to
+  the order of leaves on the resulting tree.
 
-\subsection{Changepoint detection}
+The resulting estimates are displayed in Figure
+\ref{fig:slds_parameter_heatmap}. $A_k$ and $Q_k$ describe the autocorrelation
+and noise of underlying state dynamics. The noise generally seems on the same
+order as the autocorrelation. The autocorrelations $A_{k}$ seem much smaller
+during or after the antibiotics time courses, which corresponds to the decrease
+in overall abundance during those time intervals, but the noise levels seem
+generally stable across timepoints.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{figure/slds_parameter_heatmap}
+  \caption{Heatmap of SLDS posterior means associated with parameters, across
+    species and timepoints. Each row of panels is associated with one type of
+    SLDS parameter. Rows and columns of cells correspond to timepoints and
+    species, respectively. The border around panels provides the taxonomic
+    identity for individual species. Cells are shaded in according to their
+    parameter estimates, and species are sorted by a hierarchical clustering.
+    Blue, white, and green correspond to negative, zero, and positive parameter
+    estimates, respectively. Estimates that are very large or small (above 2.1
+    or less than -1.1) have been thresholded, to keep the plot from being
+    dominated by outliers. \label{fig:slds_parameter_heatmap}
+  }
+\end{figure}
+
+The emissions parameters are somewhat more complex. Within each taxa, about a
+third of species have negative, approximately zero, and positive emission
+matrices $C_{k}$ each. Species that have positive (negative) emissions tend to
+have positive (negative) emissions across all timepoints. During the antibiotics
+time courses, the emissions matrices shrink towards zero, which allows modeling
+the zero counts during this regime. Similarly, when the abundance decreases, the
+noise levels $R_k$ decrease as well.
+
+Note that now that these parameters have been estimated, it would be possible to
+simulate series according to different regimes. This would provide an
+alternative summary of species dynamics.
+
+\subsection{Changepoint detection} 
 
 - Description of the model
 - Summary of the empirical bayes idea
