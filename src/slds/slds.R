@@ -70,6 +70,10 @@ taxa$family <- taxa$family %>%
     Peptostreptococcaceae_1 = "Peptostreptococcaceae"
   )
 taxa$family[is.na(taxa$family)] <- "Other"
+taxa$family <- factor(
+  taxa$family,
+  names(sort(table(taxa$family), decreasing = TRUE))
+)
 
 sample_df <- sample_data(abt) %>%
   data.frame() %>%
@@ -191,19 +195,11 @@ ggsave("../../doc/figure/slds_pca_loadings.png")
 params$NA_NA <- NULL
 hm_df <- params %>%
   gather(param, value, A_0, C_0, Q_0, R_0) %>%
-  group_by(param) %>%
-  mutate(value = value / max(value, na.rm = TRUE)) %>%
   group_by(seq, time, param) %>%
   summarise(
     value = mean(value, na.rm = TRUE),
     family = family[1]
   )
-
-seq_order <- pc_df %>%
-  group_by(seq) %>%
-  summarise(c1 = mean(Comp.1, na.rm = TRUE)) %>%
-  arrange(c1) %>%
-  .[["seq"]]
 
 order_df <- hm_df %>%
   ungroup %>%
@@ -221,8 +217,8 @@ hm_df$seq <- factor(
 )
 
 ## threshold some outliers
-hm_df$value[hm_df$value < -0.08] <- -0.08
-hm_df$value[hm_df$value > 0.08] <- 0.08
+hm_df$value[hm_df$value > 2.1] <- 2.1
+hm_df$value[hm_df$value < -1.1] <- -1.1
 
 ggplot(hm_df) +
   geom_tile(
