@@ -41,7 +41,7 @@ accessible to microbiome researchers. Specifically, we reanalyze the data of
 (CART) \citep{breiman1984classification}, Hidden Markov Models (HMMs)
 \citep{rabiner1986introduction}, Bayesian nonparametric HMMs
 \citep{teh2010hierarchical}, mixtures of Gaussian Pro9ce
-sses (GPs)
+sse05s (GPs)
 \citep{rasmussen2002infinite}, switching dynamical systems
 \citep{fox2009sharing}, and multiple changepoint detection
 \citep{fan2015empirical}. Along the way, we summarize each method, their
@@ -1933,7 +1933,7 @@ product of cliques made from latent states and their associated emission,
 where we defined $\psi_{t, t + 1}$ and $\psi_t$ so that the last two equations
 match. By definition, the messages have the form
 \begin{align*}
-  m_{t - 1, t}\left(z_{t}\right) &= \sum_{z_{t - 1} = 1}^{K} \psi_{t - 1, t}\left(z_{t - 1}, z_t\right) \psi_{t}\left(z_t, x_t\right) \\
+  m_{t - 1, t}\left(z_{t}\right) &= \sum_{z_{t - 1} = 1}^{K} \psi_{t - 1, t}\left(z_{t - 1}, z_t\right) \psi_{t}\left(z_t, x_t\right) m_{t - 2, t - 1}\left(z_t - 1\right) \\
   &= \sum_{z_{t - 1} = 1}^{K} p\left(z_t \vert z_{t - 1}\right)p\left(x_t \vert z_t\right)m_{t - 2, t - 1}\left(z_{t - 1}\right)
 \end{align*}
 for those going left-to-right and
@@ -1963,10 +1963,53 @@ forwards-backwards algorithm.
   + Simulation examples
   + Description of MCMC
 
-As demonstrated in the HMM example, the belief propagation abstraction can be
-used to compute complex marginals in a way that avoids what can otherwise become
-tedious calculation. Consider again the Switching Linear Dynamical System
-example. 
+\paragraph{Message passing for SLDS} 
+
+As demonstrated in the HMM forwards-backwards calculation, the belief
+propagation abstraction can be used to compute complex marginals in a way that
+avoids what can otherwise become tedious calculation. Consider again inference
+for the SLDS. We claimed that we block sample both $\left(z_t\right)$ and
+$\left(x_t\right)$. The idea for both steps is to perform a forwards message
+passing sweep followed by backwards sampling\footnote{This method is sometimes
+  called Forwards-Filtering Backwards-Sampling \citep{carter1994gibbs}.}.
+
+We provide details for block sampling $\left(x_t\right)$ conditional on
+$\left(z_t\right), \left(y_t\right)$, and $\Theta$. The key identity for
+backwards sampling is
+\begin{align*}
+  p\left(x_{1:T} \vert z_{1:T}, y_{1:T}, \Theta\right) &= p\left(x_{T} \vert z_{1:T}, y_{1:T}, \Theta\right) \prod_{t = 1}^{T - 1} p\left(x_{t} \vert x_{t + 1:T}, z_{1:T}, y_{1:T}, \Theta\right),
+\end{align*}
+and the idea is to sample $x_{T}$ given all the $z_{t}$ and $y_{t}$'s, and then
+proceed forwards, sampling $x_{t}$ given in addition all the later $x_{t +
+  1:T}$. In the following, we suppress notation for dependence on $\Theta$. A
+single message passing forwards pass is sufficient for effeciently sampling each
+of these densities. To see this, note that jointly
+\begin{align*}
+  p\left(x_{1:T} \vert y_{1:T}, z_{1:T}, \Theta\right) &\propto 
+  \prod_{t = 1}^{T} \Gsn\left(y_t \vert C_{z_t} x_t, R_{z_t}\right) \prod_{t = 2}^{T} \Gsn\left(x_{t} \vert A_{z_t} x_{t - 1}, Q_{z_t}\right) \\
+    &\propto\prod_{t = 1}^{T} \psi\left(x_{t}, y_{t}, z_{t}\right) \psi\left(x_{t - 1}, x_{t}, z_{t}\right)
+\end{align*}
+and that the associated messages have the form
+\begin{align*}
+  m_{t - 1, t}\left(x_t\right) &= \psi\left(x_{t} , y_t, z_t\right)\psi\left(x_{t - 1}, x_t, z_t\right)
+\end{align*}
+which can be computed in closed-form, by Gaussian marginalization.
+
+Once these messages have been computed in a forwards filtering pass, the
+densities required for backwards sampling can be found as
+\begin{align*}
+  p\left(x_t \vert x_{t + 1:T}, y_{1:T}, z_{1:T}\right) &=
+  \int_{X_1 \times \dots \times X_{t - 1}} p\left(x_{1:t} \vert x_{t + 1: T}, y_{1:T}, z_{1:T}\right) dx_{1:(t - 1)} \\
+  &\propto \int_{X_1 \times \dots X_{t - 1}} \prod_{i = 1}^{t} \psi\left(x_i, y_i, z_i\right) \prod \psi\left(x_{i - 1}, x_i, z_i\right) dx_{1} \dots dx_{t - 1} \\
+  &\propto \int_{X_{1}} \psi\left(x_{t - 1}, y_{t - 1}, z_{t - 1}\right)\psi\left(x_{t - 2}, x_{t - 1}, z_{t - 1}\right) m_{t - 2, t - 1}\left(x_{t - 1}\right) d x_{t - 1},
+\end{align*}
+using the messages computed in the forwards pass.
+
+A similar calculation provides the block-sampling update for
+$\left(z_{t}\right)$ given all other variables (in a way it is simpler, since it
+is a discrete sum rather than an integral). The updates for $\Theta$ are
+available by conjugacy. Together, these three updates allow efficient block
+Gibbs sampling of the SLDS.
 
 \subsection{Changepoint detection}
 
