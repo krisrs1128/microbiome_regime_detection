@@ -15,7 +15,6 @@
 \begin{document}
 \maketitle
 
-
 \begin{abstract}
 It is often of central interest to describe the stability and dynamics of the
 microbiome, and many studies have been performed to characterize these dynamics
@@ -42,7 +41,7 @@ accessible to microbiome researchers. Specifically, we reanalyze the data of
 (CART) \citep{breiman1984classification}, Hidden Markov Models (HMMs)
 \citep{rabiner1986introduction}, Bayesian nonparametric HMMs
 \citep{teh2010hierarchical}, mixtures of Gaussian Pro9ce
-sses (GPs)
+sse05s (GPs)
 \citep{rasmussen2002infinite}, switching dynamical systems
 \citep{fox2009sharing}, and multiple changepoint detection
 \citep{fan2015empirical}. Along the way, we summarize each method, their
@@ -924,7 +923,8 @@ generate this sort of behavior. The unifying probabilistic ``trick'' that helps
 accomplish this goal is the introduction of latent variables specying which
 regime the system is in at any given timepoint.
 
-\subsection{Hidden Markov Modeling}
+\subsection{Hidden Markov Models}
+\label{subsec:hmms}
 
 The idea behind Hidden Markov Models (HMMs) is similar to that of LDSs, with the
 exception that the $z_{t}$ are no longer thought of as continuous latent
@@ -1818,6 +1818,138 @@ structure is evidence of distinct temporal regimes.
     + HMC for parameters is usual HMC for GPs
     + How this can be sped up
 
+
+\subsubsection{Switching Linear Dynamical Systems}
+\label{subsubsec:switching_dynamical}
+
+Switching Linear Dynamical Systems (SDLSs) are a blend of HMMs (section
+\ref{subsec:hmms} and LDSs \ref{subsec:linear_dynamical_systems}
+  \citep{ghahramani1998variational, linderman2016recurrent}. The motivation for
+  such a model is that there may be good reason to believe that the system
+  exhibits regime switching behavior, but that the HMM's assumption that samples
+  arise independently conditional on latent regimes may be naive. A more
+  plausible assumption may be that, within a regime, observations follow
+  homogeneous dynamics, though neighboring timepoints may be dependent on one
+  another. Consider an imaginative example from \citep{linderman2016recurrent}:
+  when a mouse notices a predator, it suddenly begins to move rapidly to evade
+  any threat. The dynamics of the mouse's movements are stable within each of
+  the two regimes, even though its average position is not\footnote{More
+    traditional examples include the trajectories of fighter aircraft executing
+    different types of maneuvers, the prices of stocks in response to world
+    events, or patterns of EEG waveforms during different activities. We will of
+    course be interested in trajectories of bacterial abundances across
+    environmental shifts.}.
+
+To encode this intuition into a mathematical model, we suppose a time series
+$\left(y_{t}\right)$ evolves according to different LDSs during different time
+intervals. Following the formulation of \citep{linderman2016recurrent},
+\begin{align*}
+  y_{t} \vert  x_t, z_t &\sim \Gsn\left(C_{z_t}, x_t, R_{z_t}\right) \\
+  x_{t} \vert x_{t - 1}, z_{t} &\sim \Gsn\left(A_{z_t}x_{t - 1}, Q_{z_t}\right) \\
+  z_t \vert z_{t - 1} &\sim P_{z_{t - 1}}.
+\end{align*}
+$z_t \in \{1, \dots, K\}$ describes what regime the series is in at time $t$
+while $x_t$ describes underlying state dynamics. The collections $\{C_k,
+R_k\}_{k = 1}^{K}$ and $\{A_k, Q_k\}$ correspond to $K$ sets of emission and
+state evolution parameters, respectively. We will think of $\left(x_t\right)$
+and $\left(z_t\right)$ as latent data, while $\Theta = \{P, A_k, Q_k, C_k, R_k\}$
+are parameters that must be learned. Conjugate priors are placed on $\Theta$ --
+each row $P_k$ of $P$ is given a $\Dir\left(\alpha\right)$ prior, while each
+$\left(A_k, Q_k\right)$ and $\left(C_k, R_k\right)$ pair is given a MNIW prior.
+
+Inference can be done by blocked Gibbs sampling. The conditional for $\Theta$
+can be decomposed across each of the $K$ sets of parameters, and is tractable
+due to conjugacy. Conditionals for $\left(z_t\right)$ and $\left(x_t\right)$ can
+be derived using elementary calculations analogous to those for blocked sampling
+for the Sticky HMM, as detailed in section \label{sec:sticky_hmms}. However, a
+more enlightened approach to the same updates makes use of message passing, so
+will we make a brief detour into the basics of message passing.
+
+\paragraph{Message passing basics}
+\label{paragraph:message_passing}
+
+Message passing is a device for efficiently organizing high-dimensional
+integrals. It is particularly useful in probabilistic modeling settings, where
+we our goal may be to evaluate the marginal of a large joint density, but one
+which can be be decomposed into many conditionally independent components. As a
+concrete example, following \citep{fox2009bayesian}, suppose we can write
+\begin{align*}
+p\left(x\right) &\propto \psi_{12}\left(x_1, x_2\right)\psi_{23}\left(x_2, x_3\right)\psi_{24}\left(x_2, x_4\right) \prod_{i = 1}^{4}\psi_{i}\left(x_i\right)
+\end{align*}
+and that we would like a closed-form for the marginal $p\left(x_1\right)$. Note
+that we can order the necessary integrals according to
+\begin{align*}
+  p\left(x_1\right) &\propto \psi_1\left(x_1\right)
+  \int_{X_2}\left[\psi_{12}\left(x_1, x_2\right)\psi_2\left(x_2\right)
+    \int_{X_3} \psi_{23}\left(x_2, x_3\right) \psi_3\left(x_3\right) dx_3
+    \int_{X_4} \psi_{24}\left(x_2, x_4\right)\psi_4\left(x_4\right) dx_4
+    \right]
+\end{align*}
+which avoids redundant computation.
+
+To suggest the more general lesson, define a set of messages
+$m_{ji}\left(x_i\right)$, which integrate over the $j^{th}$ variable and are
+functions of the $i^{th}$,
+\begin{align*}
+  m_{32}\left(x_2\right) &= \int_{X_3} \psi_{23}\left(x_2, x_3\right)\psi_3\left(x_3\right) dx_3 \\
+  m_{42}\left(x_2\right) &= \int_{X_4} \psi_{24}\left(x_2, x_4\right)\psi_4\left(x_4\right) dx_4
+  m_{21}\left(x_1\right) &= \int_{X_2} \psi_{12}\left(x_1, x_2\right) \psi_2\left(x_2\right) m_{32}\left(x_2\right) m_{42}\left(x_2\right) dx_2.
+\end{align*}
+Observe then that the marginal of interest can be concisely written as
+\begin{align}
+  \label{eq:message_passing_example}
+  p\left(x_1\right) &\propto \psi_1\left(x_1\right) m_{21}\left(x_1\right).
+\end{align}
+
+Next we consider arbitrary distributions that can be decomposed as
+\begin{align*}
+  p\left(x_i\right) &= \prod_{C_j} \psi_{C_j}\left(x_{C_j}\right)\psi_{j}\left(x_{C_j}, y_{j}\right),
+\end{align*}
+where the $y_i$ are fixed in advanced (typically this is data upon which we
+condition). Each $C_i$ is a \textit{clique} in the undirected conditional
+independence graph linking the $x_i$'s. Define messages according to
+\begin{align*}
+  m_{ji}\left(x_{C_i}\right) &= \int_{X_{C_{j}}} \psi_{C_i}\left(x_{C_{i}}\right) \psi_{i}\left(x_{C_{i}}, y_{i}\right) \prod_{k \in N\left(j\right)} m_{kj}\left(x_{C_{j}}\right) dx_{c_{j}},
+\end{align*}
+where $N\left(j\right)$ denotes the neighbors of node $j$.
+
+It turns out that we can always write
+\begin{align}
+  \label{eq:message_update}
+  p\left(x_{i} \vert y\right) &\propto \psi_{i}\left(x_{C_i}, y_i\right) \prod_{j \in N\left(i\right)} m_{ji}\left(x_{C_i}\right),
+\end{align}
+which parallels equation \ref{eq:message_passing_example}.
+
+One interesting application of this technique is a quick derivation of the
+forwards-backwards algorithm for HMMs. Denote observations by $\left(x_t\right)$
+and latent states by $\left(z_t\right)$. Note that we can write the joint as a
+product of cliques made from latent states and their associated emission,
+\begin{align*}
+  p\left(x, z\right) &= p\left(z_1\right) \left[\prod_{t = 1}^{T - 1} p\left(z_{t + 1} \vert z_t\right)\right]
+  \left[\prod_{t = 1}^{T} p\left(x_t \vert z_t\right)\right] \\
+    &= \psi_1\left(z_1\right) \left[\prod_{t = 1}^{T - 1} \psi_{t, t + 1}\left(z_t, z_t +
+    1\right)\right] \left[\prod_{t = 1}^{T} \psi_t\left(z_t, x_t\right)\right],
+\end{align*}
+where we defined $\psi_{t, t + 1}$ and $\psi_t$ so that the last two equations
+match. By definition, the messages have the form
+\begin{align*}
+  m_{t - 1, t}\left(z_{t}\right) &= \sum_{z_{t - 1} = 1}^{K} \psi_{t - 1, t}\left(z_{t - 1}, z_t\right) \psi_{t}\left(z_t, x_t\right) m_{t - 2, t - 1}\left(z_t - 1\right) \\
+  &= \sum_{z_{t - 1} = 1}^{K} p\left(z_t \vert z_{t - 1}\right)p\left(x_t \vert z_t\right)m_{t - 2, t - 1}\left(z_{t - 1}\right)
+\end{align*}
+for those going left-to-right and
+\begin{align*}
+  m_{t + 1, t}\left(z_t\right) &= \sum_{z_{t + 1} = 1}^{K} p\left(z_{t + 1}\vert z_t\right)p\left(x_t \vert z_t\right)m_{t + 2, t + 1}\left(z_{t + 1}\right),
+\end{align*}
+for those going right-to-left.
+
+According to the message passing update \ref{eq:message_update}, the marginals
+of interest have the form
+\begin{align*}
+  p\left(z_{t} \vert y_{1:T}\right) &\propto p\left(x_t \vert z_t\right) m_{t - 1, t}\left(z_t\right)m_{t + 1, t}\left(z_t\right)
+\end{align*}
+which has the exactly the same form as found during the derivation of the
+forwards-backwards algorithm.
+
 - Switching state space models (subsubsection)
    + Model description
    + Simulation example
@@ -1830,6 +1962,54 @@ structure is evidence of distinct temporal regimes.
   + Model description
   + Simulation examples
   + Description of MCMC
+
+\paragraph{Message passing for SLDS}
+
+As demonstrated in the HMM forwards-backwards calculation, the belief
+propagation abstraction can be used to compute complex marginals in a way that
+avoids what can otherwise become tedious calculation. Consider again inference
+for the SLDS. We claimed that we block sample both $\left(z_t\right)$ and
+$\left(x_t\right)$. The idea for both steps is to perform a forwards message
+passing sweep followed by backwards sampling\footnote{This method is sometimes
+  called Forwards-Filtering Backwards-Sampling \citep{carter1994gibbs}.}.
+
+We provide details for block sampling $\left(x_t\right)$ conditional on
+$\left(z_t\right), \left(y_t\right)$, and $\Theta$. The key identity for
+backwards sampling is
+\begin{align*}
+  p\left(x_{1:T} \vert z_{1:T}, y_{1:T}, \Theta\right) &= p\left(x_{T} \vert z_{1:T}, y_{1:T}, \Theta\right) \prod_{t = 1}^{T - 1} p\left(x_{t} \vert x_{t + 1:T}, z_{1:T}, y_{1:T}, \Theta\right),
+\end{align*}
+and the idea is to sample $x_{T}$ given all the $z_{t}$ and $y_{t}$'s, and then
+proceed forwards, sampling $x_{t}$ given in addition all the later $x_{t +
+  1:T}$. In the following, we suppress notation for dependence on $\Theta$. A
+single message passing forwards pass is sufficient for effeciently sampling each
+of these densities. To see this, note that jointly
+\begin{align*}
+  p\left(x_{1:T} \vert y_{1:T}, z_{1:T}, \Theta\right) &\propto
+  \prod_{t = 1}^{T} \Gsn\left(y_t \vert C_{z_t} x_t, R_{z_t}\right) \prod_{t = 2}^{T} \Gsn\left(x_{t} \vert A_{z_t} x_{t - 1}, Q_{z_t}\right) \\
+    &\propto\prod_{t = 1}^{T} \psi\left(x_{t}, y_{t}, z_{t}\right) \psi\left(x_{t - 1}, x_{t}, z_{t}\right)
+\end{align*}
+and that the associated messages have the form
+\begin{align*}
+  m_{t - 1, t}\left(x_t\right) &= \psi\left(x_{t} , y_t, z_t\right)\psi\left(x_{t - 1}, x_t, z_t\right)
+\end{align*}
+which can be computed in closed-form, by Gaussian marginalization.
+
+Once these messages have been computed in a forwards filtering pass, the
+densities required for backwards sampling can be found as
+\begin{align*}
+  p\left(x_t \vert x_{t + 1:T}, y_{1:T}, z_{1:T}\right) &=
+  \int_{X_1 \times \dots \times X_{t - 1}} p\left(x_{1:t} \vert x_{t + 1: T}, y_{1:T}, z_{1:T}\right) dx_{1:(t - 1)} \\
+  &\propto \int_{X_1 \times \dots X_{t - 1}} \prod_{i = 1}^{t} \psi\left(x_i, y_i, z_i\right) \prod \psi\left(x_{i - 1}, x_i, z_i\right) dx_{1} \dots dx_{t - 1} \\
+  &\propto \int_{X_{1}} \psi\left(x_{t - 1}, y_{t - 1}, z_{t - 1}\right)\psi\left(x_{t - 2}, x_{t - 1}, z_{t - 1}\right) m_{t - 2, t - 1}\left(x_{t - 1}\right) d x_{t - 1},
+\end{align*}
+using the messages computed in the forwards pass.
+
+A similar calculation provides the block-sampling update for
+$\left(z_{t}\right)$ given all other variables (in a way it is simpler, since it
+is a discrete sum rather than an integral). The updates for $\Theta$ are
+available by conjugacy. Together, these three updates allow efficient block
+Gibbs sampling of the SLDS.
 
 \subsection{Changepoint detection}
 
