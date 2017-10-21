@@ -1963,7 +1963,7 @@ forwards-backwards algorithm.
   + Simulation examples
   + Description of MCMC
 
-\paragraph{Message passing for SLDS} 
+\paragraph{Message passing for SLDS}
 
 As demonstrated in the HMM forwards-backwards calculation, the belief
 propagation abstraction can be used to compute complex marginals in a way that
@@ -1985,7 +1985,7 @@ proceed forwards, sampling $x_{t}$ given in addition all the later $x_{t +
 single message passing forwards pass is sufficient for effeciently sampling each
 of these densities. To see this, note that jointly
 \begin{align*}
-  p\left(x_{1:T} \vert y_{1:T}, z_{1:T}, \Theta\right) &\propto 
+  p\left(x_{1:T} \vert y_{1:T}, z_{1:T}, \Theta\right) &\propto
   \prod_{t = 1}^{T} \Gsn\left(y_t \vert C_{z_t} x_t, R_{z_t}\right) \prod_{t = 2}^{T} \Gsn\left(x_{t} \vert A_{z_t} x_{t - 1}, Q_{z_t}\right) \\
     &\propto\prod_{t = 1}^{T} \psi\left(x_{t}, y_{t}, z_{t}\right) \psi\left(x_{t - 1}, x_{t}, z_{t}\right)
 \end{align*}
