@@ -47,7 +47,7 @@ abt <- abt %>%
   subset_samples(ind == "F") %>%
   filter_taxa(function(x) mean(x > 0) > opts$k_filter, prune = TRUE)
 
-x_asinh <- asinh(get_taxa(abt))
+x_asinh <- scale(asinh(get_taxa(abt)), scale = FALSE)
 write_csv(
   data.frame(x_asinh),
   file.path(opts$dir, "abt.csv"),

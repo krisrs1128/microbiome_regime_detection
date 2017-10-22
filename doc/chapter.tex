@@ -2054,6 +2054,10 @@ $z_{it} = k$. Not only does this allow us to avoid the label-switching problem,
 it provides a way of inspecting gradients of variation in dynamic regimes,
 according to smooth evolution of the associated parameters.
 
+Before applying this model, we $\asinh$ transform the raw count data, as in our
+other applications. We further center each species' series, since the marginal
+mean for each species must always be zero.
+
 To this end, we have clustered species according the posterior mean of the
 parameters $\left(\Theta_{ik}\right)_{k =1}^{K}$ after laying them out across
 timepoints. In more detail, we represent species $i$ by the vector
@@ -2094,8 +2098,8 @@ the zero counts during this regime. Similarly, when the abundance decreases, the
 noise levels $R_k$ decrease as well.
 
 Note that now that these parameters have been estimated, it would be possible to
-simulate series according to different regimes. This would provide an
-alternative summary of species dynamics.
+simulate series according to different regimes. This could be an alternative
+device for interpreting fitted parameters.
 
 \subsection{Changepoint detection} 
 
