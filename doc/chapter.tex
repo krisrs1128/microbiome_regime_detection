@@ -2011,7 +2011,97 @@ is a discrete sum rather than an integral). The updates for $\Theta$ are
 available by conjugacy. Together, these three updates allow efficient block
 Gibbs sampling of the SLDS.
 
-\subsection{Changepoint detection}
+\subsection{Example}
+\label{subsec:slds_example}
+
+We next provide an example application of SLDS to the antibiotics data. We use
+an implementation provided by the pyslds package, available at
+\url{https://github.com/mattjj/pyslds}. The purpose of this analysis is to
+determine both a regime segmentation of timepoints for each series, along with a
+characterization of the dynamics within individual regimes. Our code is
+available at
+\url{https://github.com/krisrs1128/tsc_microbiome/tree/master/src/slds}.
+
+It is necessary to decide whether to share the parameters $\Theta$ across all
+speries or not. There is a tradeoff between the two alternatives,
+\begin{itemize}
+\item If we share regime parameters across all species, then information can be
+  shared across species with similar dynamics.
+\item If we estimate parameters for each species separately, then there will be
+  no need to consider parameters associated with species with very different
+  overall abundances or dynamics.
+\end{itemize}
+Ideally, it would be possible to limit the sets of parameters that are available
+to each species, so that only similar species shared information. This type of
+partial sharing was proposed in \citep{fox2009sharing} for a similar multiple
+time series model, for example.
+
+In this example, we fit species specific models, however. In addition to the
+tradeoff above, our decision is based on the fact that we have already seen the
+second approach in Section \ref{sec:hmm_example} as well as the practical
+limitation that the implementation in pyslds provides only state estimation for
+individual sequences.
+
+Note that the state identities $z_{it}$ will no longer be aligned across
+sequences $i$, since estimation is performed across each species $i$ separately.
+Instead of attempting to align the estimated state sequences, which is
+complicated even in the (rare) case that states are actually shared across all
+species, we visualize cluster the estimated parameter sequences.
+
+In more detail, we study the parameters $\Theta_{ik} := \{C_{ik}, R_{ik},
+A_{ik}, Q_{ik}\}$ associated with the dynamic state of species $i$ at time $t$,
+$z_{it} = k$. Not only does this allow us to avoid the label-switching problem,
+it provides a way of inspecting gradients of variation in dynamic regimes,
+according to smooth evolution of the associated parameters.
+
+Before applying this model, we $\asinh$ transform the raw count data, as in our
+other applications. We further center each species' series, since the marginal
+mean for each species must always be zero.
+
+To this end, we have clustered species according the posterior mean of the
+parameters $\left(\Theta_{ik}\right)_{k =1}^{K}$ after laying them out across
+timepoints. In more detail, we represent species $i$ by the vector
+$\left(\Theta_{i z_{i1}}, \dots, \Theta_{i z_{iT}\right)$, hierarchically
+  cluster them using a Euclidean distance, and then order species according to
+  the order of leaves on the resulting tree.
+
+The resulting estimates are displayed in Figure
+\ref{fig:slds_parameter_heatmap}. $A_k$ and $Q_k$ describe the autocorrelation
+and noise of underlying state dynamics. The noise generally seems on the same
+order as the autocorrelation. The autocorrelations $A_{k}$ seem to increase
+after the antibiotics time courses, which corresponds to the decrease in overall
+abundance during those time intervals, but the noise levels seem generally
+stable across timepoints.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{figure/slds_parameter_heatmap}
+  \caption{Heatmap of SLDS posterior means associated with parameters, across
+    species and timepoints. Each row of panels is associated with one type of
+    SLDS parameter. Rows and columns of cells correspond to timepoints and
+    species, respectively. The border around panels provides the taxonomic
+    identity for individual species. Cells are shaded in according to their
+    parameter estimates, and species are sorted by a hierarchical clustering.
+    Blue, white, and green correspond to negative, zero, and positive parameter
+    estimates, respectively. Estimates that are very large or small (above 2.1
+    or less than -1.1) have been thresholded, to keep the plot from being
+    dominated by outliers. \label{fig:slds_parameter_heatmap}
+  }
+\end{figure}
+
+The emissions parameters are somewhat more complex. Within each taxa, about a
+third of species have negative, approximately zero, and positive emission
+matrices $C_{k}$ each. Species that have positive (negative) emissions tend to
+have positive (negative) emissions across all timepoints. During the antibiotics
+time courses, the emissions matrices shrink towards zero, which allows modeling
+the zero counts during this regime. Similarly, when the abundance decreases, the
+noise levels $R_k$ decrease as well.
+
+Note that now that these parameters have been estimated, it would be possible to
+simulate series according to different regimes. This could be an alternative
+device for interpreting fitted parameters.
+
+\subsection{Changepoint detection} 
 
 - Description of the model
 - Summary of the empirical bayes idea
