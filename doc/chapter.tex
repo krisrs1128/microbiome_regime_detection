@@ -1136,6 +1136,7 @@ increasing $\hat{\mu}_{k}$, are displayed below.
 3 0.077 0.094 0.810 0.019
 4 0.027 0.007 0.056 0.910
 \end{verbatim}
+
 Unsurprisingly, most transitions remain in the same state, and any departures
 are generally restricted to states with similar $\hat{\mu}_{k}$s. Generally,
 there appear to be more transitions downwards than upwards, and the sum of
@@ -2011,14 +2012,212 @@ is a discrete sum rather than an integral). The updates for $\Theta$ are
 available by conjugacy. Together, these three updates allow efficient block
 Gibbs sampling of the SLDS.
 
-\subsection{Changepoint detection}
+\subsection{BASIC changepoint detection}
+
+The methods considered so far have always made two modeling choices,
+\begin{itemize}
+\item There can be no partial sharing in regime switching behavior over series.
+  That is, either series are modeled independently, in which case there is no
+  sharing of regime changes, or, at the opposite extreme, all series must change
+  simultaneously, with no exceptions for any less typical series.
+\item Parameters associated with switches are modeled explicitly, and it is
+  possible to generatively simulate according to different regimes, once the
+  overall model is fit.
+\end{itemize}
+
+However, neither is necessary, and \cite{fan2015empirical} describe an
+algorithm, Bayesian Analysis of Simultaneous Changepoints (BASIC) that discards
+these conventions, with the goal of improving interpretability and model
+estimation properties. Indeed, allowing shared changepoints for some, but not
+all, time series can improve model fit and interpretability. Further, collapsing
+parameters regime-specific parameters can facilitate estimation, according to
+theoretical studies \citep{liu1994collapsed}. After introducing the model and
+inference, \cite{fan2015empirical} describe an empirical bayesian mechanism for
+prior elicitation.
+
+We summarizing the BASIC model and the key observations used for inference,
+before discussing an application to the antibiotics data in section
+\ref{sec:basic_example}.
+
+\subsubsection{Model}
+\label{subsec:basic_model}
+
+Let $\left(x_{it}\right)_{i = 1}^{n}$ denote the abundance of species $i$ at
+time $t$. We imagine species $i$'s abundances are drawn $i.i.d.$ from a
+likelihood model with fixed parameters within, but not between, changepoints.
+Certain timepoints are thought to have higher propensity for containing
+changepoints, across all species. More formally, the assumed model has the form,
+
+\begin{align*}
+  x_{it} \vert \theta_{it} &\sim p\left(x_{it} \vert \theta_{it}\right) \\
+  \theta_{it} \vert z_{it}, \theta_{i,t - 1} &\sim z_{it}\pi_{\Theta}\left(\theta\right) + \left(1 - z_{it}\right) \delta_{\theta_{i, t - 1}}\left(\theta\right) \\
+  z_{it} \vert q_{t} &\sim \Ber\left(q_{t}\right) \\
+  q_t &\sim \pi_{Q}\left(q\right).
+\end{align*}
+
+The inference algorithm proposed for this model is general enough to accomodate
+arbitrary conjugate likelihood-prior pairs, only requiring closed-form
+expressions for the marginal likelihoods of time segments for individual
+species,
+\begin{align*}
+  p_i\left(t, s\right) &= \int \prod_{r = t}^{s} p\left(x_{ir} \vert \theta\right) \pi_{\Theta}\left(\theta\right) d\theta.
+\end{align*}
+
+For example, in our applications, we will consider Gaussian-Gaussian and
+Beta-Bernoulli pairs, to model abundance and presence-absence data,
+respectively.
+
+\subsubsection{Inference}
+\label{subsubsec:basic_inference}
+
+\cite{fan2015empirical} propose sampler with block Gibbs and Metrpoolis-Hastings
+elements to sample from $p\left(\left(z_{it}\right) \vert
+\left(x_{it}\right)\right)$, the posterior after having marginalized out all the
+$\theta_{it}$ and $q_t$. Then, an empirical bayes approach for selecting
+hyperparameters in the priors $\pi_{Q}$ and $\pi_{\Theta}$ is described.
+
+The sampler iterates row and column block Gibbs sampling followed by a
+Metropolis-Hastings corrected changepoint jittering step. For rowwise block
+Gibbs, the goal is to sample each row $i$ according to
+\begin{align*}
+  p\left(z_{i\cdot} \vert \left(x_{it}\right), \left(z_{-i \cdot}\right)\right).
+\end{align*}
+For notational convenience, we will write $z_{i} := z_{i\cdot}$ for the $i^{th}$
+row of $z$s and $z_{-i} := z_{-i\cdot}$ for the matrix made up of all but the
+$i^{th}$ row. In a similar spirit, we write $z$ and $x$ for the full matrix of
+$z$s and $x$s, instead of the more cumbersome $\left(z_{it}\right)$ and
+$\left(x_{it}\right)$. Further, define notation representing the probability of
+a changepoint occurring at time $t$ in sequence $i$, after having observed all
+other sequences,
+\begin{align*}
+  c_{i}\left(t\right) &:= p\left(z_{it} \vert z_{-i}\right),
+\end{align*}
+as well as the likelihood of sequence $i$ from time $t$ to the end, after having
+observed a changepoint at time $t$ and changepoints for all other sequences,
+\begin{align*}
+  Q_{i}\left(t\right) &:= p\left(x_{i, t:T} \vert z_{it} = 1, z_{-i}\right).
+\end{align*}
+
+Then the posterior probability of no changepoints in sequence $i$ exactly until
+time $t$ can be expressed as
+\begin{align}
+  p\left(z_{i, 1:\left(t - 1\right)} = 0, z_{it} = 1 \vert \left(x_{it}\right), z_{-i}\right) &= P_{i}\left(1, t\right)\frac{Q_{i}\left(t\right)}{Q_{i}\left(s\right)}\left[\prod_{r = s + 1}^{t - 1} \left(1 - c_{i}\left(r\right)\right)\right] c_{i}\left(t\right), \label{eq:first_changepoint}
+\end{align}
+using Bayes' rule.
+
+For subsequent segments between changepoints, similar reasoning yields 
+\begin{align}
+  p\left(z_{i, \left(s + 1\right):\left(t - 1\right)} = 0, z_{it} = 1 \vert z_{is} = 1, x, z_{i, 1:\left(t - 1\right)}, z_{-i}\right) &= P_{i}\left(s, t\right)\frac{Q_{i}\left(t\right)}{Q_{i}\left(s\right)} \left[\prod_{r = s + 1}^{t - 1} \left(1 - c_{i}\left(r\right)\right)\right]c_{i}\left(t\right). \label{eq:subsequent_changepoints}
+\end{align}
+Hence, if $P_{i}\left(s, t\right)$, $c_{i}\left(t\right)$ and
+$Q_{i}\left(t\right)$ are available, then for all $s, t$, then the row $z_{i}$
+can be sampled by identify the first changepoint according to equation
+\ref{eq:first_changepoint} and the remaining ones using
+\ref{eq:subsequent_changepoints}.
+
+To find $c_{i}\left(t\right)$, observe that
+\begin{align*}
+  p\left(z_{it} = 1 \vert z_{-i}\right) &\propto p\left(z_{-i} \vert z_{it} = 1\right) p\left(z_{it} = 1\right) \\
+  &= q_{t}^{N_{-i}\left(t\right)} \left(1 - q_{t}\right)^{n - N_{-i}\left(t\right)} \pi_{Q}\left(q_{t}\right),
+\end{align*}
+where we set $N_{-i}\left(t\right) := \{\# \text{changepoints at time $t$,
+excluding sequence} $i$\} = \sum_{i^\prime \neq i} z_{i^\prime t}$.
+
+To compute $Q_{i}\left(t\right)$ efficiently, we can use a dynamic programming
+routine. Starting from $Q_{i}\left(T, T + 1\right) = P_{j}\left(T, T +
+1\right)$, we can make a forwards pass through the sequence, according to the
+recursion,
+\begin{align*}
+  Q_{i}\left(t\right) &= \sum_{s = t + 1}^{T} \left[\prod_{r = t + 1}^{s - 1} \left(1 - c_{i}\left(r\right)\right)\right]c_{i}\left(s\right)P_{i}\left(t, s\right)Q_{i}\left(s\right) +
+  \left[\prod_{r = s + 1}^{T}\left(1 - c_{i}\left(r\right)\right)\right]P_{i}\left(t, T + 1\right).
+\end{align*}
+The first term corresponds to the case that there is an intermediate changepoint
+at time $s$, for some $s > t$, and the second is the case that $t$ is the last
+changepoint in sequence $i$.
+
+This completes specification of the rowwise-sampling step. For columnwise
+sampling, similar dynamic programming ideas apply. We denote the
+conditional probability that a certain entry $z_{it} = 1$, after having observed
+$z$ at all other timepoints,
+\begin{align*}
+  c_{t}\left(i\right) :&= p\left(z_{it} = 1 \vert z_{-t}, q_{t}\right)
+\end{align*}
+and the likelihood of the $i^{th}$ sequence over the interval containing $t$,
+taking $t$ to be either a changepoint or not,
+\begin{align*}
+  A_{t}\left(i\right) := P_{i}\left(r_{t}\left(i\right), t\right)P_{i}\left(t, s_{t}\left(i\right)\right) \\
+  B_{t}\left(i\right) := P_{i}\left(r_{t}\left(i\right), s_{t}\left(i\right)\right),
+\end{align*}
+where $r_{t}\left(i\right)$ and $s_{t}\left(i\right)$ denote the times for the
+changepoints immediately preceding and following $t$, in the $i^{th}$ sequence.
+
+With this notation, it then follows that
+\begin{align*}
+  p\left(z_{it} = 1 \vert z_{1:(i - 1)}, z_{-t}, x\right) &= \frac{A_{t}\left(i\right)c_{t}\left(i\right)}{A_{t}\left(i\right)c_t\left(i\right) + B_t\left(i\right)\left(1 - c_t\left(i\right)\right)},
+\end{align*}
+which can be used to sample the $t^{th}$ column of $z$, from the top down. Since
+$A_{t}\left(i\right)$ and $B_{t}\left(i\right)$ can both be computed from the
+marginal likelihoods $P_{i}\left(r, s\right)$, which are assumed available
+analytically, for sampling columns $z_t$, it is sufficient to have an efficient
+way of computing the $c_{t}\left(i\right)$. However, using Bayes' rule and the
+fact that a changepoint either does or doesn't occur in sequence $i$ at time
+$t$, it can be shown that $c_{t}\left(i\right) = \frac{\int q
+  \tilde{\pi}^{c}\left(q\right) dq}{\int \tilde{\pi}_{it}^{c}\left(q\right)
+  dq}{\int \tilde{\pi}_{it}^{c}\left(q\right)}$, where
+\begin{align*}
+  \tilde{\pi}_{it}^{c}\left(q\right) &:= \prod_{i^\prime = i + 1}^{n} \left(A_{t}\left(i^\prime\right)q + B_{t}\left(i^\prime\right)\left(1 - q\right)\right)q^{N_{-t}\left(i\right)}\left(1 - q\right)^{i - 1 - N_{-t}\left(i\right)} \tilde{\pi}_{it}^{c}\left(q\right) dq,
+\end{align*}
+is the unnormalized likelihood times prior. Note the coefficients in the product
+$\Pi_{i^\prime = i + 1}^{n} A_{t}\left(i^\prime\right)q +
+B_{t}\left(i^\prime\right)\left(1 - q\right)$ can be computed efficiently by
+starting with $i = n$ and then updating the coefficients in front of each term
+$q^k \left(1 - q\right)^{n - i - k}$ as $i$ is decremented to 1.
+
+Next, consider the choice of priors $\pi_{Q}$ and $\pi_{\Theta}$, for the
+changepoint probabilities and likelihood parameters, respectively. In practice,
+it can be hard to elicit these priors, and a common strategy is to define
+parameterized families of prior $\pi_{Q}^{\eta}$ and $\pi_{\Theta}^{\nu}$.
+Inference can then proceed by placing an additional layer at the top of the
+hierarchical model (the fully Bayesian approach), or alternatively choosing the
+members of these families that maximize the marginal likelihood (the Empirical
+Bayesian approach). \citep{fan2015empirical} describe an interesting Empirical
+Bayesian approach that uses a rich family for the prior $\pi_{Q}^{\eta}$.
+
+In more detail, recall that the marginal likelihood has the form
+\begin{align}
+ \label{eq:pi_q_marginal_lik} 
+\end{align}
+
+In a typical empirical bayesian analysis, we might consider a Beta family for
+$\pi_{Q}$, since $z_{it} \sim \Ber\left(q\right)$. That is, we would suppose
+$\pi_{Q}^{a_0, b_0} = \Bet\left(q \vert a_{0}, b_{0}\right)$ and choose $a_{0}$
+and $b_0$ to maximize the marginal likelihood in equation
+\ref{eq:pi_q_marginal_lik}.
+
+A nonparametric alternative, proposed by \citep{fan2015empirical}, considers
+$\pi_{Q}^{w, \nu}\left(q\right) = \sum_{k = 1}^{K} w_{k} \nu_{k}\left(q\right)$,
+for some weights $w_{k}$ and predefined basis functions $\nu_{k}$. For example,
+$\nu_{k}\left(q\right) = \delta_{1 / k}\left(q\right)$ defines a grid of point
+masses over the interval $\left[0, 1\right]$. Then, the empirical bayesian
+approach optimizes the marginal likelihood over $\left(w_k\right)$. This problem
+does not have an analytical solution, but it is convex, so can be input to
+generic convex optimization software. This provides a another example for how
+increased computational resources have made certain modeling restrictions, like
+requiring a Beta hyperprior for $q$, unecessary.
+
+%% (maybe draw the dag?)
+
+\subsubsection{Example}
+\label{subsec:basic_example}
+
+, allowing partial sharing of changepoints and
+collapsing sampling of regime parameters.
 
 - Description of the model
 - Summary of the empirical bayes idea
 - Summary of dynamic programming, and provide row and column updates
   + Maybe provide actual pseudocode?
 - Would be nice to include a simulation / application to antibiotics
-
 
 \section{Alternative probabilistic models}
 \label{sec:alternative_probabilistic_models}
