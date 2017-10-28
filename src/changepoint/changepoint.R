@@ -75,7 +75,7 @@ plot_samples <- function(sample_stats) {
 
 #' Plot pi and q
 plot_pi_q <- function(q_vals, pi_q) {
-  q_vals$index <- seq_len(nrow(q_vals))
+  q_vals$index <- seq_len(nrow(q_vals)) / nrow(q_vals)
   p <- list()
   p[["q_vals"]] <- ggplot(q_vals) +
     geom_bar(
@@ -87,15 +87,13 @@ plot_pi_q <- function(q_vals, pi_q) {
     scale_y_continuous(expand = c(0, 0))
 
   ## plot pi_q
-  pi_q$index <- seq_len(nrow(pi_q))
+  pi_q$q <- seq_len(nrow(pi_q)) / nrow(q_vals)
   p[["pi_q"]] <- ggplot(pi_q) +
     geom_bar(
-      aes(x = index, y = pi_q),
-      width = 1,
+      aes(x = q, y = pi_q),
       stat = "identity"
     ) +
-    scale_x_continuous(expand = c(0, 0)) +
-    scale_y_continuous(expand = c(0, 0))
+    scale_y_continuous(limits = c(0, 0.6), expand = c(0, 0))
 
   p
 }
@@ -143,7 +141,7 @@ taxa$family <- factor(
 ###############################################################################
 ## Gaussian mean / variance changepoint detection
 ###############################################################################
-system("python changepoint.py --dir ../data/changepoint/asinh/ --iter 100")
+system("python changepoint.py --dir ../../data/changepoint/asinh/ --iter 2500")
 samples <- read_csv(
   file.path(opts$dir, "asinh", "samples.csv"),
   col_names = c("iter", "changepoint", "row")
@@ -151,19 +149,19 @@ samples <- read_csv(
 samples %>%
   process_samples(abt) %>%
   plot_samples()
-ggsave("../doc/figure/basic_heatmap.png", width = 7.65, height = 4.15)
+ggsave("../../doc/figure/basic_heatmap.png", width = 6.65, height = 3.15)
 
 ## plot q values
 q_vals <- read_csv(file.path(opts$dir, "asinh", "q_vals.csv"), col_names = "q")
 pi_q <- read_csv(file.path(opts$dir, "asinh", "pi_q.csv"), col_names = "pi_q")
 p <- plot_pi_q(q_vals, pi_q)
-ggsave("../doc/figure/changepoint_q.png", p[[1]])
-ggsave("../doc/figure/changepoint_eb_prior.png", p[[2]])
+ggsave("../../doc/figure/changepoint_q.png", p[[1]], width = 6.65, height = 3.15)
+ggsave("../../doc/figure/changepoint_eb_prior.png", p[[2]], width = 4, height = 3)
 
 ###############################################################################
 ## Bernoulli changepoint detection
 ###############################################################################
-system("python changepoint.py --dir ../data/changepoint/bern/ --model bernoulli --iter 100")
+system("python changepoint.py --dir ../../data/changepoint/bern/ --model bernoulli --iter 2500")
 samples <- read_csv(
   file.path(opts$dir, "bern", "samples.csv"),
   col_names = c("iter", "changepoint", "row")
@@ -171,11 +169,11 @@ samples <- read_csv(
 samples %>%
   process_samples(abt) %>%
   plot_samples()
-ggsave("../doc/figure/basic_bern_heatmap.png", width = 7.65, height = 4.15)
+ggsave("../../doc/figure/basic_bern_heatmap.png", width = 6.65, height = 3.15)
 
 ## plot q values
 q_vals <- read_csv(file.path(opts$dir, "bern", "q_vals.csv"), col_names = "q")
 pi_q <- read_csv(file.path(opts$dir, "bern", "pi_q.csv"), col_names = "pi_q")
 plot_pi_q(q_vals, pi_q)
-ggsave("../doc/figure/changepoint_bern_q.png", p[[1]])
-ggsave("../doc/figure/changepoint_bern_eb_prior.png", p[[2]])
+ggsave("../../doc/figure/changepoint_bern_q.png", p[[1]], width = 4, height = 2.5)
+ggsave("../../doc/figure/changepoint_bern_eb_prior.png", p[[2]], width = 4, height = 2.5)

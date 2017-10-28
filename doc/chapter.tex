@@ -2012,6 +2012,96 @@ is a discrete sum rather than an integral). The updates for $\Theta$ are
 available by conjugacy. Together, these three updates allow efficient block
 Gibbs sampling of the SLDS.
 
+\subsection{Example}
+\label{subsec:slds_example}
+
+We next provide an example application of SLDS to the antibiotics data. We use
+an implementation provided by the pyslds package, available at
+\url{https://github.com/mattjj/pyslds}. The purpose of this analysis is to
+determine both a regime segmentation of timepoints for each series, along with a
+characterization of the dynamics within individual regimes. Our code is
+available at
+\url{https://github.com/krisrs1128/tsc_microbiome/tree/master/src/slds}.
+
+It is necessary to decide whether to share the parameters $\Theta$ across all
+speries or not. There is a tradeoff between the two alternatives,
+\begin{itemize}
+\item If we share regime parameters across all species, then information can be
+  shared across species with similar dynamics.
+\item If we estimate parameters for each species separately, then there will be
+  no need to consider parameters associated with species with very different
+  overall abundances or dynamics.
+\end{itemize}
+Ideally, it would be possible to limit the sets of parameters that are available
+to each species, so that only similar species shared information. This type of
+partial sharing was proposed in \citep{fox2009sharing} for a similar multiple
+time series model, for example.
+
+In this example, we fit species specific models, however. In addition to the
+tradeoff above, our decision is based on the fact that we have already seen the
+second approach in Section \ref{sec:hmm_example} as well as the practical
+limitation that the implementation in pyslds provides only state estimation for
+individual sequences.
+
+Note that the state identities $z_{it}$ will no longer be aligned across
+sequences $i$, since estimation is performed across each species $i$ separately.
+Instead of attempting to align the estimated state sequences, which is
+complicated even in the (rare) case that states are actually shared across all
+species, we visualize cluster the estimated parameter sequences.
+
+In more detail, we study the parameters $\Theta_{ik} := \{C_{ik}, R_{ik},
+A_{ik}, Q_{ik}\}$ associated with the dynamic state of species $i$ at time $t$,
+$z_{it} = k$. Not only does this allow us to avoid the label-switching problem,
+it provides a way of inspecting gradients of variation in dynamic regimes,
+according to smooth evolution of the associated parameters.
+
+Before applying this model, we $\asinh$ transform the raw count data, as in our
+other applications. We further center each species' series, since the marginal
+mean for each species must always be zero.
+
+To this end, we have clustered species according the posterior mean of the
+parameters $\left(\Theta_{ik}\right)_{k =1}^{K}$ after laying them out across
+timepoints. In more detail, we represent species $i$ by the vector
+$\left(\Theta_{i z_{i1}}, \dots, \Theta_{i z_{iT}\right)$, hierarchically
+  cluster them using a Euclidean distance, and then order species according to
+  the order of leaves on the resulting tree.
+
+The resulting estimates are displayed in Figure
+\ref{fig:slds_parameter_heatmap}. $A_k$ and $Q_k$ describe the autocorrelation
+and noise of underlying state dynamics. The noise generally seems on the same
+order as the autocorrelation. The autocorrelations $A_{k}$ seem to increase
+after the antibiotics time courses, which corresponds to the decrease in overall
+abundance during those time intervals, but the noise levels seem generally
+stable across timepoints.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{figure/slds_parameter_heatmap}
+  \caption{Heatmap of SLDS posterior means associated with parameters, across
+    species and timepoints. Each row of panels is associated with one type of
+    SLDS parameter. Rows and columns of cells correspond to timepoints and
+    species, respectively. The border around panels provides the taxonomic
+    identity for individual species. Cells are shaded in according to their
+    parameter estimates, and species are sorted by a hierarchical clustering.
+    Blue, white, and green correspond to negative, zero, and positive parameter
+    estimates, respectively. Estimates that are very large or small (above 2.1
+    or less than -1.1) have been thresholded, to keep the plot from being
+    dominated by outliers. \label{fig:slds_parameter_heatmap}
+  }
+\end{figure}
+
+The emissions parameters are somewhat more complex. Within each taxa, about a
+third of species have negative, approximately zero, and positive emission
+matrices $C_{k}$ each. Species that have positive (negative) emissions tend to
+have positive (negative) emissions across all timepoints. During the antibiotics
+time courses, the emissions matrices shrink towards zero, which allows modeling
+the zero counts during this regime. Similarly, when the abundance decreases, the
+noise levels $R_k$ decrease as well.
+
+Note that now that these parameters have been estimated, it would be possible to
+simulate series according to different regimes. This could be an alternative
+device for interpreting fitted parameters.
+
 \subsection{BASIC changepoint detection}
 
 The methods considered so far have always made two modeling choices,
@@ -2181,133 +2271,134 @@ Inference can then proceed by placing an additional layer at the top of the
 hierarchical model (the fully Bayesian approach), or alternatively choosing the
 members of these families that maximize the marginal likelihood (the Empirical
 Bayesian approach). \citep{fan2015empirical} describe an interesting Empirical
-Bayesian approach that uses a rich family for the prior $\pi_{Q}^{\eta}$.
+Bayesian (EB) approach that uses a rich family for the prior $\pi_{Q}^{\eta}$.
 
 In more detail, recall that the marginal likelihood has the form
 \begin{align}
  \label{eq:pi_q_marginal_lik} 
 \end{align}
 
-In a typical empirical bayesian analysis, we might consider a Beta family for
-$\pi_{Q}$, since $z_{it} \sim \Ber\left(q\right)$. That is, we would suppose
-$\pi_{Q}^{a_0, b_0} = \Bet\left(q \vert a_{0}, b_{0}\right)$ and choose $a_{0}$
-and $b_0$ to maximize the marginal likelihood in equation
-\ref{eq:pi_q_marginal_lik}.
+In a typical EB analysis, we might consider a Beta family for $\pi_{Q}$, since
+$z_{it} \sim \Ber\left(q\right)$. That is, we would suppose $\pi_{Q}^{a_0, b_0}
+= \Bet\left(q \vert a_{0}, b_{0}\right)$ and choose $a_{0}$ and $b_0$ to
+maximize the marginal likelihood in equation \ref{eq:pi_q_marginal_lik}.
 
 A nonparametric alternative, proposed by \citep{fan2015empirical}, considers
 $\pi_{Q}^{w, \nu}\left(q\right) = \sum_{k = 1}^{K} w_{k} \nu_{k}\left(q\right)$,
 for some weights $w_{k}$ and predefined basis functions $\nu_{k}$. For example,
 $\nu_{k}\left(q\right) = \delta_{1 / k}\left(q\right)$ defines a grid of point
-masses over the interval $\left[0, 1\right]$. Then, the empirical bayesian
-approach optimizes the marginal likelihood over $\left(w_k\right)$. This problem
-does not have an analytical solution, but it is convex, so can be input to
-generic convex optimization software. This provides a another example for how
-increased computational resources have made certain modeling restrictions, like
-requiring a Beta hyperprior for $q$, unecessary.
+masses over the interval $\left[0, 1\right]$. Then, the EB approach optimizes
+the marginal likelihood over $\left(w_k\right)$. This problem does not have an
+analytical solution, but it is convex, so can be input to generic convex
+optimization software. This provides a another example for how increased
+computational resources have made certain modeling restrictions, like requiring
+a Beta hyperprior for $q$, unecessary.
 
 %% (maybe draw the dag?)
 
 \subsubsection{Example}
 \label{subsec:basic_example}
 
-, allowing partial sharing of changepoints and
-collapsing sampling of regime parameters.
-=======
-\subsection{Example}
-\label{subsec:slds_example}
+We now apply the BASIC algorithm to the antibiotics data set, since we imagine
+many species may pass respond to the introduction and removal antibiotic and
+post-antibiotic regimes in similar ways and in sync with one another. We use an
+implementation installed using directions at
+\url{https://web.stanford.edu/~zhoufan/software.html}, and all code for this
+example is available at
+\url{https://github.com/krisrs1128/tsc_microbiome/tree/master/src/changepoint}.
 
-We next provide an example application of SLDS to the antibiotics data. We use
-an implementation provided by the pyslds package, available at
-\url{https://github.com/mattjj/pyslds}. The purpose of this analysis is to
-determine both a regime segmentation of timepoints for each series, along with a
-characterization of the dynamics within individual regimes. Our code is
-available at
-\url{https://github.com/krisrs1128/tsc_microbiome/tree/master/src/slds}.
+We first filter down to samples that are present in at least 20\% of samples,
+and then we perform an $\asinh$ transformation. We decompose our analysis into
+two parts -- an abundance and a presence-absence component. In the continuous
+abundance analysis, we use a Gaussian-Gaussian prior-likelihood pair in the
+BASIC model. This allows us to model changes in mean and variance of abundance
+series over time, and is useful in situations where antibiotics might decrease
+abundances without completely wiping out a species. In the second component, we
+consider whether the probability of a species being present in a sample changes
+across antibiotics time courses. This is accomplished by using a Beta-Bernoulli
+prior-likelihood pair in the BASIC model.
 
-It is necessary to decide whether to share the parameters $\Theta$ across all
-speries or not. There is a tradeoff between the two alternatives,
-\begin{itemize}
-\item If we share regime parameters across all species, then information can be
-  shared across species with similar dynamics.
-\item If we estimate parameters for each species separately, then there will be
-  no need to consider parameters associated with species with very different
-  overall abundances or dynamics.
-\end{itemize}
-Ideally, it would be possible to limit the sets of parameters that are available
-to each species, so that only similar species shared information. This type of
-partial sharing was proposed in \citep{fox2009sharing} for a similar multiple
-time series model, for example.
+Figure \ref{fig:basic_heatmap} displays the samples from the posterior for
+$p\left(z \vert x\right)$ within the abundance model. A very clear horizontal
+band marks the start of the first antibiotic time course, while other antibiotic
+events seem to have less association with estimated changepoints. There is
+little differentiation between different taxonomic families. One exception is
+that some of the more abundant Ruminococcus appear to be more strongly affected
+by the second antibiotic time course than the more abundant Lachnospiraceae.
 
-In this example, we fit species specific models, however. In addition to the
-tradeoff above, our decision is based on the fact that we have already seen the
-second approach in Section \ref{sec:hmm_example} as well as the practical
-limitation that the implementation in pyslds provides only state estimation for
-individual sequences.
+Note that the number of tiles estimated to be changepoints increases near the
+right of each panel, meaning that rarer species are estimated to have a large
+number of changepoints in this model. It is not entirely clear why this would
+arise, though we suspect it is an artifact of model misspecification, and the
+fact that even after $\asinh$-transforming the raw species abundances are quite
+right-skewed (not to mention nonnegative). Developing an alternative likelihood
+model that may be more suitable for jointly studying abundances of both rare and
+common species is beyond the scope of this work, however.
 
-Note that the state identities $z_{it}$ will no longer be aligned across
-sequences $i$, since estimation is performed across each species $i$ separately.
-Instead of attempting to align the estimated state sequences, which is
-complicated even in the (rare) case that states are actually shared across all
-species, we visualize cluster the estimated parameter sequences.
-
-In more detail, we study the parameters $\Theta_{ik} := \{C_{ik}, R_{ik},
-A_{ik}, Q_{ik}\}$ associated with the dynamic state of species $i$ at time $t$,
-$z_{it} = k$. Not only does this allow us to avoid the label-switching problem,
-it provides a way of inspecting gradients of variation in dynamic regimes,
-according to smooth evolution of the associated parameters.
-
-Before applying this model, we $\asinh$ transform the raw count data, as in our
-other applications. We further center each species' series, since the marginal
-mean for each species must always be zero.
-
-To this end, we have clustered species according the posterior mean of the
-parameters $\left(\Theta_{ik}\right)_{k =1}^{K}$ after laying them out across
-timepoints. In more detail, we represent species $i$ by the vector
-$\left(\Theta_{i z_{i1}}, \dots, \Theta_{i z_{iT}\right)$, hierarchically
-  cluster them using a Euclidean distance, and then order species according to
-  the order of leaves on the resulting tree.
-
-The resulting estimates are displayed in Figure
-\ref{fig:slds_parameter_heatmap}. $A_k$ and $Q_k$ describe the autocorrelation
-and noise of underlying state dynamics. The noise generally seems on the same
-order as the autocorrelation. The autocorrelations $A_{k}$ seem to increase
-after the antibiotics time courses, which corresponds to the decrease in overall
-abundance during those time intervals, but the noise levels seem generally
-stable across timepoints.
-
-\begin{figure}
+\begin{figure}[ht]
   \centering
-  \includegraphics[width=\textwidth]{figure/slds_parameter_heatmap}
-  \caption{Heatmap of SLDS posterior means associated with parameters, across
-    species and timepoints. Each row of panels is associated with one type of
-    SLDS parameter. Rows and columns of cells correspond to timepoints and
-    species, respectively. The border around panels provides the taxonomic
-    identity for individual species. Cells are shaded in according to their
-    parameter estimates, and species are sorted by a hierarchical clustering.
-    Blue, white, and green correspond to negative, zero, and positive parameter
-    estimates, respectively. Estimates that are very large or small (above 2.1
-    or less than -1.1) have been thresholded, to keep the plot from being
-    dominated by outliers. \label{fig:slds_parameter_heatmap}
+  \includegraphics[width=\textwidth]{figure/basic_heatmap}
+  \caption{The estimated changepoints according to the abundance analysis, using
+    a Gaussian-Gaussian likelihood in the BASIC model. Each column gives the
+    sequence for a species, with earliest times at the bottom and latest times
+    at the top. Species are sorted according from left to right in order of
+    decreasing abundance, and colors in each tile indicate taxonomic membership.
+    The darkness of the tile reflects the number of posterior samples in which
+    that tile had $z_{it} = 1$.
+    \label{fig:basic_heatmap} }
+\end{figure}
+
+In Figure \ref{fig:basic_bern_heatmap} we display the estimated changepoints the
+Beta-Bernoulli BASIC model applied to the binarized presence-absence version of
+the previous data. Evidently, the changepoint behavior between high and low
+abundance species is similar when viewed through this transformation. This is
+somewhat surprising, because it suggests that even the high overall abundance
+species can drop down to zero during the antibiotics time courses.
+
+The many horizontal bands above the main first time course band suggests that
+there is some ambiguity in recovery times. Further, there does not appear to be
+evidence for any differential recovery across species, which would be
+ecologically interesting if it did exist. Finally, as in Figure
+\ref{fig:basic_heatmap}, the effect from the second antibiotic time course is
+much less pronounced than that from the first. This is consistent with
+observation that for this subject, the effect of antibiotics from the first time
+course seems to persist for longer than it did for other subjects, a finding
+consistent with the discussion of \cite{dethlefsen2011incomplete}.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figure/basic_bern_heatmap}
+  \caption{
+    The analog of Figure \ref{fig:basic_heatmap} for the Bernoulli likelihood
+    model applied to the presence-absence data. In contrast to Figure
+    \ref{fig:basic_heamtap}, most species have comparable estimated
+    changepoints.
+    \label{fig:basic_bern_heatmap}
   }
 \end{figure}
 
-The emissions parameters are somewhat more complex. Within each taxa, about a
-third of species have negative, approximately zero, and positive emission
-matrices $C_{k}$ each. Species that have positive (negative) emissions tend to
-have positive (negative) emissions across all timepoints. During the antibiotics
-time courses, the emissions matrices shrink towards zero, which allows modeling
-the zero counts during this regime. Similarly, when the abundance decreases, the
-noise levels $R_k$ decrease as well.
+Figure \ref{fig:changepoint_eb_prior} displays the EB optimized weights for the
+prior $\pi_{Q}^{\hat{w}, \nu}$, when using $\nu_{k}\left(q\right) = \delta_{k /
+  K}\left(\delta\right)$. On the one hand, it is nice that this approach
+learns a flexible prior. However, it seems unusual that this prior exhibits such
+strong discontinuity, placing all its mass in a few clumps. It would be
+interesting to see what happens when using smooth bump functions for the $\nu_k$
+instead of these discrete $\delta$s.
 
-Note that now that these parameters have been estimated, it would be possible to
-simulate series according to different regimes. This could be an alternative
-device for interpreting fitted parameters.
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figure/changepoint_eb_prior}
+  \caption{The prior $\pi_{Q}$ optimized using EB. Evidently, most weight falls
+    on probabilities between 0.2 and 0.5, modulating the overall frequency of
+    changepoints.
+    \label{fig:changepoint_eb_prior} }
+\end{figure}
 
-- Description of the model
-- Summary of the empirical bayes idea
-- Summary of dynamic programming, and provide row and column updates
-  + Maybe provide actual pseudocode?
-- Would be nice to include a simulation / application to antibiotics
+%% - Description of the model
+%% - Summary of the empirical bayes idea
+%% - Summary of dynamic programming, and provide row and column updates
+%%   + Maybe provide actual pseudocode?
+%% - Would be nice to include a simulation / application to antibiotics
 
 \section{Alternative probabilistic models}
 \label{sec:alternative_probabilistic_models}
