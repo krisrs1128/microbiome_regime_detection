@@ -161,7 +161,7 @@ ggsave("../../doc/figure/changepoint_eb_prior.png", p[[2]], width = 4, height = 
 ###############################################################################
 ## Bernoulli changepoint detection
 ###############################################################################
-system("python changepoint.py --dir ../../data/changepoint/bern/ --model bernoulli --iter 100")
+system("python changepoint.py --dir ../../data/changepoint/bern/ --model bernoulli --iter 2500")
 samples <- read_csv(
   file.path(opts$dir, "bern", "samples.csv"),
   col_names = c("iter", "changepoint", "row")
