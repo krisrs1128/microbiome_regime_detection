@@ -967,23 +967,48 @@ The idea of the scan sampler is to iteratively compute $M_t$ and $u_t$ such that
 so that sampling can cycle forwards and backwards through coordinates of
 $\left(x_t\right)$, drawing $x_t^{\prime} \sim \Gsn\left(x_t - M_t^{-1}u_t,
 M_t^{-1}\right)$. Details of the derivation can be found in \citep{de1997scan},
-we simply describe the updates necessary to compute $M_t$ and $u_t$. During the
-forwards scans, the required calculation is
-
-while for backwards scans, the analogous updates are
-
+we simply describe the updates necessary to compute $M_t$ and $u_t$. In an
+initial backwards pass through the data, we compute
+\begin{align*}
+  u_t &= \left(\Sigma_{t \vert t - 1}^{x}\right)^{-1}\mu_{t \vert t - 1}^{x} - K_t^{T}r_t \\
+  M_t &= \left(\Sigma_{t \vert t - 1}^{x}\right)^{-1} + K_t^{T} N_t K_t
+\end{align*}
+where $K_t$ is the Kalman gain matrix at time $t$ and
+\begin{align*}
+  r_t &= C^T u_{t + 1} + A^{T}r_{t + 1} \\
+  N_t &= C^{T} \Sigma_{t + 1 \vert t}C + L_{t + 1}^{T}N_{t + 1}L_{t + 1}.
+\end{align*}
+Note that the $M_t$ remain fixed after this initial scan, and only sampling
+proceeds only by cycling through the $u_t$. During the forwards scan, $u_t$ is
+updated according to
+\begin{align*}
+  u_t &= u_t^{\text{prev}} - \left(\Sigma_{t \vert -t}^{x} C - K_t^{T}N_t\right) b_t \\
+  b_{t + 1} &= L_{t} b_t - K_t M_t^{-1}u_t
+\end{align*}
+where $L_t = A - K_t C$, while for backwards scans, the analogous updates are
+\begin{align*}
+  u_t &= u_t - K_t^{T} b_t \\
+  b_{t - 1} &= L_t^T b_t - C_t^{T}M_t^{-1}u_t.
+\end{align*}
+Each time a $u_t$ is computed, it is used to update the unobserved $x_t$ by
+sampling from $\Gsn\left(x_t - M_t^{-1}u_t, M_t^{-1}\right)$.
 
 Code implementing these updates is available at
-\url{https://github.com/krisrs1128/tsc_microbiome/tree/master/src/scan}. 
-We have also provided an example application to a real microbial abundance time
-series, whose results are provided in Figure \ref{fig:}.
+\url{https://github.com/krisrs1128/tsc_microbiome/tree/master/src/scan}. We have
+also provided an example application to a real microbial abundance time series,
+whose results are provided in Figure \ref{fig:abt_scan}.
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=\textwidth]{figures/path.pdf}
-  \caption{\label{fig:label} }
+  \includegraphics[width=\textwidth]{figure/abt_scan}
+  \caption{Posterior samples from a DTM applied to a bacterial abundance time
+    series, obtained using the scan sampler. We fix $A, C, Q, R$ for the
+    dynamical system component to arbitrary, stable values. Black points
+    represent observed data, while blue points are draws from the scan sampler
+    posterior. The blue line is a loess smooth of the posterior samples for
+    $x_t$.
+    \label{fig:abt_scan}}
 \end{figure}
-
 
 \section{Temporal mixture models}
 \label{sec:temporal_mixture_models}
