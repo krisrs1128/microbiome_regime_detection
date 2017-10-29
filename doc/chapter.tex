@@ -912,6 +912,79 @@ and similarly by the law of total covariance,
   &= \Sigma_{t \vert t} + J_{t}\left(\Sigma_{t + 1 \vert T} - \Sigma_{t + 1 \vert t}\right) J_{t}^{T}
 \end{align*}
 
+\subsubsection{Zero-inflation in dynamical systems}
+\label{subsubsec:zero_inflation_dynamical}
+
+After transformations, many microbiome data sets can be viewed as a mixture
+between a continuous, nonnegative component and a spike at 0. Such data has a
+rich history in statistics, and has been approached using hurdle and tobit
+modeling ideas \citep{min2002modeling}. We describe a variation of the standard
+LDS, called the dynamic tobit model (DTM), that is designed for zeros-spiked
+continuous density situation.
+
+The basic idea of the DTM is to truncate an LDS below some threshold, so that
+the continuous positive data correspond to excursions of the LDS above that
+threshold, while the zeros correspond to parts of the path below the threshold.
+That is, the observed data $y_t$ are modeled according to
+\begin{align*}
+  y_{t} \vert x_t, \tau &= \left(x_t - \tau\right)\indic{x_t > \tau}  \\
+  x_t \vert z_t &\sim \Gsn\left(x_t \vert B z_{t}, R\right) \\
+  z_t \vert z_{t - 1} &\sim \Gsn\left(z_t \vert A z_{t - 1}, Q\right).
+\end{align*}
+Note that last two equations are exactly those defining an LDS, but that $x_t,
+z_t$, and $\tau$ are all unobserved data in this setting. As before, $A, B, R,
+Q$ are model parameters to be learned.
+
+There are several approaches to inference in this model, including particle
+filtering \citep{doucet2000rao}, Monte Carlo EM \citep{manrique1998simulation},
+and Gibbs sampling \citep{de1997scan, wei1999bayesian}. In many of these
+approaches, recursions like those used in the Kalman filter can be used to
+perform efficient sampling and estimation.
+
+To give an exaple, we review one method here, the scan sampler of
+\citep{de1997scan}. For simplicity, we will assume that $\tau$ is known and
+equal to zero. The scan sampler iterates filter and smoother-type calculations
+for $x_t$, at each step sampling from a distribution with mean $\Earg{x_t \vert
+  x_{-t}}$ and variance $\Covarg{x_t \vert x_{-t}}$. In the Gaussian case
+presented above, this provides the exact posterior, though \cite{de1997scan}
+suggest its utility for general exponential families.
+
+To initialize the scan sampler for the DTM, first set $x_t = y_t$ for all $t$,
+and perform a Kalman filter and smoother step. This gives estimates of the
+following quantities, using notation analogous to that in the previous section,
+\begin{align*}
+  \mu_{t \vert t - 1}^{x} &= \Earg{x_t \vert x_{0:\left(t - 1\right)}} \\
+  \mu_{t \vert t - 1}^{z} &= \Earg{z_t \vert z_{0:\left(t - 1\right)}} \\
+  \Sigma_{t \vert t - 1}^{x} &= \Covarag{x_t \vert x_{0:\left(t - 1\right)}} \\
+  \Sigma_{t \vert t - 1}^{z} &= \Covarg{z_t \vert z_{0 : \left(t - 1\right)}}.
+\end{align*}
+
+The idea of the scan sampler is to iteratively compute $M_t$ and $u_t$ such that
+\begin{align*}
+  M_t^{-1} &= \Covarg{x_t \vert x_{-t}} \\
+  M_t^{-1}u_t &= x_t - \Earg{x_t \vert x_{-t}}
+\end{align*}
+so that sampling can cycle forwards and backwards through coordinates of
+$\left(x_t\right)$, drawing $x_t^{\prime} \sim \Gsn\left(x_t - M_t^{-1}u_t,
+M_t^{-1}\right)$. Details of the derivation can be found in \citep{de1997scan},
+we simply describe the updates necessary to compute $M_t$ and $u_t$. During the
+forwards scans, the required calculation is
+
+while for backwards scans, the analogous updates are
+
+
+Code implementing these updates is available at
+\url{https://github.com/krisrs1128/tsc_microbiome/tree/master/src/scan}. 
+We have also provided an example application to a real microbial abundance time
+series, whose results are provided in Figure \ref{fig:}.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{figures/path.pdf}
+  \caption{\label{fig:label} }
+\end{figure}
+
+
 \section{Temporal mixture models}
 \label{sec:temporal_mixture_models}
 
@@ -2195,7 +2268,7 @@ time $t$ can be expressed as
 \end{align}
 using Bayes' rule.
 
-For subsequent segments between changepoints, similar reasoning yields 
+For subsequent segments between changepoints, similar reasoning yields
 \begin{align}
   p\left(z_{i, \left(s + 1\right):\left(t - 1\right)} = 0, z_{it} = 1 \vert z_{is} = 1, x, z_{i, 1:\left(t - 1\right)}, z_{-i}\right) &= P_{i}\left(s, t\right)\frac{Q_{i}\left(t\right)}{Q_{i}\left(s\right)} \left[\prod_{r = s + 1}^{t - 1} \left(1 - c_{i}\left(r\right)\right)\right]c_{i}\left(t\right). \label{eq:subsequent_changepoints}
 \end{align}
@@ -2275,7 +2348,7 @@ Bayesian (EB) approach that uses a rich family for the prior $\pi_{Q}^{\eta}$.
 
 In more detail, recall that the marginal likelihood has the form
 \begin{align}
- \label{eq:pi_q_marginal_lik} 
+ \label{eq:pi_q_marginal_lik}
 \end{align}
 
 In a typical EB analysis, we might consider a Beta family for $\pi_{Q}$, since
@@ -2400,13 +2473,9 @@ instead of these discrete $\delta$s.
 %%   + Maybe provide actual pseudocode?
 %% - Would be nice to include a simulation / application to antibiotics
 
-\section{Alternative probabilistic models}
-\label{sec:alternative_probabilistic_models}
-\subsection{Accounting for zero inflation}
-
-- The dynamic tobit model
-  + Brief summary of Glasby Nevison
-  + Explanation and simulation using the scan sampler
+%% - The dynamic tobit model
+%%   + Brief summary of Glasby Nevison
+%%   + Explanation and simulation using the scan sampler
 
 \bibliographystyle{plainnat}
 \bibliography{bibliography.bib}
