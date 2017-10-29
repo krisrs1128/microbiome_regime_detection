@@ -955,7 +955,7 @@ following quantities, using notation analogous to that in the previous section,
 \begin{align*}
   \mu_{t \vert t - 1}^{x} &= \Earg{x_t \vert x_{0:\left(t - 1\right)}} \\
   \mu_{t \vert t - 1}^{z} &= \Earg{z_t \vert z_{0:\left(t - 1\right)}} \\
-  \Sigma_{t \vert t - 1}^{x} &= \Covarag{x_t \vert x_{0:\left(t - 1\right)}} \\
+  \Sigma_{t \vert t - 1}^{x} &= \Covarg{x_t \vert x_{0:\left(t - 1\right)}} \\
   \Sigma_{t \vert t - 1}^{z} &= \Covarg{z_t \vert z_{0 : \left(t - 1\right)}}.
 \end{align*}
 
@@ -2160,7 +2160,7 @@ mean for each species must always be zero.
 To this end, we have clustered species according the posterior mean of the
 parameters $\left(\Theta_{ik}\right)_{k =1}^{K}$ after laying them out across
 timepoints. In more detail, we represent species $i$ by the vector
-$\left(\Theta_{i z_{i1}}, \dots, \Theta_{i z_{iT}\right)$, hierarchically
+$\left(\Theta_{i z_{i1}}, \dots, \Theta_{i z_{iT}}\right)$, hierarchically
   cluster them using a Euclidean distance, and then order species according to
   the order of leaves on the resulting tree.
 
