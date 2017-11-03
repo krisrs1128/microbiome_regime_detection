@@ -1,4 +1,5 @@
-\documentclass{article}
+\documentclass[14pt]{extreport}
+\usepackage[a4paper, margin=0.2in]{geometry}
 \usepackage{amsmath, amssymb, amsfonts}
 \usepackage{natbib}
 \usepackage{graphicx}
@@ -9,6 +10,7 @@
 \usepackage{algorithm}
 \usepackage[noend]{algorithmic}
 \input{preamble.tex}
+\linespread{2}
 
 \title{Inference of Dynamic Regimes in the Microbiome}
 \author{Kris Sankaran}
@@ -289,19 +291,19 @@ computes the time averages among all observed bacteria.
 
 \begin{figure}[ht]
   \centering
-  %\includegraphics[width=0.9\textwidth]{figure/centroid-euclidean-conditional}
+  \includegraphics[width=0.9\textwidth]{figure/centroid-euclidean-conditional}
   \caption{\label{fig:centroid-euclidean-conditional} }
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  %\includegraphics[width=0.9\textwidth]{figure/centroid-euclidean-presence}
+  \includegraphics[width=0.9\textwidth]{figure/centroid-euclidean-presence}
   \caption{\label{fig:centroid-euclidean-presence} }
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  %\includegraphics[width=0.9\textwidth]{figure/centroid-innovations-conditional}
+  \includegraphics[width=0.9\textwidth]{figure/centroid-innovations-conditional}
   \caption{\label{fig:centroid-innovations-conditional}}
 \end{figure}
 
@@ -2049,18 +2051,18 @@ of interest have the form
 which has the exactly the same form as found during the derivation of the
 forwards-backwards algorithm.
 
-- Switching state space models (subsubsection)
-   + Model description
-   + Simulation example
-   + Description of variational inference
-- Mixture of Gaussian processes (subsubsection)
-  + Model description
-  + Simulation examples
-  + Description of variational inference
-- Multiresolution gaussian processes (subsubsection)
-  + Model description
-  + Simulation examples
-  + Description of MCMC
+%% - Switching state space models (subsubsection)
+%%    + Model description
+%%    + Simulation example
+%%    + Description of variational inference
+%% - Mixture of Gaussian processes (subsubsection)
+%%   + Model description
+%%   + Simulation examples
+%%   + Description of variational inference
+%% - Multiresolution gaussian processes (subsubsection)
+%%   + Model description
+%%   + Simulation examples
+%%   + Description of MCMC
 
 \paragraph{Message passing for SLDS}
 
@@ -2513,19 +2515,19 @@ instead of these discrete $\delta$s.
 
 \begin{figure}[ht]
   \centering
-  %\includegraphics[width=0.8\textwidth]{figure/rpart_simple}
+  \includegraphics[width=0.8\textwidth]{figure/rpart_simple}
   \caption{\label{fig:rpart_simple} }
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  %\includegraphics[width=0.8\textwidth]{figure/rpart_complex_2}
+  \includegraphics[width=0.8\textwidth]{figure/rpart_complex_2}
   \caption{\label{fig:label} }
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  %\includegraphics[width=0.8\textwidth]{figure/rpart_complex_3}
+  \includegraphics[width=0.8\textwidth]{figure/rpart_complex_3}
   \caption{\label{fig:rpart_complex_3} }
 \end{figure}
 
