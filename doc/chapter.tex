@@ -2400,15 +2400,22 @@ instead of these discrete $\delta$s.
     \label{fig:changepoint_eb_prior} }
 \end{figure}
 
-%% - Description of the model
-%% - Summary of the empirical bayes idea
-%% - Summary of dynamic programming, and provide row and column updates
-%%   + Maybe provide actual pseudocode?
-%% - Would be nice to include a simulation / application to antibiotics
+\section{Conclusion}
 
-%% - The dynamic tobit model
-%%   + Brief summary of Glasby Nevison
-%%   + Explanation and simulation using the scan sampler
+This ends our tour of techniques for modeling dynamic regimes. We have seen a
+variety of methods, from classical to modern, standard to exotic, and have
+provided both methodological summaries and practical applications to a real
+microbiome study. We have found the regime detection problem to be one with rich
+and interesting structure, which is reflected in the diversity of approaches
+that have been proposed historically. Bridging our theoretical and applied
+discussions, we have made implementations for all examples -- including data
+preparation, model fitting, and figure generation -- easily accessible through
+our repository, \url{https://github.com/krisrs1128/tsc\_microbiome}. We hope
+that this review of the literature on regime detection will increase awareness
+about connections between communities working on the various instances of this
+problem, facilitate flexible and informed microbiome data analysis, and inspire
+the development of improved methods that can identify regime structure in real
+scientific problems.
 
 \bibliographystyle{plainnat}
 \bibliography{bibliography.bib}
