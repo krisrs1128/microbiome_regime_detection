@@ -2106,29 +2106,28 @@ The methods considered so far have always made two modeling choices,
   overall model is fit.
 \end{itemize}
 
-However, neither is necessary, and \cite{fan2015empirical} describe an
-algorithm, Bayesian Analysis of Simultaneous Changepoints (BASIC) that discards
-these conventions, with the goal of improving interpretability and model
-estimation properties. Indeed, allowing shared changepoints for some, but not
-all, time series can improve model fit and interpretability. Further, collapsing
-parameters regime-specific parameters can facilitate estimation, according to
-theoretical studies \citep{liu1994collapsed}. After introducing the model and
-inference, \cite{fan2015empirical} describe an empirical bayesian mechanism for
-prior elicitation.
+However, neither choice is necessary, and \cite{fan2015empirical} describe an
+algorithm, Bayesian Analysis of Simultaneous Changepoints (BASIC), that discards
+them, with the goal of improving interpretability and model estimation
+properties. Indeed, allowing shared changepoints for some, but not all, time
+series can improve model fit and interpretability. Further, collapsing
+regime-specific parameters can facilitate estimation, according to certain
+theoretical studies \citep{liu1994collapsed}. In addition to detailing the model
+and inference, \cite{fan2015empirical} also describe an Empirical Bayesian
+mechanism for prior elicitation.
 
-We summarizing the BASIC model and the key observations used for inference,
-before discussing an application to the antibiotics data in section
-\ref{sec:basic_example}.
+We summarize the BASIC model and the key observations used for inference, before
+discussing an application to the antibiotics data in Section
+\ref{subsec:basic_example}.
 
 \subsubsection{Model}
 \label{subsec:basic_model}
 
 Let $\left(x_{it}\right)_{i = 1}^{n}$ denote the abundance of species $i$ at
-time $t$. We imagine species $i$'s abundances are drawn $i.i.d.$ from a
-likelihood model with fixed parameters within, but not between, changepoints.
-Certain timepoints are thought to have higher propensity for containing
-changepoints, across all species. More formally, the assumed model has the form,
-
+time $t$. We imagine species $i$'s abundances are drawn i.i.d. from a likelihood
+model with fixed parameters until the next changepoint. Certain timepoints are
+thought to have higher propensity for containing changepoints, across all
+species. More formally, the assumed model has the form,
 \begin{align*}
   x_{it} \vert \theta_{it} &\sim p\left(x_{it} \vert \theta_{it}\right) \\
   \theta_{it} \vert z_{it}, \theta_{i,t - 1} &\sim z_{it}\pi_{\Theta}\left(\theta\right) + \left(1 - z_{it}\right) \delta_{\theta_{i, t - 1}}\left(\theta\right) \\
@@ -2136,12 +2135,13 @@ changepoints, across all species. More formally, the assumed model has the form,
   q_t &\sim \pi_{Q}\left(q\right).
 \end{align*}
 
-The inference algorithm proposed for this model is general enough to accomodate
+Here, $z_{it} = 1$ means a changepoint occurs in species $i$ at time $t$. The
+inference algorithm proposed for this model is general enough to accomodate
 arbitrary conjugate likelihood-prior pairs, only requiring closed-form
 expressions for the marginal likelihoods of time segments for individual
 species,
 \begin{align*}
-  p_i\left(t, s\right) &= \int \prod_{r = t}^{s} p\left(x_{ir} \vert \theta\right) \pi_{\Theta}\left(\theta\right) d\theta.
+  P_i\left(t, s\right) &= \int \prod_{r = t}^{s} p\left(x_{ir} \vert \theta\right) \pi_{\Theta}\left(\theta\right) d\theta.
 \end{align*}
 
 For example, in our applications, we will consider Gaussian-Gaussian and
@@ -2151,15 +2151,15 @@ respectively.
 \subsubsection{Inference}
 \label{subsubsec:basic_inference}
 
-\cite{fan2015empirical} propose sampler with block Gibbs and Metrpoolis-Hastings
+\cite{fan2015empirical} propose sampler with block Gibbs and Metrpolis-Hastings
 elements to sample from $p\left(\left(z_{it}\right) \vert
 \left(x_{it}\right)\right)$, the posterior after having marginalized out all the
 $\theta_{it}$ and $q_t$. Then, an empirical bayes approach for selecting
 hyperparameters in the priors $\pi_{Q}$ and $\pi_{\Theta}$ is described.
 
 The sampler iterates row and column block Gibbs sampling followed by a
-Metropolis-Hastings corrected changepoint jittering step. For rowwise block
-Gibbs, the goal is to sample each row $i$ according to
+Metropolis-Hastings corrected jittering step to refine changepoint positions.
+For rowwise block Gibbs, the goal is to sample each row $i$ according to
 \begin{align*}
   p\left(z_{i\cdot} \vert \left(x_{it}\right), \left(z_{-i \cdot}\right)\right).
 \end{align*}
@@ -2167,12 +2167,13 @@ For notational convenience, we will write $z_{i} := z_{i\cdot}$ for the $i^{th}$
 row of $z$s and $z_{-i} := z_{-i\cdot}$ for the matrix made up of all but the
 $i^{th}$ row. In a similar spirit, we write $z$ and $x$ for the full matrix of
 $z$s and $x$s, instead of the more cumbersome $\left(z_{it}\right)$ and
-$\left(x_{it}\right)$. Further, define notation representing the probability of
+$\left(x_{it}\right)$. Further, define variables representing the probability of
 a changepoint occurring at time $t$ in sequence $i$, after having observed all
 other sequences,
-\begin{align*}
+\begin{align}
+  \label{eq:basic_cit}
   c_{i}\left(t\right) &:= p\left(z_{it} \vert z_{-i}\right),
-\end{align*}
+\end{align}
 as well as the likelihood of sequence $i$ from time $t$ to the end, after having
 observed a changepoint at time $t$ and changepoints for all other sequences,
 \begin{align*}
@@ -2192,8 +2193,8 @@ For subsequent segments between changepoints, similar reasoning yields
 \end{align}
 Hence, if $P_{i}\left(s, t\right)$, $c_{i}\left(t\right)$ and
 $Q_{i}\left(t\right)$ are available, then for all $s, t$, then the row $z_{i}$
-can be sampled by identify the first changepoint according to equation
-\ref{eq:first_changepoint} and the remaining ones using
+can be sampled by identifying the first changepoint according to equation
+\ref{eq:first_changepoint} and the remaining ones using equation
 \ref{eq:subsequent_changepoints}.
 
 To find $c_{i}\left(t\right)$, observe that
@@ -2202,10 +2203,10 @@ To find $c_{i}\left(t\right)$, observe that
   &= q_{t}^{N_{-i}\left(t\right)} \left(1 - q_{t}\right)^{n - N_{-i}\left(t\right)} \pi_{Q}\left(q_{t}\right),
 \end{align*}
 where we set $N_{-i}\left(t\right) := \{\# \text{changepoints at time $t$,
-excluding sequence} $i$\} = \sum_{i^\prime \neq i} z_{i^\prime t}$.
+excluding sequence } i\} = \sum_{i^\prime \neq i} z_{i^\prime t}$.
 
 To compute $Q_{i}\left(t\right)$ efficiently, we can use a dynamic programming
-routine. Starting from $Q_{i}\left(T, T + 1\right) = P_{j}\left(T, T +
+routine. Starting from $Q_{i}\left(T, T + 1\right) = P_{i}\left(T, T +
 1\right)$, we can make a forwards pass through the sequence, according to the
 recursion,
 \begin{align*}
@@ -2221,10 +2222,11 @@ sampling, similar dynamic programming ideas apply. We denote the
 conditional probability that a certain entry $z_{it} = 1$, after having observed
 $z$ at all other timepoints,
 \begin{align*}
-  c_{t}\left(i\right) :&= p\left(z_{it} = 1 \vert z_{-t}, q_{t}\right)
+  c_{t}\left(i\right) :&= p\left(z_{it} = 1 \vert z_{-t}, q_{t}\right),
 \end{align*}
-and the likelihood of the $i^{th}$ sequence over the interval containing $t$,
-taking $t$ to be either a changepoint or not,
+which is the column analog of equation \ref{eq:basic_cit}. For the likelihood of
+the $i^{th}$ sequence over the interval containing $t$, take $t$ to be either a
+changepoint or not,
 \begin{align*}
   A_{t}\left(i\right) := P_{i}\left(r_{t}\left(i\right), t\right)P_{i}\left(t, s_{t}\left(i\right)\right) \\
   B_{t}\left(i\right) := P_{i}\left(r_{t}\left(i\right), s_{t}\left(i\right)\right),
@@ -2243,36 +2245,43 @@ analytically, for sampling columns $z_t$, it is sufficient to have an efficient
 way of computing the $c_{t}\left(i\right)$. However, using Bayes' rule and the
 fact that a changepoint either does or doesn't occur in sequence $i$ at time
 $t$, it can be shown that $c_{t}\left(i\right) = \frac{\int q
-  \tilde{\pi}^{c}\left(q\right) dq}{\int \tilde{\pi}_{it}^{c}\left(q\right)
-  dq}{\int \tilde{\pi}_{it}^{c}\left(q\right)}$, where
+  \tilde{\pi}_{it}^{c}\left(q\right) dq}{\int \tilde{\pi}_{it}^{c}\left(q\right)
+  dq}$, where
 \begin{align*}
-  \tilde{\pi}_{it}^{c}\left(q\right) &:= \prod_{i^\prime = i + 1}^{n} \left(A_{t}\left(i^\prime\right)q + B_{t}\left(i^\prime\right)\left(1 - q\right)\right)q^{N_{-t}\left(i\right)}\left(1 - q\right)^{i - 1 - N_{-t}\left(i\right)} \tilde{\pi}_{it}^{c}\left(q\right) dq,
+  \tilde{\pi}_{it}^{c}\left(q\right) &:= \left[\prod_{i^\prime = i + 1}^{n} \left(A_{t}\left(i^\prime\right)q + B_{t}\left(i^\prime\right)\left(1 - q\right)\right)q^{N_{-t}\left(i\right)}\left(1 - q\right)^{i - 1 - N_{-t}\left(i\right)}\right] \pi_{Q}\left(q\right),
 \end{align*}
 is the unnormalized likelihood times prior. Note the coefficients in the product
-$\Pi_{i^\prime = i + 1}^{n} A_{t}\left(i^\prime\right)q +
-B_{t}\left(i^\prime\right)\left(1 - q\right)$ can be computed efficiently by
+$\prod_{i^\prime = i + 1}^{n} \left[A_{t}\left(i^\prime\right)q +
+B_{t}\left(i^\prime\right)\left(1 - q\right)\right]$ can be computed efficiently by
 starting with $i = n$ and then updating the coefficients in front of each term
 $q^k \left(1 - q\right)^{n - i - k}$ as $i$ is decremented to 1.
 
 Next, consider the choice of priors $\pi_{Q}$ and $\pi_{\Theta}$, for the
 changepoint probabilities and likelihood parameters, respectively. In practice,
 it can be hard to elicit these priors, and a common strategy is to define
-parameterized families of prior $\pi_{Q}^{\eta}$ and $\pi_{\Theta}^{\nu}$.
+parameterized families of prior $\pi_{Q}^{\alpha}$ and $\pi_{\Theta}^{\beta}$.
 Inference can then proceed by placing an additional layer at the top of the
 hierarchical model (the fully Bayesian approach), or alternatively choosing the
 members of these families that maximize the marginal likelihood (the Empirical
-Bayesian approach). \citep{fan2015empirical} describe an interesting Empirical
-Bayesian (EB) approach that uses a rich family for the prior $\pi_{Q}^{\eta}$.
+Bayesian approach). \cite{fan2015empirical} describe an interesting Empirical
+Bayesian (EB) approach that uses rich families of priors $\pi_{Q}^{w, \nu}$ and
+$\pi_{\Theta}^{\eta}$,
 
-In more detail, recall that the marginal likelihood has the form
+In more detail, that the marginal likelihood has the form
 \begin{align}
  \label{eq:pi_q_marginal_lik}
+ \log p\left(x, z \vert w, nu\right) &= \log p\left(x, \vert z, \eta\right) + \log p\left(z \vert \left(w_k\right)\right) \\
+ &= \sum_{i = 1}^{n} \sum_{r, s \in \S\left(z_{i}\right)} \log P_{i}\left(r, s \vert \eta \right) + \sum_{i = 1}^{n} \log p\left(z_{i} \vert \left(w_{k}\right)\right)
 \end{align}
 
 In a typical EB analysis, we might consider a Beta family for $\pi_{Q}$, since
 $z_{it} \sim \Ber\left(q\right)$. That is, we would suppose $\pi_{Q}^{a_0, b_0}
 = \Bet\left(q \vert a_{0}, b_{0}\right)$ and choose $a_{0}$ and $b_0$ to
 maximize the marginal likelihood in equation \ref{eq:pi_q_marginal_lik}.
+However, since the marginal likelihood is not directly available, this
+maximization would be done iteratively, replacing intractable expectations with
+Monte Carlo samples of the $z_i$ drawn from a current EB estimate of the prior,
+then redrawing $z_i$, and so on until convergence.
 
 A nonparametric alternative, proposed by \citep{fan2015empirical}, considers
 $\pi_{Q}^{w, \nu}\left(q\right) = \sum_{k = 1}^{K} w_{k} \nu_{k}\left(q\right)$,
@@ -2281,7 +2290,7 @@ $\nu_{k}\left(q\right) = \delta_{1 / k}\left(q\right)$ defines a grid of point
 masses over the interval $\left[0, 1\right]$. Then, the EB approach optimizes
 the marginal likelihood over $\left(w_k\right)$. This problem does not have an
 analytical solution, but it is convex, so can be input to generic convex
-optimization software. This provides a another example for how increased
+optimization software. This provides another example for how increased
 computational resources have made certain modeling restrictions, like requiring
 a Beta hyperprior for $q$, unecessary.
 
@@ -2291,9 +2300,8 @@ a Beta hyperprior for $q$, unecessary.
 \label{subsec:basic_example}
 
 We now apply the BASIC algorithm to the antibiotics data set, since we imagine
-many species may pass respond to the introduction and removal antibiotic and
-post-antibiotic regimes in similar ways and in sync with one another. We use an
-implementation installed using directions at
+many species may respond to the introduction and removal antibiotics in similar
+ways and in sync with one another. We use an implementation available from
 \url{https://web.stanford.edu/~zhoufan/software.html}, and all code for this
 example is available at
 \url{https://github.com/krisrs1128/tsc_microbiome/tree/master/src/changepoint}.
@@ -2301,12 +2309,12 @@ example is available at
 We first filter down to samples that are present in at least 20\% of samples,
 and then we perform an $\asinh$ transformation. We decompose our analysis into
 two parts -- an abundance and a presence-absence component. In the continuous
-abundance analysis, we use a Gaussian-Gaussian prior-likelihood pair in the
-BASIC model. This allows us to model changes in mean and variance of abundance
-series over time, and is useful in situations where antibiotics might decrease
-abundances without completely wiping out a species. In the second component, we
-consider whether the probability of a species being present in a sample changes
-across antibiotics time courses. This is accomplished by using a Beta-Bernoulli
+abundance analysis, we use a Normal model with changing means and variances.
+This allows us to model changes in mean and variance of abundance series over
+time, and is useful in situations where antibiotics might decrease abundances
+without completely wiping out a species. In the second component, we consider
+whether the probability of a species being present in a sample changes across
+antibiotics time courses. This is accomplished by using a Beta-Bernoulli
 prior-likelihood pair in the BASIC model.
 
 Figure \ref{fig:basic_heatmap} displays the samples from the posterior for
@@ -2319,12 +2327,12 @@ by the second antibiotic time course than the more abundant Lachnospiraceae.
 
 Note that the number of tiles estimated to be changepoints increases near the
 right of each panel, meaning that rarer species are estimated to have a large
-number of changepoints in this model. It is not entirely clear why this would
-arise, though we suspect it is an artifact of model misspecification, and the
-fact that even after $\asinh$-transforming the raw species abundances are quite
-right-skewed (not to mention nonnegative). Developing an alternative likelihood
-model that may be more suitable for jointly studying abundances of both rare and
-common species is beyond the scope of this work, however.
+number of changepoints. It is not entirely clear why this would arise, though we
+suspect it is an artifact of model misspecification, and the fact that even
+after $\asinh$-transforming the raw species abundances are quite right-skewed
+(not to mention nonnegative). Developing an alternative likelihood model that
+may be more suitable for jointly studying abundances of both rare and common
+species is beyond the scope of this work, however.
 
 \begin{figure}
   \centering
@@ -2341,20 +2349,17 @@ common species is beyond the scope of this work, however.
 
 In Figure \ref{fig:basic_bern_heatmap} we display the estimated changepoints the
 Beta-Bernoulli BASIC model applied to the binarized presence-absence version of
-the previous data. Evidently, the changepoint behavior between high and low
+the abundance data. Evidently, the changepoint behavior between high and low
 abundance species is similar when viewed through this transformation. This is
 somewhat surprising, because it suggests that even the high overall abundance
 species can drop down to zero during the antibiotics time courses.
 
 The many horizontal bands above the main first time course band suggests that
 there is some ambiguity in recovery times. Further, there does not appear to be
-evidence for any differential recovery across species, which would be
-ecologically interesting if it did exist. Finally, as in Figure
-\ref{fig:basic_heatmap}, the effect from the second antibiotic time course is
-much less pronounced than that from the first. This is consistent with
-observation that for this subject, the effect of antibiotics from the first time
-course seems to persist for longer than it did for other subjects, a finding
-consistent with the discussion of \cite{dethlefsen2011incomplete}.
+evidence for any differential recovery across species, which had been visible in
+our complementary analysis. Finally, as in Figure \ref{fig:basic_heatmap}, the
+effect from the second antibiotic time course is much less pronounced than that
+from the first.
 
 \begin{figure}
   \centering
@@ -2495,6 +2500,5 @@ instead of these discrete $\delta$s.
     Gibbs sampling iterations.
     \label{fig:hdp_gibbs_samples} }
 \end{figure}
-
 
 \end{document}
