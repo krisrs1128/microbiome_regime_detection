@@ -12,14 +12,14 @@ library("gridExtra")
 library("vegan")
 library("ape")
 library("dendextend")
-library("depmixS4")
-library("abind")
+library("ggscaffold")
 source("data.R")
-theme_set(ggscaffold::min_theme(list(
-                        "legend_position" = "right",
-                        "border_size" = 0.2
-                      ))
-          )
+theme_set(min_theme(
+  list(
+    "legend_position" = "right",
+    "border_size" = 0.2
+  )
+))
 figure_dir <- file.path("..", "doc", "figure")
 dir.create(figure_dir)
 
