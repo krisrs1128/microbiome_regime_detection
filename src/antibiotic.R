@@ -12,64 +12,60 @@ library("gridExtra")
 library("vegan")
 library("ape")
 library("dendextend")
-library("depmixS4")
-library("abind")
+library("viridis")
+library("ggscaffold")
 source("data.R")
-theme_set(ggscaffold::min_theme(list(
-                        "legend_position" = "right",
-                        "border_size" = 0.2
-                      ))
-          )
+theme_set(min_theme(
+  list(
+    "legend_position" = "right",
+    "border_size" = 0.2
+  )
+))
 figure_dir <- file.path("..", "doc", "figure")
 dir.create(figure_dir)
 
 ## --- utils ----
 combined_heatmap <- function(mx, fill_type = "bw") {
   p1 <- ggplot(mx) +
-    geom_tile(aes(y = leaf_ix, x = sample, fill = scaled)) +
-    facet_grid(cluster ~ ind, scales = "free", space = "free") +
-    scale_y_continuous(expand = c(0, 0)) +
+    geom_tile(aes(y = sample, x = as.factor(leaf_ix), fill = scaled)) +
+    geom_rect(
+      aes(
+        ymin = -Inf, xmin = -Inf, ymax = Inf, xmax = Inf, col = label
+      ),
+      fill = "transparent",
+      size = 0.9
+    ) +
+    facet_grid(ind ~ label, scales = "free", space = "free") +
+    scale_x_discrete(expand = ) +
+    scale_y_discrete() +
+    scale_color_brewer(palette = "Set2") +
     theme(
       plot.margin = unit(c(0, 0, 0, 0), "null"),
-      legend.position = "none",
+      panel.border = element_blank(),
+      panel.spacing.x = unit(0.1, "cm"),
+      panel.spacing.y = unit(0.9, "cm"),
+      legend.position = "bottom",
       axis.title = element_blank(),
       axis.text = element_blank(),
-      strip.text.y = element_text(size = 4),
+      strip.text.x = element_blank()
     )
 
   if (fill_type == "bw") {
-    p1 <- p1 + scale_fill_gradient(low = "white", high = "black")
+    p1 <- p1 +
+      scale_fill_viridis(
+        option = "magma",
+        direction = -1,
+        guide_colorbar(keyheight = 1, keywidth = 0.2, ticks = FALSE)
+      )
   } else if (fill_type == "gradient2"){
-    p1 <- p1 + scale_fill_gradient2(high = "#32835f", low = "#833256")
+    p1 <- p1 +
+      scale_fill_gradient2(
+        high = "#32835f",
+        low = "#833256",
+        guide_colorbar(keyheight = 1, keywidth = 0.2, ticks = FALSE)
+      )
   }
-
-  unique_mx <- mx %>%
-    filter(sample == mx$sample[1])
-  rep_ix <- rep(1:10, nrow(unique_mx))
-  inv_rep_ix <- rep(seq_len(nrow(unique_mx)), each = 10)
-  rsvs <- data_frame(
-    "leaf_ix" = unique_mx$leaf_ix[inv_rep_ix],
-    "cluster" = unique_mx$cluster[inv_rep_ix],
-    "y" = rep_ix,
-    "label" = unique_mx$label[inv_rep_ix]
-  )
-
-  p2 <- ggplot(rsvs) +
-    geom_tile(aes(y = leaf_ix, x = y, fill = label)) +
-    scale_fill_brewer(palette = "Set2", guide = guide_legend(nrow = 8)) +
-    scale_y_continuous(expand = c(0, 0)) +
-    facet_grid(cluster ~ ., scales = "free", space = "free") +
-    theme(
-      panel.border = element_blank(),
-      legend.position = "left",
-      axis.title = element_blank(),
-      axis.text = element_blank(),
-      strip.text = element_blank(),
-      panel.spacing.y = unit(0, "lines"),
-      plot.margin = unit(c(0, 0, 0, 0), "null")
-    )
-
-  arrangeGrob(cbind(ggplotGrob(p2), ggplotGrob(p1)[-1, ], size = "last"))
+  p1
 }
 
 centroid_plot <- function(mx) {
@@ -262,87 +258,20 @@ all_plots[["pacf_pairs"]] <- ggplot(x_pairs %>% filter(time >= 10, time <= 20)) 
   scale_color_brewer(palette = "Set2") +
   facet_grid(ind~time)
 
-## ---- hmm ----
-## i <- 100
-## df <- data.frame(y = x_scaled[, i] + runif(nrow(x_scaled), 0, 0.001))
-## msp <- depmix(y ~ 1, nstates = 4, data = df, emcontrol = em.control(classification = "soft"))
-## fm <- fit(msp)
-
-## plot_hmm <- cbind(df, fm@posterior) %>%
-##   rownames_to_column("sample") %>%
-##   left_join(samples) %>%
-##   gather(state_prob, prob, starts_with("S", ignore.case = FALSE))
-
-## all_plots[["hmm-example"]] <- ggplot(plot_hmm) +
-##   geom_line(aes(x = time, y = y, col = ind), size = 0.4, alpha = 0.3) +
-##   geom_point(aes(x = time, y = y, col = ind, size = prob)) +
-##   facet_grid(state_prob ~ .) +
-##   scale_size_continuous(range = c(0.05, 2)) +
-##   scale_color_brewer(palette = "Set1")
-
-## ## ---- parallel-hmm ----
-## plot_hmm <- list()
-## K <- 4
-
-## ## Loop over every RSV and fit an HMM
-## for (i in seq_len(ncol(x_scaled))) {
-##   if (i %% 10 == 0) {
-##     cat(sprintf("HMM on rsv %s\n", i))
-##   }
-
-##   df <- data_frame(
-##     "sample" = rownames(x_scaled),
-##     "y" = x_scaled[, i] + runif(nrow(x_scaled), 0, 0.005),
-##     "rsv" = colnames(x_scaled)[i]
-##   )
-
-##   msp <- depmix(
-##     y ~ 1,
-##    nstates = K,
-##     data = df,
-##     emcontrol = em.control(classification = "soft")
-##   )
-##   fm <- try(fit(msp, verbose = FALSE))
-
-##   if (class(fm) != "try-error") {
-##     ## try to align states across rsvs, naive approach just sorts by emission mean
-##     state_order <- c(1, 1 + order(summary(fm)[, 1], decreasing = TRUE))
-##     ordered_posterior <- fm@posterior[, state_order]
-##     colnames(ordered_posterior) <- c("state", paste0("S", seq_len(K)))
-
-##     plot_hmm[[i]] <- cbind(df, ordered_posterior) %>%
-##       gather(state_prob, prob, starts_with("S", ignore.case = FALSE)) %>%
-##       as_data_frame
-##   }
-## }
-
-## plot_hmm <- do.call(rbind, plot_hmm) %>%
-##   left_join(samples)
-## plot_hmm$rsv <- factor(plot_hmm$rsv, levels = mix_tree$label)
-
-## for (state in paste0("S", 1:K)) {
-##   all_plots[[sprintf("hmm-%s", state)]] <- ggplot(plot_hmm %>% filter_(sprintf("state_prob == '%s'", state))) +
-##     geom_tile(aes(x = rsv, y = sample, fill = prob)) +
-##     scale_fill_gradient(low = "white", high = "black") +
-##     facet_grid(ind ~ ., scale = "free_y") +
-##     theme(axis.text = element_blank()) +
-##     ggtitle(sprintf("State %s", state))
-## }
-
 ## write all the plots to file
 for (i in seq_along(all_plots)) {
   cur_name <- paste0(names(all_plots)[i], ".png")
-  width <- 2.5
+  height <- 2.5
   if (grepl("heatmap", cur_name)) {
-    width <- 3
+    height <- 3
   } else if (grepl("centroid", cur_name)) {
-    width <- 6.5
+    height <- 6.5
   }
 
   ggsave(
     file.path(figure_dir, cur_name),
     all_plots[[i]],
-    dpi = 900,
-    height = 5.5, width = width
+    dpi = 600,
+    width = 5.5, height = height
   )
 }

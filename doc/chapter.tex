@@ -1,4 +1,4 @@
-\documentclass[14pt{extreport}
+\documentclass[14pt]{extarticle}
 \usepackage[a4paper, margin=0.2in]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath, amssymb, amsfonts}
@@ -201,31 +201,37 @@ In general, we have no quantitative approach for comparing the clusterings
 obtained by different distances. Instead, we compare the resulting heatmaps,
 noting how different patterns are identified by different approaches.
 
+\subsubsection{Example}
+\label{sec:hclust_example}
+
+Now we use hierarchical clustering the data of \cite{dethlefsen2011incomplete}.
 The heatmaps in Figures \ref{fig:heatmap-euclidean} through
 \ref{fig:heatmap-jaccard} describe which species have similar behaviors
-according to Euclidean and Jaccard distances. See Supplementary Figures
-\ref{fig:heatmap-mix} through \ref{fig:heatmap-innovations-bin} for variations
-on the distance and transformation.
-The three main column panels correspond to the three study subjects. Each row
-gives the time series of abundances for a single species, with time evolving
-from left to right and abundance indicated by heatmap shade intensity. The
-taxonomic identities of these species is provided by the multicolored bar on the
-left. The rowwise panels correspond to different subtrees of the hierachical
-clustering when choosing to cut at a particular height -- note that the clusters
-tend to have highly imbalanced sizes. The most important takeaways from these
-figures are that some groups of bacteria are more strongly affected by the
+according to Euclidean and Jaccard distances, respectively. See Supplementary
+Figures \ref{fig:heatmap-mix} through \ref{fig:heatmap-innovations-bin} for
+variations on the distance and transformation. The most important takeaways from
+these figures are that some groups of bacteria are more strongly affected by the
 antibiotic treatment, and there is variation in the time it takes to recover.
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/heatmap-euclidean}
-  \caption{\label{fig:heatmap-euclidean} }
+  \includegraphics[width=0.9\textwidth]{figure/heatmap-euclidean}
+  \caption{The three main row panels correspond to the three study subjects.
+    Each column gives the time series of abundances for a single species, with
+    time evolving from bottom to top and abundance indicated by heatmap shade
+    intensity. Species are grouped into boxes according to their taxonomic
+    family, and within boxes they are ordered according to their position on the
+    hierarchical clustering tree.
+    \label{fig:heatmap-euclidean} }
 \end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/heatmap-jaccard}
-  \caption{\label{fig:heatmap-jaccard} }
+  \includegraphics[width=0.9\textwidth]{figure/heatmap-jaccard}
+  \caption{The analog of Figure \ref{fig:heatmap-euclidean} for the Jaccard
+    distance. Note that species with very different abundances may be grouped
+    together, as long as they have the same patterns of presence and absence.
+    \label{fig:heatmap-jaccard} }
 \end{figure}
 
 As expected, different distances group series according to the features that
@@ -233,38 +239,43 @@ define the distance. For example, the Jaccard distance, used in Figure
 \ref{fig:heatmap-jaccard}, groups series with similar zero patterns, even if
 their associated abundances are very different. On the other hand, the Euclidean
 distance tends to group series with similar averages, and there is less blocking
-by presence-absence structure. Notice that, according to the colored bar
-indicating taxonomic family identity, families are not scattered uniformly
-across rows, but they are not separated into completely disjoint blocks either.
-This suggests that while phylogeny certainly relates to patterns of abundance,
-variation occurs at levels of granularity more subtle than family level.
+by presence-absence structure. Note that patterns of response to antibiotics
+form subclusters within taxonomic families. This suggests that while phylogeny
+certainly relates to patterns of abundance, variation occurs at levels of
+granularity more subtle than family level.
 
 To summarize behavior within clusters, we display the centroids in Figures
 \ref{fig:centroid-euclidean-conditional} \ref{fig:centroid-euclidean-presence}.
-The panel number denotes the cluster defined by cutting the hierarchical
-clustering tree, with the same labeling as in the heatmap. Different individuals
-are represented by different colors. The solid points are the time series of
-averages across all species for a given cluster, per individual. Semitransparent
-points are the raw values used to compute these averages. Evidently, some of the
-clustering structure is due to the presence of species within only some of the
-subjects. Further, differential responses can be seen within some of the panels.
-For example, cluster 17 in Figure \ref{fig:centroid-euclidean-conditional}
-includes bacteria that are affected by the first antibiotics time course, but
-only for subjects D and F, and which are only affected in subject D during the
-second time course.
+Evidently, some of the clustering structure is due to the presence of species
+within only some of the subjects. Further, differential responses can be seen
+within some of the panels. For example, cluster 17 in Figure
+\ref{fig:centroid-euclidean-conditional} includes bacteria that are affected by
+the first antibiotics time course, but only for subjects D and F, and which are
+only affected in subject D during the second time course.
 
 \begin{figure}
   \centering
   \includegraphics[width=0.9\textwidth]{figure/centroid-euclidean-conditional}
-  \caption{\label{fig:centroid-euclidean-conditional} }
+  \caption{Centroids of the subclusters identified by the heatmap. Panels
+    correspond to subclsuters defined by cutting the hierarchical clustering
+    tree. Different individuals are represented by different colors. The solid
+    points are the time series of averages of positive species abundances for a
+    given cluster, per individual. Semitransparent points are the raw values
+    used to compute these averages. These centroids provide context for
+    interpreting the leaves in the original hierarchical clustering.
+    \label{fig:centroid-euclidean-conditional} }
 \end{figure}
 
 \begin{figure}
   \centering
   \includegraphics[width=0.9\textwidth]{figure/centroid-euclidean-presence}
-  \caption{\label{fig:centroid-euclidean-presence} }
+  \caption{The analog of Figure \ref{fig:centroid-euclidean-conditional},
+    looking at the running averages of presence and absence of species within
+    different subclusters. The values of the solid points can be interpreted as
+    the probability that a species within that cluster will be present, as a
+    function of time and subject.
+    \label{fig:centroid-euclidean-presence} }
 \end{figure}
-
 
 The fact that the data include many zeros makes the mean a somewhat misleading
 cluster summary. Instead, we can decompose the summary into a presence-absence
@@ -290,9 +301,6 @@ timepoint for the $i^{th}$ sample as $t_{i}$ Then, we model the count for the
 $j^{th}$ species in the $i^{th}$ sample as $y_{ij} \approx f\left(s_{j},
 t_{i}\right)$ where $f \in \mathcal{T}$, the space of decision trees. The output
 of interest is the fitted partition on $\left(s_{j}, t_{i}\right)$.
-
-\subsubsection{CART review}
-\label{subsubsec:cart_review}
 
 For completeness, we review the CART algorithm. Following \citep{stat315bnotes},
 we can describe it in terms of (1) the structural model, (2) the score criterion
@@ -377,16 +385,10 @@ $\hat{r}_{m} + k < \sum_{m^{\prime}} C_{m^{\prime}}$, then all descendant nodes
 (subpartition elements) are merged into $R_{m}$. Otherwise, the left and right
 splits are accepted. These choices are made sequentially, from the bottom up.
 
-\subsubsection{Antibiotics application}
-\label{subsubsec:antibiotics_application}
+\subsubsection{Example}
+\label{subsubcart_example}
 
 Example output from this approach is provided in Figure \ref{fig:rpart_complex}.
-As in the heatmaps produced by hierarchical clustering, the three vertical
-panels represent three subjects, while rows and columns correspond to species
-and temporally-ordered samples, respectively. The rows have been ordered
-according to a hierarchical clustering. The shading within partition blocks
-corresponds to the fitted $\hat{c}_{m}$ from the regression tree.
-
 Note the presence of two light vertical stripes in subjects D and F -- these
 correspond to the two antibiotic treatment regimes. In general, ``tall'' blocks
 are more common than ``wide'' ones. This reflects the fact that timepoints
@@ -424,12 +426,19 @@ supplemental (e.g., taxonomic) information within the static view, through a
 shaded taxonomic-family stripe, as in Figure \ref{fig:heatmap-euclidean} (2)
 construct an interactive version of these plots, where hovering over a partition
 element provides focused information about that element (e.g., the species
-identities it contains), in the spirit of our \texttt{centroidview} package.
+identities it contains), in the spirit of our \texttt{centroidview}
+package\footnote{\url{https://github.com/krisrs1128/centroidview}}.
 
 \begin{figure}
   \centering
   \includegraphics[width=0.8\textwidth]{figure/rpart_complex}
-  \caption{\label{fig:rpart_complex} }
+  \caption{As in the heatmaps produced by hierarchical clustering, the three
+    vertical panels represent three subjects, while rows and columns correspond
+    to species and temporally-ordered samples, respectively. The rows have been
+    ordered according to a hierarchical clustering. The shading within partition
+    blocks corresponds to the fitted $\hat{c}_{m}$ from the regression tree.
+    \label{fig:rpart_complex}
+  }
 \end{figure}
 
 \section{Smooth temporal models}
@@ -555,7 +564,7 @@ from the data. Two standard approaches are based on maximizing (1) the marginal
 likelihood of $y$ and (2) the cross-validated predictive likelihood. The first
 approach leverages the fact that the marginal likelihood,
 \begin{align*}
-\log p\left(y \vert x; \theta\right) &= -\frac{n}{2}\log 2\pi - \log\absarg{K_{\theta}\left(x, x\right) + \sigma^{2}I_{n}} - \frac{1}{2}y^{T}\left(K_{\theta}\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}y
+  \log p\left(y \vert x; \theta\right) &= -\frac{n}{2}\log 2\pi - \log\absarg{K_{\theta}\left(x, x\right) + \sigma^{2}I_{n}} - \frac{1}{2}y^{T}\left(K_{\theta}\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}y
 \end{align*}
 and its gradients over $\theta$ have a closed form, and so can be optimized.
 
@@ -584,8 +593,8 @@ fundamental starting point is the Linear-Gaussian dynamical system,
 \begin{align*}
   x_{t} &= C z_{t} + \eps_{t} \\
   z_{t} &= A z_{t - 1} + \delta_{t} \\
-  \eps_{t} &\sim \Gsn\left(0, R\right).
-  \delta_{t} &\sim \Gsn\left(0, Q\right) \\
+  \eps_{t} &\sim \Gsn\left(0, R\right) \\
+  \delta_{t} &\sim \Gsn\left(0, Q\right).
 \end{align*}
 The $z_{t}$'s are a Markov chain of latent states, while the $x_{t}$'s represent
 the observed emissions from it. $A$ and $Q$ govern the dynamics of the
@@ -620,35 +629,36 @@ problem context and constraints. Among the most common approaches are
     \node[latent] (z1) {$z_{1}$};
     \node[latent, left=of z1] (z0) {$z_{0}$};
     \node[obs, above=of z1] (x1) {$x_{1}$};
-    \node[latent, above=of x1] (delta1) {$\delta_{1}$};
-    \node[latent, below=of z1] (eps1) {$\eps_{1}$};
+    \node[latent, above=of x1] (eps1) {$\eps_{1}$};
+    \node[latent, below=of z1] (delta1) {$\delta_{1}$};
     \node[latent, right=of z1] (z2) {$z_{2}$};
     \node[obs, above=of z2] (x2) {$x_{2}$};
-    \node[latent, above=of x2] (delta2) {$\delta_{2}$};
-    \node[latent, below=of z2] (eps2) {$\eps_{2}$};
+    \node[latent, above=of x2] (eps2) {$\eps_{2}$};
+    \node[latent, below=of z2] (delta2) {$\delta_{2}$};
     \node[const, right=of z2] (zdots) {$\dots$};
     \node[latent, right=of zdots] (zT) {$z_{T}$};
-    \node[latent, below=of zT] (epsT) {$\eps_{T}$};
+    \node[latent, below=of zT] (deltaT) {$\delta_{T}$};
     \node[obs, above=of zT] (xT) {$x_{T}$};
-    \node[latent, above=of xT] (deltaT) {$\delta_{T}$};
+    \node[latent, above=of xT] (epsT) {$\eps_{T}$};
 
     % Connect the nodes
-    \edge {z1} {x1} ; %
-    \edge {z2} {x2} ; %
-    \edge {z0} {z1} ; %
-    \edge {z1} {z2} ; %
-    \edge {z2} {zT} ; %
-    \edge {z2} {zdots} ; %
-    \edge {zdots} {zT} ; %
-    \edge {zT} {xT} ; %
-    \edge {eps1} {z1} ; %
-    \edge {eps2} {z2} ; %
-    \edge {epsT} {zT} ; %
-    \edge {delta1} {x1} ; %
-    \edge {delta2} {x2} ; %
-    \edge {deltaT} {xT} ; %
+    \edge {z1} {x1} ;
+    \edge {z2} {x2} ;
+    \edge {z0} {z1} ;
+    \edge {z1} {z2} ;
+    \edge {z2} {zdots} ;
+    \edge {zdots} {zT} ;
+    \edge {zT} {xT} ;
+    \edge {eps1} {x1} ;
+    \edge {eps2} {x2} ;
+    \edge {epsT} {xT} ;
+    \edge {delta1} {z1} ;
+    \edge {delta2} {z2} ;
+    \edge {deltaT} {zT} ;
   \end{tikzpicture}
-  \caption{\label{fig:lds_graphical} }
+  \caption{Plate diagram corresponding to a Gaussian LDS. $z_{t}$ denotes the
+    underlying Markov state sequence, while $x_t$ are observed
+    emissions. \label{fig:lds_graphical} }
 \end{figure}
 
 We first describe inference in detail, before explaining how inference and
@@ -1090,7 +1100,7 @@ $k$ in an HMM with Gaussian emissions becomes
 \hat{\mu}_{k} &= \frac{\sum_{i = 1}^{n}\sum_{t = 1}^{T} \indic{z_{t} = k}x_{it}}{\sum_{i = 1}^{n}\sum_{t = 1}^{T} \indic{z_{it} = k}}.
 \end{align*}
 We employ this approach on the antibiotics data described in Section
-\ref{subsubsec:antibiotics_application}. The results are summarized in Figure
+\ref{subsubcart_example}. The results are summarized in Figure
 \ref{fig:hmm_mode} and Supplementary Figure \ref{fig:hmm_probs}, which display
 the modes and raw probabilities of the smoothed probabilities $p\left(z_{it}
 \vert x_{i, 1:T}\right)$ after applying EM. As in Figure
@@ -1404,7 +1414,7 @@ $\text{GEM}\left(\gamma\right)$ distribution\footnote{The
   be described by a stick breaking constrution. Specifically,
   $\left(\beta_{j}\right)$ can be constructed by taking $\beta_{1} = V_1$,
   $\beta_2 = \left(1 - V_1\right)V_2, \dots, \beta_{j} = \left[\prod_{k = 1}^{j
-      - 1}\left(1 - V_k\right)\right]V_j$ where $V_j &\sim \Bet\left(1,
+      - 1}\left(1 - V_k\right)\right]V_j$ where $V_j \sim \Bet\left(1,
   \gamma\right)$ independently. }. Cosider a modified base measure,
 $Q_k = \sum_{j = 1}^{\infty} \left(\beta_j + \indic{j =
     k}\kappa\right)\delta_{\theta_j}$, which places $\kappa$ additional mass on
@@ -1423,7 +1433,7 @@ exact one that extends Chinese Restaurant Franchise analogy developed by
 \citep{teh2006hierarchical} and an approximate blocked Gibbs sampler. Here, we
 describe the blocked Gibbs sampler, since while it is only approximate, it mixes
 more rapidly\footnote{Implementations of both approaches are available at
-  \url{https://github.com/krisrs1128/tsc\_microbiome/tree/master/src/hmm}. This
+  \url{https://github.com/krisrs1128/tsc\_microbiome/tree/master/src/hmm}}. This
   is because the exact sampler can only swap cluster labels $z_t$ one at a time,
   which means it must pass through low probability valleys in the posterior
   where a cluster is awkwardly split in half before reaching a potentially
@@ -2411,44 +2421,73 @@ instead of these discrete $\delta$s.
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/heatmap-mix}
-  \caption{\label{fig:heatmap-mix} }
+  \includegraphics[width=0.9\textwidth]{figure/heatmap-mix}
+  \caption{
+    The analog of Figures \ref{fig:heatmap-euclidean} and
+    \ref{fig:heatmap-jaccard}, obtained by using a distance that mixes between
+    the two: $d\left(x_i, x_{i^{\prime}}\right) = 0.5 d_{\text{Euc}}\left(x_{i},
+    x_{i^{\prime}}\right) + 0.5d_{\text{Jac}}\left(x_{i}, x_{i^\prime}\right)$.
+    Species now must have both nearby abundances and similar zero patterns, in
+    order to appear as neighboring columns in this heatmap.
+    \label{fig:heatmap-mix} }
 \end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/heatmap-innovations}
-  \caption{\label{fig:heatmap-innovations} }
+  \includegraphics[width=0.9\textwidth]{figure/heatmap-innovations}
+  \caption{
+    A version of Figure \ref{fig:heatmap-euclidean} obtained after clustering on
+    the first-differenced series. The shading of cells now corresponds to
+    increases (green) or decreases (red) in abundance between neighboring
+    timepoints. Species are now considered similar as long as they have similar
+    changes from time to time, even when their absolute abundances may not be
+    close.
+    \label{fig:heatmap-innovations} }
 \end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/heatmap-innovations-bin}
-  \caption{\label{fig:heatmap-innovations-bin} }
-\end{figure}
-
-
-\begin{figure}
-  \centering
-  \includegraphics[width=0.8\textwidth]{figure/rpart_simple}
-  \caption{\label{fig:rpart_simple} }
-\end{figure}
-
-\begin{figure}
-  \centering
-  \includegraphics[width=0.8\textwidth]{figure/rpart_complex_2}
-  \caption{\label{fig:label} }
+  \includegraphics[width=0.9\textwidth]{figure/heatmap-innovations-bin}
+  \caption{
+    The idea in Figure \ref{fig:heatmap-innovations} of comparing first
+    differenced series can be coarsened to simply studying whether series
+    increased or decreased between neighboring timepoints, ignoring the actual
+    value. By computing Manhattan distances between these coarsened differences,
+    we can achieve an effect similar to viewing Jaccard distances on the
+    original abundances.
+    \label{fig:heatmap-innovations-bin} }
 \end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/rpart_complex_3}
-  \caption{\label{fig:rpart_complex_3} }
+  \includegraphics[width=0.9\textwidth]{figure/rpart_simple}
+  \caption{A version of Figure \ref{fig:rpart_complex} made when the penalty $k$
+    for having complex trees is very low. The resulting partition is generally
+    too rough to be useful, though certain structures -- like the increase in
+    abundance among some species during the first antibiotic time course for
+    subject D -- to become more visible. In a purely supervised setting, this
+    model would be quite overfit, and though we are now applying models for
+    exploratory analysis, a similar principle applies.
+    \label{fig:rpart_simple}
+  }
 \end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/rpart_binary_simple}
+  \includegraphics[width=0.9\textwidth]{figure/rpart_complex_2}
+  \caption{
+    A version of Figure \ref{rpart_complex} with much more penalty on the
+    complexity of the learned partitions. While Supplementary Figure \ref{fig:rpart_simple}
+    displayed a very overfit tree, the tree here seems quite underfit, as only a
+    few leaves seem to have survived the pruning process. Between this figure
+    and the two mentioned before, we can get a sense of the degree to which
+    model tuning can affect visual interpretation.
+    \label{fig:rpart_complex_2} }
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.9\textwidth]{figure/rpart_binary_simple}
   \caption{CART partitions across species and timepoints. Each column here
     corresponds to an Amplicon Sequence Variant (ASV), and rows are timepoints.
     The three subjects (D, E, and F) are laid out side by side. Each rectangle
@@ -2460,7 +2499,7 @@ instead of these discrete $\delta$s.
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/rpart_conditional}
+  \includegraphics[width=0.9\textwidth]{figure/rpart_conditional}
   \caption{CART partitions when predicting abundances for species $\times$
     timepoint combinations, using a model trained on only nonzero cells of the
     species abundance matrix. The resulting fit can be interpreted as the
@@ -2470,7 +2509,7 @@ instead of these discrete $\delta$s.
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/hmm_probs}
+  \includegraphics[width=0.9\textwidth]{figure/hmm_probs}
   \caption{Fitted probabilities for each of the $K = 4$ states in the HMM
     estimated by EM. Different rows of panels correspond to different
     individuals, while different columns are different states. The colors across
