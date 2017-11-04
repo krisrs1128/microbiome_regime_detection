@@ -1,4 +1,4 @@
-\documentclass[14pt]{extreport}
+\documentclass[14pt{extreport}
 \usepackage[a4paper, margin=0.2in]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath, amssymb, amsfonts}
@@ -1280,7 +1280,7 @@ and if
   \mu_{k} &\sim \Gsn\left(\mu_{0} \vert \mu_{k}, \Sigma_{0}\right) \\
   \Sigma_{k} &\sim \text{InvWish}\left(\Sigma_{k} \vert \nu, \Delta\right)
 \end{align*}
-then the usual Normal-Inverse Wishart posterior can be used, after subsetting to
+then the usual Normal-Inverse Gamma posterior can be used, after subsetting to
 those samples $\left(x_{it}\right)^{(k)}$ with $z_{it} = k$,
 \begin{align*}
   \mu_{k} \vert \left(x_{it}\right)^{(k)} &\sim \Gsn\left(\theta_{k} \vert \bar{\Sigma}\left(\Sigma_0^{-1}\mu_{0} + \Sigma_{k}^{-1}\right) \sum_{i, t} x_{it}\indic{z_{it} = k}, \bar{\Sigma}\right) \\
@@ -1381,12 +1381,12 @@ common states. By using a $\DP\left(\alpha, H\right)$ base measure instead, the
 $\text{HDP}\left(\alpha, \gamma, H\right)$ prior allows sharing of states across
 $P_{k}$.
 
-More formally, an HDP-HMM models a sequence $x_{1}, \dots, x_{T}$, according to
+More formally, an HDP-HMM models a sequence $x_{1}, \dots, x_{T}$, emitted from
 a latent Markov chain $z_t$,
 \begin{align*}
   x_t \vert z_t &\sim P_{\theta_{z_t}} \\
-    z_1 &\sim \pi_1 \\
-    z_t \vert z_{t - 1} &\sim P_{z_{t - 1}}
+  z_t \vert z_{t - 1} &\sim P_{z_{t - 1}} \text{ for } t > 1 \\
+  z_1 &\sim \pi_1
 \end{align*}
 with a prior on the rows of the transition matrix given by
 \begin{align*}
@@ -1399,9 +1399,15 @@ measure $Q$, the rows are i.i.d., and there is no stickiness.
 To induce state persistence, first consider a stick breaking representation
 $\DP$ base measure $Q = \sum_{j = 1}^{\infty} \beta_j \delta_{\theta_j}$ where
 the sequence $\left(\beta_j\right)$ is drawn from a
-$\text{GEM}\left(\gamma\right)$ distribution. Cosider a modified base measure,
-$Q_k = \sum_{j = 1}^{\infty} \left(\beta_j + \indic{k =
-    j}\kappa\right)\delta_{\theta_j}$, which places $\kappa$ additional mass on
+$\text{GEM}\left(\gamma\right)$ distribution\footnote{The
+  GEM$\left(\gamma\right)$ distribution \citep{gnedin2001characterization} can
+  be described by a stick breaking constrution. Specifically,
+  $\left(\beta_{j}\right)$ can be constructed by taking $\beta_{1} = V_1$,
+  $\beta_2 = \left(1 - V_1\right)V_2, \dots, \beta_{j} = \left[\prod_{k = 1}^{j
+      - 1}\left(1 - V_k\right)\right]V_j$ where $V_j &\sim \Bet\left(1,
+  \gamma\right)$ independently. }. Cosider a modified base measure,
+$Q_k = \sum_{j = 1}^{\infty} \left(\beta_j + \indic{j =
+    k}\kappa\right)\delta_{\theta_j}$, which places $\kappa$ additional mass on
   the atom for the $k^{th}$ latent state. Using $Q_k$ as a base measure for
   $P_k$ encourages the $k^{th}$ state to return to itself. For completeness, the
   prior for rows of the transition matrix now has the form,
@@ -1409,69 +1415,72 @@ $Q_k = \sum_{j = 1}^{\infty} \left(\beta_j + \indic{k =
   P_k \vert Q_k &\sim \DP\left(\alpha, Q_k\right) \\
   Q_k \vert \left(\beta_j\right), \left(\theta_j\right) &\sim \sum_{j = 1}^{\infty} \left(\beta_j + \indic{k = j}\kappa\right)\delta_{\theta_j} \\
   \left(\beta_j\right) &\sim \text{GEM}\left(\gamma\right) \\
-  \theta_j &\sim H \text{ for }j = 1, 2, \dots
+  \theta_j &\sim H \text{ for }j = 1, 2, \dots.
 \end{align*}
 
-\citep{fox2009bayesian} describes two inferential approaches for this model: an
+\cite{fox2009bayesian} describes two inferential approaches for this model: an
 exact one that extends Chinese Restaurant Franchise analogy developed by
 \citep{teh2006hierarchical} and an approximate blocked Gibbs sampler. Here, we
 describe the blocked Gibbs sampler, since while it is only approximate, it mixes
 more rapidly\footnote{Implementations of both approaches are available at
-  \url{http://github.com/krisrs1128/tsc\_microbiome}.}. This is because the exact
-  sampler can only swap cluster labels $z_t$ one at a time, which means it must
-  pass through low probability valleys in the posterior where a cluster is split
-  before reaching a potentially higher mode.
+  \url{https://github.com/krisrs1128/tsc\_microbiome/tree/master/src/hmm}. This
+  is because the exact sampler can only swap cluster labels $z_t$ one at a time,
+  which means it must pass through low probability valleys in the posterior
+  where a cluster is awkwardly split in half before reaching a potentially
+  higher mode.
 
 The idea of the blocked Gibbs sampler is to sample all the assignments $z_t$
-simultaneously using the same Forwards-Backwards variant used for inference of
+simultaneously using the same forwards-backwards variant used for inference of
 the sticky HMM in Section \ref{sec:sticky_hmms}. A difficulty in directly
-applying this strategy is that we no longer have a finite $K$ of states from
-which to sample. To get around this issue, \citep{fox2008hdp} employs
-\citep{ishwaran2002exact}'s ``weak-limit'' approximation,
+applying this strategy is that we no longer have a finite $K$ number of states
+from which to sample. To get around this issue, \cite{fox2008hdp} employs
+\cite{ishwaran2002exact}'s ``weak-limit'' approximation,
 
 \begin{align*}
   \text{GEM}\left(\gamma\right) \approx \Dir\left(\frac{\gamma}{L}, \dots, \frac{\gamma}{L}\right),
 \end{align*}
 where $L$ is truncation level chosen large enough so that the number of clusters
-visible in the oserved data modeled by an exact $\DP$ would be smaller than $L$.
-However, there is a tradeoff here between statistical and computational
-efficiency -- larger $L$ brings us closer to the exact model but requires more
-involved computation.
+visible in the observed data modeled by an exact $\DP$ would usually be smaller
+than $L$. Note that there is a tradeoff here between statistical and
+computational efficiency -- larger $L$ brings us closer to the exact model but
+requires more involved computation.
 
 With this approximation in hand, we can now describe a tractable sampler. The
-full parameter set consists of $\{\left(\theta_k\right)_{k = 1}^{\infty},
+full parameter set consists of $\{\left(\theta_k\right)_{k = 1}^{L},
 \left(z_t\right)_{t = 1}^{T}, \left(\beta_{k}\right)_{k = 1}^{L},
 \left(P_{k}\right)_{k = 1}^{L} \}$. To facilitate sampling, three sets of
 auxiliary variables $\left(m_{jk}\right), \left(w_k\right)$, and
   $\left(\bar{m}_{jk}\right)$ are introduced. Each term is sampled one at a
   time, from its full conditional.
 
-Some mnemonics to help with tracking notation are that (1) $m_{jk}$ would track
-the number of transitions from states $j$ to $k$ if there had been no
-stickiness, (2) $w_k$ counts the number of times stickiness is invoked in state
-$k$, and (3) $m_{jk}$ counts the number of transitions from $j$ to $k$ after
-accounting for state persistence.
+  Some mnemonics can help with tracking notation,
+\begin{itemize}
+\item $m_{jk}$ track the number of transitions from states $j$ to $k$ if there
+  had been no stickiness.
+\item $w_k$ counts the number of times stickiness is invoked in state $k$.
+\item $m_{jk}$ counts the number of transitions from $j$ to $k$ after accounting
+  for state persistence.
+\end{itemize}
 
 We simply state the conditionals required in each step of the Gibbs sampler. A
-detailed derivation is provided in \citep{fox2009bayesian}.
-
-The conditional for $\beta$ is
+detailed derivation is provided in \citep{fox2009bayesian}. The conditional for
+$\beta$ is
 \begin{align*}
   \beta &\sim \Dir\left(\frac{\gamma}{L} + \bar{m}_{\cdot 1}, \dots, \frac{\gamma}{L} + \bar{m}_{\cdot L}\right),
 \end{align*}
 where $\bar{m}_{\cdot l} = \sum_{j = 1}^{L} \bar{m}_{jl}$. The updates for
 $\left(\theta_k\right)$ and $\left(z_t\right)$ are the same as those for the
-(finite) sticky HMM, described in Section \ref{sec:sticky_hmms}. Next we
-consider sampling the auxiliary variables.
-To sample $m_{jk}$, draw
+(finite) sticky HMM, described in Section \ref{sec:sticky_hmms}. Next consider
+sampling the auxiliary variables. To sample $m_{jk}$, draw
 \begin{align*}
   m_{jk} &\sim \sum_{n = 1}^{n_{jk}} \Ber\left(\frac{\alpha \beta_{k} + \kappa\indic{j = k}}{n + \alpha \beta_{k} + \kappa \indic{j = k}}\right)
 \end{align*}
 where $n_{jk}$ counts the number of observed transitions from states $j$ to $k$
-among the $z_{t}$, which we have conditioned upon. This distribution is
-sometimes called a Chinese Restaurant Table distribution, because it counts the
-total number of tables that have been occupied in a CRP after a certain number
-of customers have arrived \citep{zhou2012augment}.
+among the $z_{t}$, which we have conditioned upon. The distribution of $m_{jk}$
+is sometimes called a Chinese Restaurant Table distribution, because it counts
+the total number of tables that have been occupied in a CRP after a certain
+number of customers have arrived \citep{zhou2012augment}, which is a sum of
+Bernoulli decisions to join an old table or occupy a new one.
 
 For $w_k$, the conditional can be shown to be
 \begin{align*}
@@ -1491,7 +1500,7 @@ Cycling these updates provides a blocked Gibbs sampler for the sticky HDP-HMM.
 \label{subsubsec:sticky_hdp_hmm_example}
 
 An application of the HDP-HMM to the antibiotics data is summarized in Figure
-\ref{fig:hdp_mode}. We ran a Normal-Inverse Wishart emissions version of the
+\ref{fig:hdp_mode}. We ran a Normal-Inverse Gamma emissions version of the
 sampler for 2000 iterations, initializing the model using the model using means
 and covariances from clusters found with $K$-means. We set $\alpha = 10^{-4}$,
 $\gamma = 10^{-6}$, $\kappa = 0.1$, and $\L = 10$.
@@ -1503,7 +1512,7 @@ F. However, with our choice of $\alpha$, there tend to be many transient states,
 represented by the increased number of intermediate colors between light yellow
 and dark purple. We can understand this figure as a kind of smoothing using a
 low bandwidth. Decreasing $\alpha$ and increasing $\kappa$ leads to a higher
-concentration in few states , and a more strongly smoothed representation of the
+concentration in few states, and a more strongly smoothed representation of the
 data.
 
 \begin{figure}
@@ -1524,28 +1533,6 @@ transition matrix is infinite dimensional, the weak limit approximation provides
 $K$ clusters plus one additional category containing the rest of the mass from
 the DP for that row. States are ordered from lowest to highest emission mean.
 
-As in the other HMM-based methods, the sticky HDP-HMM places most mass in the
-transition matrix along the diagonal, corresponding to self-transitions. As in
-the sticky HMM, self-transitions are somewhat more regularized than in the HMM
-estimated through EM. Transitions from the highest to the lowest states are more
-common than transitions in the opposite directions. This corresponds to the fact
-that rapid drops after antibiotic time courses are somewhat more common than
-rapid recoveries.
-
-In addition to summaries of the model results, it is informative to investigate
-properties of the sampling routine, to diagnose potential defects or
-limitations. Supplemental Figure \ref{fig:hdp_gibbs_samples} displays the
-evolution of state assignments over iterations. The variation in state colors at
-the bottom of the figure likely represents the initial burn-in period. Most
-states, especially those corresponding to low abundance states, seem relatively
-fixed across Gibbs sampling iterations. In some situations, this would be a
-marker of poor mixing of the block sampler, in spite of its performing full
-forwards and backwards sweeps during every sampling iteration. However, a more
-likely explanation in this situation is that the abundances across species can
-vary quite dramatically, so that the likelihood of alternative states is very
-low. This also suggests that an alternative likelihood model may provide both
-better mixing and fits than the Normal Inverse-Wishart likelihood applied here.
-
 \begin{verbatim}
        9     6     8     5     3     4    10     2     1     7
  9 0.016 0.008 0.007 0.003 0.002 0.002 0.003 0.006 0.004 0.007
@@ -1560,6 +1547,28 @@ better mixing and fits than the Normal Inverse-Wishart likelihood applied here.
  7 0.002 0.005 0.002 0.002 0.003 0.005 0.014 0.000 0.005 0.004
 \end{verbatim}
 
+As in the other HMM-based methods, the sticky HDP-HMM places most mass in the
+transition matrix along the diagonal, corresponding to self-transitions. As in
+the sticky HMM, self-transitions are somewhat more regularized than in the HMM
+estimated through EM. Transitions from the highest to the lowest states are more
+common than transitions in the opposite directions. This corresponds to the fact
+that rapid drops after antibiotic time courses are somewhat more common than
+rapid recoveries.
+
+In addition to summaries of the model results, it is informative to investigate
+properties of the sampling routine, to diagnose potential defects or
+limitations. Supplemental Figure \ref{fig:hdp_gibbs_samples} displays the
+evolution of state assignments over iterations. The variation in state colors at
+the bottom of the figure represents the initial burn-in period. Most states,
+especially those corresponding to low abundance states, seem relatively fixed
+across Gibbs sampling iterations. In some situations, this would be a marker of
+poor mixing of the block sampler, in spite of its performing full forwards and
+backwards sweeps during every sampling iteration. However, a more likely
+explanation in this situation is that the abundances across species can vary
+quite dramatically, so that the likelihood of alternative states is very low.
+This also suggests that an alternative likelihood model may provide both better
+mixing and fits than the Normal Inverse-Gamma likelihood applied here.
+
 %% - Write the new model
 %% - Simulation example
 %% - Antibiotics case study
@@ -1569,27 +1578,27 @@ better mixing and fits than the Normal Inverse-Wishart likelihood applied here.
 %%   + Link to code
 
 HMMs suppose that the observed system switches between a few regimes, but that
-within regimes observations are stationary. In certain situations, this is not
-quite plausible, and in the next few sections we describe alternatives that mix
-nonstationary processes. In particular, we focus on several efforts to merge the
-switching idea of HMMs with linear dynamical systems and gaussian processes,
-proposed in \citep{ghahramani1998variational, rasmussen2002infinite,
-  fox2012multiresolution}.
+within regimes observations are i.i.d.. In certain situations, this is not quite
+plausible, and in the next few sections we describe alternatives that mix
+non-i.i.d. processes. In particular, we focus on several efforts to merge the
+switching idea of HMMs with LDSs and GPs, proposed in
+\citep{ghahramani1998variational, rasmussen2002infinite, fox2012multiresolution,
+  linderman2016recurrent}.
 
 \subsection{Infinite Mixtures of Gaussian Process Experts}
 \label{subsec:imgpe}
 
-GPs, as described in Section \ref{subsec:gaussian_processes} provide an
+GPs, as described in Section \ref{subsec:gaussian_processes}, provide an
 alternative to LDS and HMM models for analyzing temporal data. However, in their
 original form, they are of only limited utility for the regime detection
 problem, because they assume a type of homogeneity in dynamics. In particular,
 once the kernel bandwidth for a GP is specified, it will tend to have
-fluctuations at the order of that bandwidth throughout its entire domain, see
+fluctuations on the order of that bandwidth throughout its entire domain, see
 Figure \ref{fig:gp_bandwidths}. This makes it difficult to model differential
 dynamics -- e.g., gradual evolution in some domains and rapid changes in
 others\footnote{The need to specified a unified bandwidth is analogous to the
-  situation in spline smoothing, which motivates the development of wavelet
-  methods\citep{donoho1995adapting}. That there is such a connection is not
+  situation in spline smoothing, which motivated the development of wavelet
+  methods \citep{donoho1995adapting}. That there is such a connection is not
   surprising, considering the parallel nature of GPs and splines
   \citep{kimeldorf1970correspondence}} which is characteristic of longitudinal
 microbiome data sets.
@@ -1603,13 +1612,14 @@ microbiome data sets.
     homogeneous. \label{fig:gp_bandwidths} }
 \end{figure}
 
-To adapt GPs to the settings with more heterogeneous dynamics, a variety of
-mixture \citep{tresp2001mixtures, rasmussen2002infinite}, multiscale
-\citep{fox2012multiresolution, samostring}, adn time-varying
+To adapt GPs to settings with more heterogeneous dynamics, a variety of mixture
+\citep{tresp2001mixtures, rasmussen2002infinite}, multiscale
+\citep{fox2012multiresolution, samostring}, and time-varying
 \citep{paciorek2003nonstationary, heinonen2016non} approaches have been
-proposed. Here, we describe the implementation and application of the approach
-of \citep{rasmussen2002infinite}. Code is available at
-\url{https://github.com/krisrs1128/tsc_microbiome}.
+proposed. Here, we describe the implementation and application of the Infinite
+Mixture of Gaussian Process Experts (IMGPE) \citep{rasmussen2002infinite}. Code
+is available at
+\url{https://github.com/krisrs1128/tsc_microbiome/tree/master/src/igp}.
 
 In this approach, timepoints are assigned to distinct GPs, each with their own
 kernel parameters. Let $\left(y_{i}\right)$ be a single observed time series,
@@ -1622,7 +1632,7 @@ one-dimensional Gaussian covariance kernel with $\theta = \{v_0, v_1, \sigma_f^2
   \kappa_\theta\left(x_i, x_i^\prime\right) &= v_0 \exp{\frac{1}{\sigma_f^2} \left(x_i - x_i^\prime\right)^2} + v_1.
 \end{align*}
 
-This overall mechanism corresponds to a complete data likelihood,
+The associated complete data likelihood is
 \begin{align*}
  y_i \vert \left(\kappa_k\right), \left(c_i\right) &\sim \prod_{k \in \text{unique}\left(c_i\right)} \Gsn\left(0, K_{\theta_k}\left(t^k\right)\right)
 \end{align*}
@@ -1637,7 +1647,7 @@ evaluating the $k^{th}$ kernel at the timepoints $t^k$ for which $z_i = k$,
 \end{align*}
 
 To complete specification of the model, priors must be placed on the
-$\left(z_i\right)$ and $\left(\theta_k\right)$. \citep{rasmussen2002infinite}
+$\left(z_i\right)$ and $\left(\theta_k\right)$. \cite{rasmussen2002infinite}
 propose placing a Chinese Restaurant Process (CRP) prior on the class indicators,
 separate wide Gaussian priors on the logged kernel parameters, and a gamma
 hyperprior on the CRP diversity parameter $\alpha$,
@@ -1650,14 +1660,14 @@ The use of a $\CRP\left(\alpha\right)$ prior explains the name \textit{infinite}
 mixture of GP experts. In our experiments, we find it sufficient to fix $\alpha$
 and treat it as a tuning parameter. Further, we find that Logistic, instead of
 Gaussian, priors on $\log \theta_k$ allow improved detection of different regime
-dynamics -- inference with this alternative prior can be done similarly to the
-Gaussian case.
+dynamics, likely due to its heavier tails. Inference with this alternative prior
+can be done similarly to the Gaussian case.
 
-We next describe an algorithm for fitting this model. There are two parts to
-this algorithm, inference of the latent classes $z_i$ and learning of the class
-kernel parameters $\theta_k$. For inference of the $z_i$, a collapsed Gibbs
-sampler can be applied, in the spirit of \citep{neal2000markov}'s Algorithm 3,
-can be used. In particular, note that the conditionals are of the form
+We next describe an algorithm for fitting this model. There are two main parts,
+inference of the latent classes $z_i$ and learning of the class kernel
+parameters $\theta_k$. For inference of the $z_i$, a collapsed Gibbs sampler can
+be applied, in the spirit of \cite{neal2000markov}'s Algorithm 3. In
+particular, the conditionals are of the form
 \begin{align}
   p\left(z_i = k \vert z_{-i}, \left(y_i\right), \left(\theta_k\right)\right) &\propto p\left(\left(y_i\right) \vert \left(z_i\right),  \left(\theta_k\right)\right)
   p\left(z_i = k \vert z_{-i}, \left(\theta_k\right)\right) \nonumber \\
@@ -1669,19 +1679,19 @@ z_i = k\}$ while the CRP predictive has a simple form, according to the
 Polya-Urn sampling scheme,
 \begin{align*}
   p\left(z_i\vert z_{-i}\right) &\propto \begin{cases}
-    k &\text{w.p.} \frac{n_{-i, k}}{n - 1 + \alpha} \\
-    K + 1 &\text{w.p.} \frac{\alpha}{n - 1 + \alpha}
+    k &\text{with probability } \frac{n_{-i, k}}{n - 1 + \alpha} \\
+    K + 1 &\text{with probability } \frac{\alpha}{n - 1 + \alpha}
     \end{cases},
 \end{align*}
-where $n_{-i, k}$ counts the number of $z$s equal to $k$, excluding $z_i$ and $K
-+ 1 = \max{z_{-i}}$ corresponds to the case of introducing a previously
-unobserved class. Note that we have conditioned on the infinite number
-of $\theta_k$'s, though only at most $n$ need to be tracked at any moment during
+where $n_{-i, k}$ counts the number of $z_i$ equal to $k$, excluding $z_i$ and
+$K + 1 = \max{z_{-i}} + 1$ corresponds to the case of introducing a previously
+unobserved class. Note that we have conditioned on the infinite number of
+$\theta_k$'s, though only at most $n$ need to be tracked at any moment during
 the computation.
 
 For learning the kernel hyperparameters $\theta_k$, a separate Hamiltonian Monte
 Carlo (HMC) sampler is used for each of the observed GPs, using the same setup
-as \citep{rasmussen2006gaussian} for individual GPs. In particular, for the
+as \cite{rasmussen2006gaussian} for individual GPs. In particular, for the
 timepoints $t^k$ associated with a single class, the unnormalized posterior over
 $\theta_k$ can be evaluated,
 \begin{align*}
@@ -1696,22 +1706,21 @@ forwards from the current state in a way that samples from the posterior of
 these parameters.
 
 Finally, inference and learning are combined in every iteration of the mixture
-of GPs algorithm. That is, initialize with some setting of $z_i$ and
-corresponding $\theta_k$'s, and in each iteration
+of GPs algorithm. That is, in each iteration
 \begin{itemize}
 \item Perform a full Gibbs sampling sweep of $z_1, \dots, z_n$ using the
-  conditionals in \ref{eq:igp_conditional}, with fixed $\theta_k$. If new
-  classes $k^\ast$ are drawn, sample associated $\log \theta_k^\ast$s from their
-  prior.
-\item For a given configuration of of $z_1, \dots, z_n$, propogate the current
+  conditionals in equation \ref{eq:igp_conditional}, with fixed $\theta_k$. If
+  new classes $k^\ast$ are drawn, sample an associated $\log \theta_k^\ast$ from
+  its prior.
+\item For a given configuration of $z_1, \dots, z_n$, propogate the current
   values of $\left(\log \theta_k\right)$ forwards according to HMC dynamics for
-  some number of leapfrog iterations (we use $5$ in our xperiments below, each
+  some number of leapfrog iterations (we use $5$ in our experiments below, each
   with stepsize $\eps = 0.005$).
 \end{itemize}
 
-While \citep{rasmussen2006gaussian} sample $\alpha$ and introduce some refinements to
-the Gibbs sampling update, we find this setup sufficient in our application, it
-also yields a cleaner implementation.
+While \citep{rasmussen2006gaussian} sample $\alpha$ and introduce some
+refinements to the Gibbs sampling update, we find this setup sufficient for our
+application, it also yields a cleaner implementation.
 
 Stepping back from this model description, we note that this method was
 proposed in the context of a single time series with several regimes. An
@@ -1751,24 +1760,24 @@ respectively. There is some differentiation of the very high points in the
 second peak from other points, including those in the earlier peak.
 
 Interestingly, in light of our original motivation for fitting this model, the
-differentiation between different regimes can occur due to variations in noise
-levels in addition to bandwidth. For example, the process that is nearly always
-zero (the blue process) seems to have been identified because it has low
-variance, while spike after the first regime seems (the red process) to be
-distinguished by having a small bandwidth. The green process includes those
-nonzero points that are lower than the spike.
+differentiation between regimes can occur due to variations in noise levels in
+addition to bandwidth. For example, the process that is nearly always zero (the
+blue process) seems to have been identified because it has low variance, while
+spike after the first regime seems (the red process) to be distinguished by
+having a small bandwidth. The green process includes those nonzero points that
+are lower than the spike.
 
 Somewhat unsatisfyingly, the zeros that occur early in the zeros are grouped
 along with the zeros during the antibiotic regime, though informally we think of
 these points as ``pre-antibiotic.'' In fact, the timepoints seem to be clustered
 based mostly on their $y$-axis values, rather than requiring any sense of
 temporal continuity. However, this is not surprising in light of the model's
-estimation criterion, since there is no sense in which the labels $z_i$ are
-required to be close to one another when their associated $t_i$ are close -- the
-choice is made entirely on the basis of cluster sizes and process likelihood.
-This is well-suited to the situation where there may be several processes in
-different $y$-axis scales and overlapping $t_i$, but when regime assignments
-should be more contiguous, the fit appears artificial.
+search criterion, since there is no sense in which the labels $z_i$ are required
+to be close to one another when their associated $t_i$ are close -- the choice
+is made entirely on the basis of cluster sizes and process likelihood. This is
+well-suited to the situation where there are several processes in different
+$y$-axis scales and overlapping $t_i$, but when regime assignments should be
+more contiguous, the fit appears artificial.
 
 \begin{figure}
   \centering
@@ -1801,18 +1810,6 @@ Figure \ref{fig:igp_abt_cooccurrence} provides an even more succinct
 representation of the different regimes. The number of times two points are
 assigned to the same state gives a measure of regime similarity, and block
 structure is evidence of distinct temporal regimes.
-
-- Model motivation
-    + GP itself is not suited to heterogeneity
-- Model description
-    + Description from slides, but replace class(ti) with better notation
-- Model inference
-    + Outline: decompose into gibbs sampling for states and HMC for parameters
-    + Gibbs sampling for steps is usual collapsed gibbs
-      - What does this look like (prior reweighted by likelihood)
-    + HMC for parameters is usual HMC for GPs
-    + How this can be sped up
-
 
 \subsection{Switching Linear Dynamical Systems}
 \label{subsubsec:switching_dynamical}
