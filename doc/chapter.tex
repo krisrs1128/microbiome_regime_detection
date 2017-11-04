@@ -432,71 +432,65 @@ identities it contains), in the spirit of our \texttt{centroidview} package.
 \section{Temporal probabilistic models}
 \label{sec:temporal_probabilistic_models}
 
-In section \ref{sec:baseline}, we described distance and regression-based
-techniques to approaching the questions outlined in
+In Section \ref{sec:baseline}, we described distance and regression-based
+techniques to approaching the questions outlined in Section
 \ref{sec:problem_description} of identifying which subsets of species have
 similar abundance profiles during which windows of time. In particular, we have
-avoided any direct modeling of abundances across species or over time. From this
-point onwards, we adopt this alternative approach, using the approaches of
-\ref{sec:baseline} as a reference for what analysis is possible with minimal
-effort.
+avoided direct modeling of abundances across species or over time. In this
+section, we adopt this alternative direct modeling approach, using the distance
+and regression-based methods of Section \ref{sec:baseline} as a reference for
+what analysis is possible with minimal effort.
 
-In this section, we first review two fundamental approaches to probabilistic
-temporal modeling which are used as building blocks in section
-\ref{sec:temporal_mixture_models}: linear dynamical systems (section
-\ref{subsec:linear_dynamical_systems}) and gaussian processes (section
-\ref{subsec:gaussian_processes}). These approaches are designed for single time
-series, or collections of independent ones. However, models that consider
-collections of related time series can be constructed from these, by introducing
-latent variables.
+We first review two fundamental approaches to probabilistic temporal modeling
+which are used as building blocks for the more advanced methods in Section
+\ref{sec:temporal_mixture_models}: Linear Dynamical Systems in Section
+\ref{subsec:linear_dynamical_systems}) and we consider Gaussian Processes in
+Section \ref{subsec:gaussian_processes}). These approaches are designed for
+single time series, or collections of independent ones. However, models that
+consider collections of related time series can be constructed from these, by
+introducing latent variables.
 
 \subsection{Gaussian Processes}
 \label{subsec:gaussian_processes}
 
 Gaussian Processes (GPs) provide a prior over classes of stationary, smoothly
-varying functions. Their appeal as a probabilistic modeling building block lies
-in the fact that they are simultaneously nonparametric -- they can adapt to more
-complex functions as more data arrives -- while still admitting tractable
-inference. One of the simplest models involving GPs models observations
-$\left(x_{i}, y_{i}\right) \in \reals^{p}\times R$ as
-
+varying functions. Their appeal as a building block for probabilistic models
+lies in the fact that they are nonparametric -- they can adapt to more complex
+functions as more data arrives -- while still admitting tractable inference. One
+of the simplest GPs models observations $\left(x_{i}, y_{i}\right) \in
+\reals^{p}\times \reals$ as
 \begin{align*}
-y_{i} &= f\left(x_{i}\right) + \eps_{i}
+  y_{i} &= f\left(x_{i}\right) + \eps_{i}
 \end{align*}
-
 where $f \sim GP\left(m, \kappa\right)$, meaning that for any collections of
 covariates $\left(x_{1}, \dots, x_{n}\right)$, we have
-
 \begin{align*}
   \left(f\left(x_{1}\right), \dots, f\left(x_{n}\right)\right) &\sim
-  \Gsn\left( \begin{pmatrix} m\left(x_{1}\right) \\ \vdots \\ m\left(x_{n}\right) \end{pmatrix}, \begin{pmatrix} \kappa\left(x_{1}, x_{1}\right) & \dots & \kappa\left(x_{1}, x_{n}\right) \\ \vdots & & \vdots \\ \kappa\left(x_{n}, x_{1}\right) & \dots &\kappa\left(x_{n}, x_{n}\right) \end{pmatrix}\right)
+  \Gsn\left( \begin{pmatrix} m\left(x_{1}\right) \\ \vdots \\ m\left(x_{n}\right) \end{pmatrix}, \begin{pmatrix} \kappa\left(x_{1}, x_{1}\right) & \dots & \kappa\left(x_{1}, x_{n}\right) \\ \vdots & & \vdots \\ \kappa\left(x_{n}, x_{1}\right) & \dots &\kappa\left(x_{n}, x_{n}\right) \end{pmatrix}\right).
 \end{align*}
-
 $m$ and $\kappa$ are called the mean and covariance functions, respectively. We
-will denote this covariance matrix of $\kappa$'s applied to pairs of $x_{i}$ by
-$K\left(x, x\right)$.
+will denote the covariance matrix of $\kappa$ applied to pairs of $x_{i}$ by
+$K\left(x, x\right)$. A plate diagram representing this model is provided in
+Figure \ref{fig:gp_plate}.
 
 It is common to initially center the data before analysis, in which case we can
 assume $m \equiv 0$. Further, any positive-definite covariance function $\kappa$
 can be used -- a common choice is the Gaussian covariance,
-
 \begin{align*}
 \kappa_{\sigma_{f}, M}\left(x_{p}, x_{q}\right) &= \sigma_{f}^{2}\exp{-\frac{1}{2}\left(x_{p} - x_{q}\right)^{T}M\left(x_{p} - x_{q}\right)},
 \end{align*}
-
-where $M$ can be $\frac{1}{l^{2}}I_{n}$, which assumes similar degrees of smoothness
-across all coordinates, $\diag\left(l\right)^{-2}$, which allows different
-smoothness along different axes, or $\Lambda \Lambda^{T} + \diag\left(l\right)^{-2}$,
-which assumes variation along certain non-axes-align*ed directions. While a
-reasonable defult, it is good practice to adapt the covariance function to the
-data problem at hand, accounting for seasonality, multiple scales of variation,
-or the presence of outliers, see section 5.4.3 of \citep{rasmussen2006gaussian}
-for an in depth example. Note that the covariance function is responsible for
-the GPs emphasis on smooth trajectories rather than transient events. However,
+where $M$ can be $\frac{1}{l^{2}}I_{n}$, which assumes similar degrees of
+smoothness across all coordinates, $\diag\left(l\right)^{-2}$, which allows
+different smoothness along different axes, or $\Lambda \Lambda^{T} +
+\diag\left(l\right)^{-2}$, which allows variation along directions that are not
+axis-aligned. While the Gaussian covariance provides a reasonable default, it is
+good practice to adapt the covariance function to the data problem at hand,
+accounting for seasonality, multiple scales of variation, or the presence of
+outliers, see Section 5.4.3 of \citep{rasmussen2006gaussian} for an in depth
+example. Note that the covariance function is responsible for the GPs poor
+ability to model transient events, compared to smooth trajectories. However,
 multiscale behavior can be modeled by introducing mixtures, as we will see in
-section \ref{sec:temporal_mixture_models}.
-
-A plate diagram representing this model is provided in Figure \ref{fig:gp_plate}.
+Section \ref{sec:temporal_mixture_models}.
 
 \begin{figure}
   \centering
@@ -521,8 +515,8 @@ A plate diagram representing this model is provided in Figure \ref{fig:gp_plate}
 
 In this model, the posterior of $f$ is available analytically, by virtue of
 Gaussian-Gaussian conjugacy. Consider evaluating the function $f$ at new points
-$x_{\ast}$, denoted by $f_{\ast} := f\left(x_{\ast}\right)$. Then, the joint of
-$y$ and $f^{\ast}$ is
+$x_{\ast}$, denoted by $f_{\ast} := f\left(x_{\ast}\right)$. The joint of $y$
+and $f^{\ast}$ is
 \begin{align*}
   \begin{pmatrix}
     y \\ f_{\ast}
@@ -543,16 +537,15 @@ which yields the posterior,
 where
 \begin{align*}
   \Earg{f_{\ast} \vert y} &= K\left(x_{\ast}, x\right)\left(K\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}y \\
-  \Covarg{f_{\ast} \vert y} &= K\left(x_{\ast}, x_{\ast}\right) - K\left(x_{\ast}, x\right)\left(K\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}K\left(x, x_{\ast}\right)
+  \Covarg{f_{\ast} \vert y} &= K\left(x_{\ast}, x_{\ast}\right) - K\left(x_{\ast}, x\right)\left(K\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}K\left(x, x_{\ast}\right).
 \end{align*}
-
 Note the $n\times n$ matrix inversion in the covariance calculation. This is the
 source of the $O\left(n^{3}\right)$ complexity of using standard GPs, though a
 variety of fast approximations have been proposed, exploiting the sparse,
-banded, or block structure within the covariance
+banded, or block structure often present in covariance matrices
 \citep{quinonero2007approximation}.
 
-In this computation, we have assumed the the kernel hyperparameters $\theta$ is
+In this computation, we have assumed the the kernel hyperparameters $\theta$ are
 known\footnote{For example, in the Gaussian covariance case, this has the form
   $\theta = \left(\sigma_{f}^{2}, M\right)$}. In reality, these must be inferred
 from the data. Two standard approaches are based on maximizing (1) the marginal
@@ -569,39 +562,34 @@ The cross-validation approach instead maximizes the average predicted log probab
 \end{align*}
 which can also be found analytically, by conditioning the marginal for $y$.
 
-- Review GP graphical model
-- Basic distinctions from previous models
-- Description of GP posterior
-  + GP pseudocode
-  + Link to some actual code
+%% Might be nice to give pseudocode
 
-\subsection{Linear dynamical systems}
+\subsection{Linear Dynamical Systems}
 \label{subsec:linear_dynamical_systems}
 
-Linear dynamical systems model an observed time series as a transformation of
-temporally evolving latent states. The basic idea reminds me of trying to swat a
-fly. I might hear a buzzing noise, which gives some sense of where the fly is,
-and I might know that it can't move too far too quickly, but I might only get a
-few brief glimpses of the actual insect. The evolving latent state here is the
-true position of the fly, while the transformation that we observe is the
-loudness of the buzzing. There have been many proposals that allow general
-transformation and state evolution behavior, but a fundamental starting point is
-the linear-gaussian dynamical system,
-
+Linear Dynamical System models (LDSs) treat an observed time series as a
+transformation of temporally evolving latent states.
+%% The basic idea reminds me of trying to swat a
+%% fly. I might hear a buzzing noise, which gives some sense of where the fly is,
+%% and I might know that it can't move too far too quickly, but I might only get a
+%% few brief glimpses of the actual insect. The evolving latent state here is the
+%% true position of the fly, while the transformation that we observe is the
+%% loudness of the buzzing.
+There have been many proposals that allow general transformation and state
+evolution behavior \citep{hostetler1983nonlinear, wan2000unscented}, but a
+fundamental starting point is the Linear-Gaussian dynamical system,
 \begin{align*}
-  z_{t} &= A z_{t - 1} + \eps_{t} \\
-  x_{t} &= C z_{t} + \delta_{t} \\
-  w_{t} &\sim \Gsn\left(0, Q\right) \\
+  x_{t} &= C z_{t} + \eps_{t} \\
+  z_{t} &= A z_{t - 1} + \delta_{t} \\
   \eps_{t} &\sim \Gsn\left(0, R\right).
+  \delta_{t} &\sim \Gsn\left(0, Q\right) \\
 \end{align*}
-
-The $z_{t}$'s are a markov chain of latent states, while the $x_{t}$'s represent
-the observed emissions from it. $A$ and $\Lambda$ govern the dynamics of the
-underlying process, while $C$ and $\Sigma$ describe the emission structure. The
+The $z_{t}$'s are a Markov chain of latent states, while the $x_{t}$'s represent
+the observed emissions from it. $A$ and $Q$ govern the dynamics of the
+underlying process, while $C$ and $R$ describe the emission structure. The
 associated graphical model is provided in Figure \ref{fig:lds_graphical}.
 
 There are two conceptual components to fitting this model,
-
 \begin{itemize}
 \item Inference: Even if $\Theta = \{A, C, Q, R\}$ were known, there
   is often value in estimating the latent $z_{i}$.
@@ -611,14 +599,13 @@ There are two conceptual components to fitting this model,
 
 Further, inference can be approached in several different ways, depending on
 problem context and constraints. Among the most common approaches are
-
 \begin{itemize}
 \item Filtering: Update beliefs of the current latent state in an online
   fashion. Quantitatively, the goal is to estimate the distribution
   $p\left(z_{t} \vert x_{1:t}\right)$.
-\item Smoothing: Use the full history to estimate beliefs of each latent state,
-  one at a time. This means to estimate $p\left(z_{t} \vert x_{1:T}\right)$ for
-  each $t = 1, \dots, T$.
+\item Smoothing: Use the full history to estimate beliefs of latent states at
+  each time. This means to compute $p\left(z_{t} \vert x_{1:T}\right)$ for each
+  $t = 1, \dots, T$.
 \item Forecasting: Predict the next few latent states given all observations so
   far. For example, we might be interested in $p\left(z_{t + 1} \vert
   x_{1:t}\right)$.
@@ -661,56 +648,52 @@ problem context and constraints. Among the most common approaches are
   \caption{\label{fig:lds_graphical} }
 \end{figure}
 
-We first describe inference in detail, before describe how inference and
-learning can be alternated to fit models on real data. Due to the linear
-gaussian assumption, the conditionals required by filtering and smoothing are
-still gaussian; however, their means and covariances are not immediately
+We first describe inference in detail, before explaining how inference and
+learning can be alternated to fit models on real data. Due to the
+Linear-Gaussian assumption, the conditionals required by filtering and smoothing
+are still Gaussian; however, their means and covariances are not immediately
 apparent. It turns out that, for both filtering and smoothing, they can be
 efficiently computed via dynamic programming recursions. In the literature,
-these are referred to as the Kalman Filtering and Rauch-Tung-Striebel Smoothing
-recursions.
+these are referred to as the Kalman Filtering and Rauch-Tung-Striebel (RTS)
+smoothing recursions.
 
-Consider the filter, where the goal is inference of $p\left(z_{t} \vert
+Consider the filter, where the goal is calculation of $p\left(z_{t} \vert
 x_{1:t}\right)$. We will assume $z_{1} \sim \Gsn\left(0, Q\right)$. We
 could alternatively fix it to a constant -- the point is that the distribution
-for $z_{1}$ is known.
+for $z_{1}$ must be known.
 
 For $t > 1$, define the \textit{one-step-ahead} and \textit{updated} means and
 covariances by
 \begin{align*}
-  \mu_{t \vert t - 1} &:= \Earg{z_{t} \vert y_{1:t - 1}} \\
-  \Sigma_{t \ vert t - 1} &:= \Covarg{z_{t} \vert y_{1:t - 1}} \\
-  \mu_{t} &:= \Earg{z_{t} \vert y_{1:t}} \\
-  \Sigma_{t} &:= \Covarg{z_{t} \vert y_{1:t}}.
+  \mu_{t \vert t - 1} &:= \Earg{z_{t} \vert x_{1:t - 1}} \\
+  \Sigma_{t \ vert t - 1} &:= \Covarg{z_{t} \vert x_{1:t - 1}} \\
+  \mu_{t} &:= \Earg{z_{t} \vert x_{1:t}} \\
+  \Sigma_{t} &:= \Covarg{z_{t} \vert x_{1:t}}.
 \end{align*}
+The means $\mu_t$ and covariances $\Sigma_{t}$ are the main quantities of
+interest in filtering. The filtering algorithm is detailed in in Algorithm
+\ref{alg:kalman_filter}. It can be thought of as a forwards pass through the
+observed sequence, updating means and covariances along the way.
 
-The update means and covariances $\mu_{t}$ and $\Sigma_{t}$ are the main
-quantities of interest in filtering. The filtering algorithm is detailed in in
-Algorithm \ref{alg:kalman_filter}. It can be thought of as a forwards pass
-through the observed sequence, updating means and covariances along the way.
-
-The derivation is as follows. For the predict step, use teh tower property and
+The derivation is as follows. For the predict step, use the tower property and
 the law of total variance,
-
 \begin{align*}
-  \Earg{z_{t} \vert y_{1:t - 1}} &= \Earg{\Earg{z_{t} \vert z_{t - 1}, y_{1:t - 1}}} \\
-  & = \Earg{Az_{t - 1}\vert y_{1:t - 1}} \\
-  &= A\mu_{t - 1} \\
-  \Covarg{z_{t} \vert y_{1:t - 1}} &= \Covarg{\Earg{z_{t} \vert z_{t - 1}, y_{1:t - 1}}} + \Earg{\Covarg{z_{t} \vert z_{t - 1}, y_{1:t - 1}}} \\
-  &= \Covarg{Az_{t - 1} \vert z_{t - 1}, y_{1:t - 1}} + \Earg{Q} \\
+  \Earg{z_{t} \vert x_{1:t - 1}} &= \Earg{\Earg{z_{t} \vert z_{t - 1}, x_{1:t - 1}}} \\
+  & = \Earg{Az_{t - 1}\vert x_{1:t - 1}} \\
+  &= A\mu_{t - 1}, \\
+  \Covarg{z_{t} \vert x_{1:t - 1}} &= \Covarg{\Earg{z_{t} \vert z_{t - 1}, x_{1:t - 1}}} + \Earg{\Covarg{z_{t} \vert z_{t - 1}, x_{1:t - 1}}} \\
+  &= \Covarg{Az_{t - 1} \vert z_{t - 1}, x_{1:t - 1}} + \Earg{Q} \\
   &= A\Sigma_{t - 1}A^{T} + Q.
 \end{align*}
-
-For the update step, use gaussian conjugacy to obtain the required means and
+For the update step, use Gaussian conjugacy to obtain the required means and
 covariances and the matrix inversion lemma to express them more concisely.
 More precisely,
-
 \begin{align*}
-p\left(z_{t} \vert x_{1:t}\right) \propto p\left(x_{t} \vert z_{t}\right)p\left(z_{t} \vert y_{1:t}\right),
+  p\left(z_{t} \vert x_{1:t}\right) \propto p\left(x_{t} \vert z_{t}\right)p\left(z_{t} \vert x_{1:\left(t - 1\right)}\right),
 \end{align*}
-and both densities on the right are gaussian -- the first is the likelihood of
-the observed $x_{t}$ while the second is the predict density derived above. By
-Bayes' rule, the posterior is gaussian with increased precision,
+and both densities on the right are Gaussian -- the first is the likelihood of
+the observed $x_{t}$ while the second is the predict-step density derived above.
+By Bayes' rule, the posterior is Gaussian with increased precision,
 \begin{align}
   \label{eq:sigma_t_inv}
 \Sigma_{t}^{-1} &= \Sigma_{t \vert t - 1}^{-1} + C^{T}R^{-1}C
@@ -727,7 +710,7 @@ Recall the matrix inversion lemma,
 \end{align*}
 and apply it to equation \ref{eq:sigma_t_inv} to find
 \begin{align*}
-  \Sigma_{t} &= \Sigma_{t \vert t - 1} - \Sigma_{t \vert t - 1}C\left(R^{-1} + C \Sigma_{t \vert t - 1}C^{T}\right)^{-1}C\Sigma_{t \vert t - 1} \\
+  \Sigma_{t} &= \Sigma_{t \vert t - 1} - \Sigma_{t \vert t - 1}C^T\left(R + C \Sigma_{t \vert t - 1}C^{T}\right)^{-1}C\Sigma_{t \vert t - 1} \\
   &= \left(I - K_{t}C\right)\Sigma_{t \vert t - 1},
 \end{align*}
 according to the definition of $K_{t}$ in Algorithm
@@ -765,19 +748,16 @@ we again used the matrix inversion lemma.
     \Sigma_{t}\right)_{t = 1}^{T}$.
 \end{algorithmic}
 \end{algorithm}
-
 While the Kalman filter makes a forwards pass over the observations to estimate
 the latent state means and covariances as data are made available, the RTS
-smoother can be understood as a pair of forwards-backwards sweeps that
-propogates information from all observations to the latent state estimates at
-previously measured timepoints. Introduce the notation,
-
+smoother can be understood as a pair of forwards-backwards sweeps that propogate
+information from all observations to the latent state estimates obtained by
+filtering. Define the quantities,
 \begin{align*}
-\mu_{t \vert T} &= \Earg{z_{t} \vert y_{1:T}} \\
-\Sigma_{t \vert T} &= \Covarg{z_{t} \vert y_{1:T}},
+\mu_{t \vert T} &= \Earg{z_{t} \vert x_{1:T}} \\
+\Sigma_{t \vert T} &= \Covarg{z_{t} \vert x_{1:T}},
 \end{align*}
-
-Which completely determine the smoothed distributions $p\left(z_{t} \vert
+which completely determine the smoothed distributions $p\left(z_{t} \vert
 x_{1:T}\right)$ of interest. The forwards pass in RTS smoothing is identical to
 the Kalman filter, and pseudocode for the backwards pass is provided in
 Algorithm \ref{alg:kalman_smoother}.
@@ -790,8 +770,8 @@ Algorithm \ref{alg:kalman_smoother}.
     observed sequence $x_{1:T}$, and filtering quantities $\left(\mu_{t},
     \Sigma_{t}, \mu_{t \vert t - 1}, \Sigma_{t \vert t - 1}\right)$
     \STATE $\mu_{T \vert T} \leftarrow \mu_{T}, \Sigma_{T \vert T} \leftarrow
-    \Sigma_{T}$ \hfill initialize distribution of $z_{T}$ using the results from
-    the Kalman filter.
+    \Sigma_{T}$ \hfill initialize distribution of $z_{T}$ from the Kalman
+    filter.
     \FOR{$t = T - 1 \dots 1$}
     \STATE $\mu_{t \vert T} \leftarrow \mu_{t} + J_{t}\left(\mu_{t + 1 \vert T} - \mu_{t + 1 \vert t}\right)$
     \STATE $\Sigma_{t \vert T} \leftarrow \Sigma_{t} + J_{t}\left(\Sigma_{t + 1 \vert T} - \Sigma_{t + 1 \vert t}\right)J_{t}^{T}$
@@ -806,7 +786,7 @@ To see why this update works, first consider the joint behavior of neighboring
 times,
 
 \begin{align*}
-   \left(z_{t}, z_{t + 1} \vert x_{1:t}\right) &\sim \Gsn\left(
+   \left(z_{t}, z_{t + 1}\right) \vert x_{1:t} &\sim \Gsn\left(
 \begin{pmatrix}
   \mu_{t \vert t} \\
   \mu_{t + 1 \vert t}
@@ -818,8 +798,8 @@ times,
 \end{align*}
 because
 \begin{align*}
-\Covarg{z_{t}, z_{t + 1} \vert x_{1:t}} &= \Covarg{z_{t}, Az_{t} + \eps_{t + 1} \vert x_{1:t}} \\
-&= \Sigma_{t}A^{T}.
+  \Covarg{z_{t}, z_{t + 1} \vert x_{1:t}} &= \Covarg{z_{t}, Az_{t} + \eps_{t + 1} \vert x_{1:t}} \\
+  &= \Sigma_{t}A^{T}.
 \end{align*}
 
 Conditioning, we obtain
@@ -852,21 +832,22 @@ and similarly by the law of total covariance,
 After transformations, many microbiome data sets can be viewed as a mixture
 between a continuous, nonnegative component and a spike at 0. Such data has a
 rich history in statistics, and has been approached using hurdle and tobit
-modeling ideas \citep{min2002modeling}. We describe a variation of the standard
-LDS, called the dynamic tobit model (DTM), that is designed for zeros-spiked
-continuous density situation.
+modeling ideas \citep{min2002modeling}. In this section, we take a detour from
+our review of standard temporal modeling methods, to describe a variation of the
+standard LDS, called the dynamic tobit model (DTM), that is designed for the
+zero-spiked density situation.
 
 The basic idea of the DTM is to truncate an LDS below some threshold, so that
-the continuous positive data correspond to excursions of the LDS above that
+the continuous positive data correspond to excursions of the LDS above some
 threshold, while the zeros correspond to parts of the path below the threshold.
 That is, the observed data $y_t$ are modeled according to
 \begin{align*}
   y_{t} \vert x_t, \tau &= \left(x_t - \tau\right)\indic{x_t > \tau}  \\
-  x_t \vert z_t &\sim \Gsn\left(x_t \vert B z_{t}, R\right) \\
+  x_t \vert z_t &\sim \Gsn\left(x_t \vert C z_{t}, R\right) \\
   z_t \vert z_{t - 1} &\sim \Gsn\left(z_t \vert A z_{t - 1}, Q\right).
 \end{align*}
 Note that last two equations are exactly those defining an LDS, but that $x_t,
-z_t$, and $\tau$ are all unobserved data in this setting. As before, $A, B, R,
+z_t$, and $\tau$ are all unobserved data in this setting. As before, $A, C, R,
 Q$ are model parameters to be learned.
 
 There are several approaches to inference in this model, including particle
