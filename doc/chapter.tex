@@ -2415,44 +2415,64 @@ instead of these discrete $\delta$s.
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/heatmap-mix}
-  \caption{\label{fig:heatmap-mix} }
+  \includegraphics[width=0.9\textwidth]{figure/heatmap-mix}
+  \caption{
+    The analog of Figures \ref{fig:heatmap-euclidean} and
+    \ref{fig:heatmap-jaccard}, obtained by using a distance that mixes between
+    the two: $d\left(x_i, x_{i^{\prime}}\right) = 0.5 d_{\text{Euc}}\left(x_{i},
+    x_{i^{\prime}}\right) + 0.5d_{\text{Jac}}\left(x_{i}, x_{i^\prime}\right)$.
+    Species now must have both nearby abundances and similar zero patterns, in
+    order to appear as neighboring columns in this heatmap.
+    \label{fig:heatmap-mix} }
 \end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/heatmap-innovations}
-  \caption{\label{fig:heatmap-innovations} }
+  \includegraphics[width=0.9\textwidth]{figure/heatmap-innovations}
+  \caption{
+    A version of Figure \ref{fig:heatmap-euclidean} obtained after clustering on
+    the first-differenced series. The shading of cells now corresponds to
+    increases (green) or decreases (red) in abundance between neighboring
+    timepoints. Species are now considered similar as long as they have similar
+    changes from time to time, even when their absolute abundances may not be
+    close.
+    \label{fig:heatmap-innovations} }
 \end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/heatmap-innovations-bin}
-  \caption{\label{fig:heatmap-innovations-bin} }
+  \includegraphics[width=0.9\textwidth]{figure/heatmap-innovations-bin}
+  \caption{
+    The idea in Figure \ref{fig:heatmap-innovations} of comparing first
+    differenced series can be coarsened to simply studying whether series
+    increased or decreased between neighboring timepoints, ignoring the actual
+    value. By computing Manhattan distances between these coarsened differences,
+    we can achieve an effect similar to viewing Jaccard distances on the
+    original abundances.
+    \label{fig:heatmap-innovations-bin} }
 \end{figure}
-
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/rpart_simple}
+  \includegraphics[width=0.9\textwidth]{figure/rpart_simple}
   \caption{\label{fig:rpart_simple} }
 \end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/rpart_complex_2}
+  \includegraphics[width=0.9\textwidth]{figure/rpart_complex_2}
   \caption{\label{fig:rpart_complex_2} }
 \end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/rpart_complex_3}
+  \includegraphics[width=0.9\textwidth]{figure/rpart_complex_3}
   \caption{\label{fig:rpart_complex_3} }
 \end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/rpart_binary_simple}
+  \includegraphics[width=0.9\textwidth]{figure/rpart_binary_simple}
   \caption{CART partitions across species and timepoints. Each column here
     corresponds to an Amplicon Sequence Variant (ASV), and rows are timepoints.
     The three subjects (D, E, and F) are laid out side by side. Each rectangle
@@ -2464,7 +2484,7 @@ instead of these discrete $\delta$s.
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/rpart_conditional}
+  \includegraphics[width=0.9\textwidth]{figure/rpart_conditional}
   \caption{CART partitions when predicting abundances for species $\times$
     timepoint combinations, using a model trained on only nonzero cells of the
     species abundance matrix. The resulting fit can be interpreted as the
@@ -2474,7 +2494,7 @@ instead of these discrete $\delta$s.
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/hmm_probs}
+  \includegraphics[width=0.9\textwidth]{figure/hmm_probs}
   \caption{Fitted probabilities for each of the $K = 4$ states in the HMM
     estimated by EM. Different rows of panels correspond to different
     individuals, while different columns are different states. The colors across
