@@ -1,4 +1,4 @@
-\documentclass[14pt{extreport}
+\documentclass[14pt]{extarticle}
 \usepackage[a4paper, margin=0.2in]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath, amssymb, amsfonts}
@@ -291,9 +291,6 @@ $j^{th}$ species in the $i^{th}$ sample as $y_{ij} \approx f\left(s_{j},
 t_{i}\right)$ where $f \in \mathcal{T}$, the space of decision trees. The output
 of interest is the fitted partition on $\left(s_{j}, t_{i}\right)$.
 
-\subsubsection{CART review}
-\label{subsubsec:cart_review}
-
 For completeness, we review the CART algorithm. Following \citep{stat315bnotes},
 we can describe it in terms of (1) the structural model, (2) the score criterion
 for choosing between models, and (3) the search strategy used to produce the
@@ -377,8 +374,8 @@ $\hat{r}_{m} + k < \sum_{m^{\prime}} C_{m^{\prime}}$, then all descendant nodes
 (subpartition elements) are merged into $R_{m}$. Otherwise, the left and right
 splits are accepted. These choices are made sequentially, from the bottom up.
 
-\subsubsection{Antibiotics application}
-\label{subsubsec:antibiotics_application}
+\subsubsection{Example}
+\label{subsubcart_example}
 
 Example output from this approach is provided in Figure \ref{fig:rpart_complex}.
 As in the heatmaps produced by hierarchical clustering, the three vertical
@@ -555,7 +552,7 @@ from the data. Two standard approaches are based on maximizing (1) the marginal
 likelihood of $y$ and (2) the cross-validated predictive likelihood. The first
 approach leverages the fact that the marginal likelihood,
 \begin{align*}
-\log p\left(y \vert x; \theta\right) &= -\frac{n}{2}\log 2\pi - \log\absarg{K_{\theta}\left(x, x\right) + \sigma^{2}I_{n}} - \frac{1}{2}y^{T}\left(K_{\theta}\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}y
+  \log p\left(y \vert x; \theta\right) &= -\frac{n}{2}\log 2\pi - \log\absarg{K_{\theta}\left(x, x\right) + \sigma^{2}I_{n}} - \frac{1}{2}y^{T}\left(K_{\theta}\left(x, x\right) + \sigma^{2}I_{n}\right)^{-1}y
 \end{align*}
 and its gradients over $\theta$ have a closed form, and so can be optimized.
 
@@ -1090,7 +1087,7 @@ $k$ in an HMM with Gaussian emissions becomes
 \hat{\mu}_{k} &= \frac{\sum_{i = 1}^{n}\sum_{t = 1}^{T} \indic{z_{t} = k}x_{it}}{\sum_{i = 1}^{n}\sum_{t = 1}^{T} \indic{z_{it} = k}}.
 \end{align*}
 We employ this approach on the antibiotics data described in Section
-\ref{subsubsec:antibiotics_application}. The results are summarized in Figure
+\ref{subsubcart_example}. The results are summarized in Figure
 \ref{fig:hmm_mode} and Supplementary Figure \ref{fig:hmm_probs}, which display
 the modes and raw probabilities of the smoothed probabilities $p\left(z_{it}
 \vert x_{i, 1:T}\right)$ after applying EM. As in Figure
@@ -1404,7 +1401,7 @@ $\text{GEM}\left(\gamma\right)$ distribution\footnote{The
   be described by a stick breaking constrution. Specifically,
   $\left(\beta_{j}\right)$ can be constructed by taking $\beta_{1} = V_1$,
   $\beta_2 = \left(1 - V_1\right)V_2, \dots, \beta_{j} = \left[\prod_{k = 1}^{j
-      - 1}\left(1 - V_k\right)\right]V_j$ where $V_j &\sim \Bet\left(1,
+      - 1}\left(1 - V_k\right)\right]V_j$ where $V_j \sim \Bet\left(1,
   \gamma\right)$ independently. }. Cosider a modified base measure,
 $Q_k = \sum_{j = 1}^{\infty} \left(\beta_j + \indic{j =
     k}\kappa\right)\delta_{\theta_j}$, which places $\kappa$ additional mass on
@@ -1423,7 +1420,7 @@ exact one that extends Chinese Restaurant Franchise analogy developed by
 \citep{teh2006hierarchical} and an approximate blocked Gibbs sampler. Here, we
 describe the blocked Gibbs sampler, since while it is only approximate, it mixes
 more rapidly\footnote{Implementations of both approaches are available at
-  \url{https://github.com/krisrs1128/tsc\_microbiome/tree/master/src/hmm}. This
+  \url{https://github.com/krisrs1128/tsc\_microbiome/tree/master/src/hmm}}. This
   is because the exact sampler can only swap cluster labels $z_t$ one at a time,
   which means it must pass through low probability valleys in the posterior
   where a cluster is awkwardly split in half before reaching a potentially
