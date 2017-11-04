@@ -20,6 +20,7 @@ taxa_labels <- function(taxa) {
   taxa_levels <- c(ordered_labels, "other")
   taxa$label <- factor(taxa$label, taxa_levels)
   taxa$label[!c(taxa$label %in% ordered_labels[1:6])] <- "other"
+  taxa$label[is.na(taxa$label)] <- "other"
   taxa$label[taxa$label == ""] <- "other"
   taxa
 }

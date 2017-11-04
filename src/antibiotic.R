@@ -12,6 +12,7 @@ library("gridExtra")
 library("vegan")
 library("ape")
 library("dendextend")
+library("viridis")
 library("ggscaffold")
 source("data.R")
 theme_set(min_theme(
@@ -26,19 +27,20 @@ dir.create(figure_dir)
 ## --- utils ----
 combined_heatmap <- function(mx, fill_type = "bw") {
   p1 <- ggplot(mx) +
-    geom_tile(aes(y = leaf_ix, x = sample, fill = scaled)) +
-    facet_grid(cluster ~ ind, scales = "free", space = "free") +
-    scale_y_continuous(expand = c(0, 0)) +
+    geom_tile(aes(y = sample, x = leaf_ix, fill = scaled)) +
+    facet_grid(ind ~ cluster, scales = "free", space = "free") +
+    scale_x_continuous(expand = c(0, 0)) +
+    scale_y_discrete(expand = c(0, 0)) +
     theme(
       plot.margin = unit(c(0, 0, 0, 0), "null"),
       legend.position = "none",
       axis.title = element_blank(),
       axis.text = element_blank(),
-      strip.text.y = element_text(size = 4),
+      strip.text.x = element_text(size = 4),
     )
 
   if (fill_type == "bw") {
-    p1 <- p1 + scale_fill_gradient(low = "white", high = "black")
+    p1 <- p1 + scale_fill_viridis(option = "magma", direction = -1)
   } else if (fill_type == "gradient2"){
     p1 <- p1 + scale_fill_gradient2(high = "#32835f", low = "#833256")
   }
@@ -55,13 +57,13 @@ combined_heatmap <- function(mx, fill_type = "bw") {
   )
 
   p2 <- ggplot(rsvs) +
-    geom_tile(aes(y = leaf_ix, x = y, fill = label)) +
-    scale_fill_brewer(palette = "Set2", guide = guide_legend(nrow = 8)) +
+    geom_tile(aes(x = leaf_ix, y = y, fill = label)) +
+    scale_fill_brewer(palette = "Set2", guide = guide_legend(ncol = 8)) +
     scale_y_continuous(expand = c(0, 0)) +
-    facet_grid(cluster ~ ., scales = "free", space = "free") +
+    facet_grid(. ~ cluster, scales = "free", space = "free") +
     theme(
       panel.border = element_blank(),
-      legend.position = "left",
+      legend.position = "bottom",
       axis.title = element_blank(),
       axis.text = element_blank(),
       strip.text = element_blank(),
@@ -69,7 +71,10 @@ combined_heatmap <- function(mx, fill_type = "bw") {
       plot.margin = unit(c(0, 0, 0, 0), "null")
     )
 
-  arrangeGrob(cbind(ggplotGrob(p2), ggplotGrob(p1)[-1, ], size = "last"))
+  g1 <- ggplotGrob(p1)
+  g2 <- ggplotGrob(p2)
+  rm_ix <- g1$layout$r[grep("strip-r", g1$layout$name)]
+  arrangeGrob(rbind(g1[, -rm_ix], g2))
 }
 
 centroid_plot <- function(mx) {
