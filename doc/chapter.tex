@@ -51,17 +51,17 @@ Ultimately, our goal is to describe types of temporal or regime switching
 structure that can be incorporated into studies of microbiome dynamics.
 \end{abstract}
 
-A typical microbiome data set describes the abundances of bacterial species
-across samples. To this point, we have studied latent structure across species
+Microbiome data describe the abundances of bacterial species across multiple
+samples. In previous chapters, we have studied latent structure across species
 and samples separately. For example, we have developed interactive visualization
 techniques to compare subsets of species, and we have applied mixed-membership
-models to characterize variation in samples across timepoints. In contrast, our
-goal here is to study latent structure across species and samples
-simultaneously. This difference is analogous to the change in perspective
-obtained by studying a coclustering rather than two separate clusterings, or an
-ordination biplot instead of simply the scores or loadings. We will focus on the
-case where samples are collected over time, so that this problem can be
-understood as one of detecting dynamic regimes, as explained in section
+models to characterize variation in samples. In contrast, our goal here is to
+study latent structure across species and samples simultaneously. This
+difference is analogous to the change in perspective obtained by studying a
+coclustering rather than two separate clusterings, or an ordination biplot
+instead of simply the scores or loadings. We will focus on the case where
+samples are collected over time, so that this problem can be understood as one
+of detecting dynamic regimes, as explained in Section
 \ref{sec:problem_description}
 
 The primary contributions of this chapter are,
@@ -69,25 +69,21 @@ The primary contributions of this chapter are,
 \item The relation of the regime detection problem to several statistical
   frameworks, and a comparison of the types of interpretation facilitated by
   each.
-\item Developing experiments to evaluate the practical utility of these
+\item The development of experiments to evaluate the practical utility of these
   different formulations.
-\item A catalog of algorithm pseudocode and real implementations, to serve as a
+\item A catalog of algorithm pseudocode and complete implementations, to serve as a
   reference for researchers interested in regime detection.
 \item The design of and code for static visualizations that can be used to
   evaluate the results of various methods.
 \end{itemize}
 
-In section \ref{sec:problem_description}, we describe the scientific problem of
-interest in more detail and provide a high-level statistic formulation. In
-section \ref{sec:baseline}, we describe approaches which are easy to implement,
+In Section \ref{sec:problem_description}, we describe the scientific problem of
+interest in more detail and provide a high-level statistical formulation. In
+Section \ref{sec:baseline}, we describe approaches which are easy to implement,
 but that fail to incorporate temporal structure -- these serve as reference
 points for evaluating more complex models. Sections
 \ref{sec:temporal_probabilistic_models} and \ref{sec:temporal_mixture_models}
-review and apply smoothing and mixture modeling techniques to this problem,
-while section \ref{sec:alternative_probabilistic_models} highlights several
-departures of typical microbiome data from the structure assumed by the
-techniques in previous sections, along with references to literature that
-addresses these departures.
+review and apply smoothing and mixture modeling techniques to this problem.
 
 \section{Problem description}
 \label{sec:problem_description}
@@ -100,44 +96,42 @@ representations facilitate different comparisons -- for example, clustering
 bacteria allows easy comparison of taxonomic categories, while clustering
 samples allows a comparison of full community states.
 
-In the regime detection problem, the comparisons we would like to facilitate are
+In the regime detection problem, the comparisons we would like to support are
 \begin{itemize}
-\item For each species, can we assign time intervals to different dynamic
-  regimes?
-\item Can we define subsets of species which have similar patterns of behavior,
-  in terms of these regimes?
+\item For each species, should different time intervals be assigned to different
+  dynamic regimes?
+\item Should we distinguish subsets of species as having similar patterns of
+  behavior, with respect to these regimes?
 \end{itemize}
 
 Conceretely, we may expect that over the time course of a study, individual
-species may switch between stable / unstable, increasing / decreasing, or
-present / absent regimes, either due to natural ecological dynamics or
+species may switch between stable or unstable, increasing or decreasing, and
+present or absent regimes, either due to natural ecological dynamics or
 experimentally induced perturbations. We would like to detect these alternative
 regimes automatically.
 
-Further, as we are typically working with hundreds or thousands of bacterial
-species at a time, we would like to group or relate species according to these
-regimes, so that (1) we do not need to inspect the regime switching for
-individual species one by one (2) we can achieve gains in power by pooling
-across species. The resulting species groups can be related to available taxonomic
-information to draw scientific conclusions about the behavior of different
-taxa during different sampling periods -- for example, ``70\ of the Bacteroides
-exhibited stability during the first half of the antibiotic time course, while
-the rest showed decreasing trends.''
+Further, as we often work with hundreds or thousands of bacterial species at a
+time, we would like to group or relate species according to these regimes, so
+that (1) we do not need to inspect regime switching behavior for individual
+species one by one and (2) we can achieve gains in power by pooling across
+species. The resulting subsets of species can be related to available taxonomic
+information to draw scientific conclusions about the behavior of different taxa
+during different sampling periods. For example, for the data of
+\cite{dethlefsen2011incomplete}, we might be interested in conclusions like
+``$x$\% of species $y$ exhibited stability during the first half of the
+antibiotic time course, while the rest showed decreasing abundances.''
 
 We can frame this analysis problem using the language of latent variables. Let
-$\left(t_{i}\right)_{i = 1}^{n}$ be the sampling timepoints, and index species by
-$\left(s_{j}\right)_{j = 1}^{p}$. Our goal is to infer a function $\theta$
+$\left(t_{i}\right)_{i = 1}^{n}$ be the sampling timepoints, and index species
+by $\left(s_{j}\right)_{j = 1}^{p}$. Our goal is to infer a function $\theta$
 mapping time by species pairs $\left(t_{i}, s_{j}\right)$ to an associated
-latent state, which can either belong to a discrete set of $K$ types,
-$theta\left(t_{i}, s_{j}\right) \in \{1, \dots, K\}$, or which might described a
-mixed-memberhip, $\theta\left(t_{i}, s_{j}\right) \in \S^{K - 1}$, where
-$\S^{K - 1}$ is the $K - 1$-dimensional simplex.
+latent state, which can be discrete, continuous, or a mixed membership.
 
 We expect the function $\theta$ to be reasonably well-behaved over time.
 Further, by comparing $\theta\left(\cdot, s_{j}\right)$ across different species
 $j$, we can group or sort species according to their regime membership behavior.
-See Figures \ref{fig:partition} and \ref{fig:gradient} for visual explanations
-of this analysis approach.
+%% See Figures \ref{fig:partition} and \ref{fig:gradient} for visual explanations
+%% of this analysis approach.
 
 \section{Methods baseline}
 \label{sec:baseline}
