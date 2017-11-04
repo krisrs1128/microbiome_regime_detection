@@ -2455,19 +2455,28 @@ instead of these discrete $\delta$s.
 \begin{figure}
   \centering
   \includegraphics[width=0.9\textwidth]{figure/rpart_simple}
-  \caption{\label{fig:rpart_simple} }
+  \caption{A version of Figure \ref{fig:rpart_complex} made when the penalty $k$
+    for having complex trees is very low. The resulting partition is generally
+    too rough to be useful, though certain structures -- like the increase in
+    abundance among some species during the first antibiotic time course for
+    subject D -- to become more visible. In a purely supervised setting, this
+    model would be quite overfit, and though we are now applying models for
+    exploratory analysis, a similar principle applies.
+    \label{fig:rpart_simple}
+  }
 \end{figure}
 
 \begin{figure}
   \centering
   \includegraphics[width=0.9\textwidth]{figure/rpart_complex_2}
-  \caption{\label{fig:rpart_complex_2} }
-\end{figure}
-
-\begin{figure}
-  \centering
-  \includegraphics[width=0.9\textwidth]{figure/rpart_complex_3}
-  \caption{\label{fig:rpart_complex_3} }
+  \caption{
+    A version of Figure \ref{rpart_complex} with much more penalty on the
+    complexity of the learned partitions. While Supplementary Figure \ref{fig:rpart_simple}
+    displayed a very overfit tree, the tree here seems quite underfit, as only a
+    few leaves seem to have survived the pruning process. Between this figure
+    and the two mentioned before, we can get a sense of the degree to which
+    model tuning can affect visual interpretation.
+    \label{fig:rpart_complex_2} }
 \end{figure}
 
 \begin{figure}
