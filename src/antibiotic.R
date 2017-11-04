@@ -43,17 +43,27 @@ combined_heatmap <- function(mx, fill_type = "bw") {
       plot.margin = unit(c(0, 0, 0, 0), "null"),
       panel.border = element_blank(),
       panel.spacing.x = unit(0.1, "cm"),
+      panel.spacing.y = unit(0.9, "cm"),
       legend.position = "bottom",
       axis.title = element_blank(),
       axis.text = element_blank(),
-      strip.text.x = element_text(size = 4)
+      strip.text.x = element_blank()
     )
 
   if (fill_type == "bw") {
     p1 <- p1 +
-      scale_fill_viridis(option = "magma", direction = -1)
+      scale_fill_viridis(
+        option = "magma",
+        direction = -1,
+        guide_colorbar(keyheight = 1, keywidth = 0.2, ticks = FALSE)
+      )
   } else if (fill_type == "gradient2"){
-    p1 <- p1 + scale_fill_gradient2(high = "#32835f", low = "#833256")
+    p1 <- p1 +
+      scale_fill_gradient2(
+        high = "#32835f",
+        low = "#833256",
+        guide_colorbar(keyheight = 1, keywidth = 0.2, ticks = FALSE)
+      )
   }
   p1
 }
