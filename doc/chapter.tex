@@ -18,39 +18,37 @@
 \maketitle
 
 \begin{abstract}
-It is often of central interest to describe the stability and dynamics of the
-microbiome, and many studies have been performed to characterize these dynamics
-across a range of environmental contexts \citep{costello2012application,
-  stein2013ecological, faust2015metagenomics}. For example, a frequently
-encoutered scientific objective is the identification of time intervals within
-which certain subsets of taxa have an interesting pattern of behavior. Viewed
-abstractly, these problems often have a flavor not just of time series modeling
-but also of regime detection, a problem with a history across a variety of
+Many studies have been performed to characterize the dynamics and stability of
+the microbiome across a range of environmental contexts
+\citep{costello2012application, stein2013ecological, faust2015metagenomics}. For
+example, it is often of interest to identify time intervals within which certain
+subsets of taxa have an interesting pattern of behavior. Viewed abstractly,
+these problems often have a flavor not just of time series modeling but also of
+regime detection, a problem with a rich history across a variety of
 applications, including speech recognition \citep{fox2011sticky}, finance
 \citep{lee2009optimal}, EEG analysis \citep{camilleri2014automatic}, and
 geophysics \citep{weatherley2002relationship}. However, in spite of the
 parallels, regime detection methods are rarely used in microbiome data analysis,
 most likely due to the fact that references for these methods are scattered
 across several literatures, descriptions are inaccessible outside limited
-research communities, implementations are difficult to come across. Finally, the
-correspondence between regime detection in these fields and in the microbiome is
-not always obvious.
+research communities, and implementations are difficult to come across. Finally,
+the correspondence between regime detection for these applications and for the
+microbiome is not always obvious.
 
 We distill the core ideas of different regime detection methods, provide example
 applications, and share reproducible code, making these techniques more
 accessible to microbiome researchers. Specifically, we reanalyze the data of
-\citep{dethlefsen2011incomplete} using Classification and Regression Trees
-(CART) \citep{breiman1984classification}, Hidden Markov Models (HMMs)
+\cite{dethlefsen2011incomplete}, a study of the effects of antibiotics on the
+microbiome, using Classification and Regression Trees (CART)
+\citep{breiman1984classification}, Hidden Markov Models (HMMs)
 \citep{rabiner1986introduction}, Bayesian nonparametric HMMs
-\citep{teh2010hierarchical}, mixtures of Gaussian Pro9ce
-sse05s (GPs)
+\citep{teh2010hierarchical, fox2008hdp}, mixtures of Gaussian Processes (GPs)
 \citep{rasmussen2002infinite}, switching dynamical systems
-\citep{fox2009sharing}, and multiple changepoint detection
+\citep{linderman2016recurrent}, and multiple changepoint detection
 \citep{fan2015empirical}. Along the way, we summarize each method, their
-relevance to the microbiome, and the tradeoffs associated using them.
+relevance to the microbiome, and the tradeoffs associated with using them.
 Ultimately, our goal is to describe types of temporal or regime switching
-structure that, through careful modeling, can be incorporated into studies of
-microbiome dynamics.
+structure that can be incorporated into studies of microbiome dynamics.
 \end{abstract}
 
 A typical microbiome data set describes the abundances of bacterial species
