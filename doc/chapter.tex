@@ -241,30 +241,36 @@ granularity more subtle than family level.
 
 To summarize behavior within clusters, we display the centroids in Figures
 \ref{fig:centroid-euclidean-conditional} \ref{fig:centroid-euclidean-presence}.
-The panel number denotes the cluster defined by cutting the hierarchical
-clustering tree, with the same labeling as in the heatmap. Different individuals
-are represented by different colors. The solid points are the time series of
-averages across all species for a given cluster, per individual. Semitransparent
-points are the raw values used to compute these averages. Evidently, some of the
-clustering structure is due to the presence of species within only some of the
-subjects. Further, differential responses can be seen within some of the panels.
-For example, cluster 17 in Figure \ref{fig:centroid-euclidean-conditional}
-includes bacteria that are affected by the first antibiotics time course, but
-only for subjects D and F, and which are only affected in subject D during the
-second time course.
+Evidently, some of the clustering structure is due to the presence of species
+within only some of the subjects. Further, differential responses can be seen
+within some of the panels. For example, cluster 17 in Figure
+\ref{fig:centroid-euclidean-conditional} includes bacteria that are affected by
+the first antibiotics time course, but only for subjects D and F, and which are
+only affected in subject D during the second time course.
 
 \begin{figure}
   \centering
   \includegraphics[width=0.9\textwidth]{figure/centroid-euclidean-conditional}
-  \caption{\label{fig:centroid-euclidean-conditional} }
+  \caption{Centroids of the subclusters identified by the heatmap. Panels
+    correspond to subclsuters defined by cutting the hierarchical clustering
+    tree. Different individuals are represented by different colors. The solid
+    points are the time series of averages of positive species abundances for a
+    given cluster, per individual. Semitransparent points are the raw values
+    used to compute these averages. These centroids provide context for
+    interpreting the leaves in the original hierarchical clustering.
+    \label{fig:centroid-euclidean-conditional} }
 \end{figure}
 
 \begin{figure}
   \centering
   \includegraphics[width=0.9\textwidth]{figure/centroid-euclidean-presence}
-  \caption{\label{fig:centroid-euclidean-presence} }
+  \caption{The analog of Figure \ref{fig:centroid-euclidean-conditional},
+    looking at the running averages of presence and absence of species within
+    different subclusters. The values of the solid points can be interpreted as
+    the probability that a species within that cluster will be present, as a
+    function of time and subject.
+    \label{fig:centroid-euclidean-presence} }
 \end{figure}
-
 
 The fact that the data include many zeros makes the mean a somewhat misleading
 cluster summary. Instead, we can decompose the summary into a presence-absence
