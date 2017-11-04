@@ -384,12 +384,6 @@ splits are accepted. These choices are made sequentially, from the bottom up.
 \label{subsubcart_example}
 
 Example output from this approach is provided in Figure \ref{fig:rpart_complex}.
-As in the heatmaps produced by hierarchical clustering, the three vertical
-panels represent three subjects, while rows and columns correspond to species
-and temporally-ordered samples, respectively. The rows have been ordered
-according to a hierarchical clustering. The shading within partition blocks
-corresponds to the fitted $\hat{c}_{m}$ from the regression tree.
-
 Note the presence of two light vertical stripes in subjects D and F -- these
 correspond to the two antibiotic treatment regimes. In general, ``tall'' blocks
 are more common than ``wide'' ones. This reflects the fact that timepoints
@@ -427,12 +421,19 @@ supplemental (e.g., taxonomic) information within the static view, through a
 shaded taxonomic-family stripe, as in Figure \ref{fig:heatmap-euclidean} (2)
 construct an interactive version of these plots, where hovering over a partition
 element provides focused information about that element (e.g., the species
-identities it contains), in the spirit of our \texttt{centroidview} package.
+identities it contains), in the spirit of our \texttt{centroidview}
+package\footnote{\url{https://github.com/krisrs1128/centroidview}}.
 
 \begin{figure}
   \centering
   \includegraphics[width=0.8\textwidth]{figure/rpart_complex}
-  \caption{\label{fig:rpart_complex} }
+  \caption{As in the heatmaps produced by hierarchical clustering, the three
+    vertical panels represent three subjects, while rows and columns correspond
+    to species and temporally-ordered samples, respectively. The rows have been
+    ordered according to a hierarchical clustering. The shading within partition
+    blocks corresponds to the fitted $\hat{c}_{m}$ from the regression tree.
+    \label{fig:rpart_complex}
+  }
 \end{figure}
 
 \section{Smooth temporal models}
@@ -2440,7 +2441,7 @@ instead of these discrete $\delta$s.
 \begin{figure}
   \centering
   \includegraphics[width=0.8\textwidth]{figure/rpart_complex_2}
-  \caption{\label{fig:label} }
+  \caption{\label{fig:rpart_complex_2} }
 \end{figure}
 
 \begin{figure}
