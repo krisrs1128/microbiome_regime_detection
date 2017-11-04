@@ -301,21 +301,21 @@ expressed as
 \begin{align*}
 f\left(x\right) &= \sum_{m = 1}^{M} c_{m} \indic{x \in R_{m}},
 \end{align*}
-where $\left(R_{m}\right)_{m = 1}^{M}$ are some partition of the covariate space
+where $\left(R_{m}\right)_{m = 1}^{M}$ is a partition of the covariate space
 and $c_{m} \in \reals$ are constants associated with each partition element.
 
 For regression, the criterion is the expected generalization squared-error
-between $y_{i}$ and the $c_{m}$ associated with the $R_{m}$ within which the
-covariate $x_{i}$ lies -- we will denote this by $c\left(x_{i}\right)$. In
-classification, the corresponding criterion is the expected missclassification
-error. More precisely, we consider the empirical risks
+between $y_{i}$ and the $c_{m}$ associated with the partition element in which
+$x_i$ lies -- we will denote this by $c\left(x_{i}\right)$. In classification,
+the corresponding criterion is the expected missclassification error. More
+precisely, we calculate empirical risks,
 \begin{align*}
   \frac{1}{n} \sum_{i = 1}^{n} \left(y_{i} - c\left(x_{i}\right)\right)^{2},
 \end{align*}
 
 for regression and
 \begin{align*}
-  \frac{1}{n} \sum_{i = 1}^{n} L_{y_{i}, c\left(x_{i}\right)} \indic{y_{i} = c\left(x_{i}\right)},
+  \frac{1}{n} \sum_{i = 1}^{n} L_{y_{i}, c\left(x_{i}\right)} \indic{y_{i} \neq c\left(x_{i}\right)},
 \end{align*}
 for classification, where $L_{kk^{\prime}}$ is the loss induced by
 missclassifying $k$ as $k^{\prime}$. Since the empirical risk on the training
@@ -323,19 +323,20 @@ data underestimates generalization error, these estimates are constructed on
 test sets.
 
 To obtain a fitted $\hat{f} \in \mathcal{F}$, the algorithm must identify a
-partition $\left(R_{m}\right)$ and constants $c_{m}$ (approximately) minimizing
-the score criterion. Given a particular $R_{m}$, fitting $c_{m}$ is
-straightforwards, since the score decouples across partition elements -- in the
-regression case the minimizers are averages of the $y_{i}$s or majority votes
-within partition elements. On the other hand, finding the optimal $R_{m}$ is an
-intractable combinatorial optimization problem, and the search strategy instead
-uses a greedy approach to obtain a reasonable local minimizer.
+partition $\left(R_{m}\right)$ and constants $c_{m}$ that (approximately)
+minimize the score criterion. Given a fixed $R_{m}$, fitting $c_{m}$ is
+straightforwards, since the score decouples across partition elements -- in
+regression the minimizers are averages of the $y_{i}$ within partition elements,
+while in classification they are majority votes. On the other hand, finding the
+optimal $\left(R_{m}\right)$ is an intractable combinatorial optimization
+problem, and the search strategy resorts to a greedy approach in hope of a
+reasonable local minimizer.
 
-More precisely, the final partition is found by recursively splitting the
-input space, and then pruning away splits that seem less relevant. At the first
-step, the partition consists of a single $R_{1}$, equal to the entire covariate
-space, and it is split on covariate $j^{\ast}$ at position $t_{j1}^{\ast}$
-that solve the optimization
+More precisely, the final partition is found by recursively splitting the input
+space and then pruning away splits that seem less relevant. At the first step,
+the partition consists of a single $R_{1}$, equal to the entire covariate space,
+and it is split on covariate $j^{\ast}$ at position $t_{j1}^{\ast}$, chosen to
+solve the optimization
 \begin{align*}
   \left(j^{\ast}, t_{j1}^{\ast}\right) &= \arg \min_{\substack{j = 1, \dots, p \\ t_{j1} \in \reals}} \sum_{i \in R_{1, l}} \left(y_{i} - \bar{y}_{l}\right)^{2} + \sum_{i \in R_{1, r}} \left(y_{i} - \bar{y}_{r}\right)^{2}
 \end{align*}
@@ -355,10 +356,9 @@ where the main difference is that we must now choose which of the $m$ previously
 defined partition elements to split.
 
 This is done for some prespecified number of splits, $M$. This partition is
-potentially unecessarily highly resolved, and it can improve generalization
-error to introduce a pruning step. Define $C_{m}$ denote the ``cost'' of a
-(potentially intermediate) partition element $R_{m}$ according to,
-
+often unecessarily highly resolved, and it can improve generalization
+performance to introduce a pruning step. Let $C_{m}$ denote the ``cost'' of a
+(potentially intermediate) partition element $R_{m}$, defined by
 \begin{align*}
   C_{m} &= \begin{cases}
     \hat{r}_{m} + k & \text{if $m$ was never split} \\
@@ -367,9 +367,9 @@ error to introduce a pruning step. Define $C_{m}$ denote the ``cost'' of a
 \end{align*}
 where $\hat{r}_{m} = \sum_{x_{i} \in R_{m}} \left(y_{i} - c_{m}\right)^{2}$. $k$
 can be interpreted as the amount of improvement to the score criterion that the
-split must provide in order to be accepted. The
+split must provide in order to be accepted, and it is fixed in advance. The
 final partitioning is obtained by choosing to split or merge each intermediate
-$m$ so that $C_{m}$ is minimized. Specifically, if
+partition element $R_m$ so that $C_{m}$ is minimized. Specifically, if
 $\hat{r}_{m} + k < \sum_{m^{\prime}} C_{m^{\prime}}$, then all descendant nodes
 (subpartition elements) are merged into $R_{m}$. Otherwise, the left and right
 splits are accepted. These choices are made sequentially, from the bottom up.
@@ -377,39 +377,38 @@ splits are accepted. These choices are made sequentially, from the bottom up.
 \subsubsection{Antibiotics application}
 \label{subsubsec:antibiotics_application}
 
-An example of the type of output generated by this approach is provided in
-Figure \ref{fig:rpart_complex}. As in the heatmaps produced by hierarchical
-clustering, the three vertical panels represent three subjects, while rows and
-columns correspond to species and temporally-ordered samples, respectively. The
-rows have been ordered according to a hierarchical clustering on the mixed
-Euclidean + Jaccard distance described above. The shading within partition
-blocks corresponds to the fitted $\hat{c}_{m}$ from the regression tree.
+Example output from this approach is provided in Figure \ref{fig:rpart_complex}.
+As in the heatmaps produced by hierarchical clustering, the three vertical
+panels represent three subjects, while rows and columns correspond to species
+and temporally-ordered samples, respectively. The rows have been ordered
+according to a hierarchical clustering. The shading within partition blocks
+corresponds to the fitted $\hat{c}_{m}$ from the regression tree.
 
-Note the presence of two dark vertical stripes in subjects D and F -- these
-correspond to the two antibiotic treatment regimes. In general, ``wide'' blocks
-are more common than ``tall'' ones. This reflects the fact that timepoints
+Note the presence of two light vertical stripes in subjects D and F -- these
+correspond to the two antibiotic treatment regimes. In general, ``tall'' blocks
+are more common than ``wide'' ones. This reflects the fact that timepoints
 within bacteria tend to have more similar abundances, compared to multiple
 bacteria at a single timepoint, even when those bacteria have been ordered by a
-overall hierarchical clustering.
+hierarchical clustering.
 
 One interesting detail is the delayed, or sometimes nonexistent, recovery after
-the first antibiotic time course among a cluster of bacteria near the bottom of
+the first antibiotic time course among a cluster of bacteria near the bottom-left of
 the panel for subject F. This long-term impact of antibiotics on bacterial
 populations, at least in one patient, was a central finding in
-\citep{dethlefsen2011incomplete}. Observe that a similar pattern is visible after
+\cite{dethlefsen2011incomplete}. Observe that a similar pattern is visible after
 the second antibiotic time course among patient D, also for species near the
-bottom of the panel.
+bottom-left of the panel.
 
-Related views are given in Figures \ref{fig:rpart_simple} through
-\ref{fig:rpart_conditional}. Figures \ref {fig:rpart_simple} through
-\ref{fig:rpart_complex_3} give analogous fits for different complexity
-parameters $k$. Figures \ref{fig:rpart_binary_simple} and
-\ref{fig:rpart_conditional} decompose the prediction problem into just a binary
-part and a conditional-on-positivity part, using the hurdle heuristic.
+Related views are given in Supplemental Figures \ref{fig:rpart_simple} through
+\ref{fig:rpart_conditional}. Supplemental Figures \ref {fig:rpart_simple}
+through \ref{fig:rpart_complex_3} give analogous fits for different complexity
+parameters $k$. Supplemental Figures \ref{fig:rpart_binary_simple} and
+\ref{fig:rpart_conditional} decompose the CART prediction problem into a binary
+part and a conditional-on-present component, using the hurdle heuristic.
 
 Two limitations become clear in this example application. First, partitioning
 across species seems hard to obtain simultaneously across all subjects -- in
-Figure \ref{fig:rpart_complex}, there seem to be no ``tall'' blocks for Subject
+Figure \ref{fig:rpart_complex}, there seem to be no ``wide'' blocks for Subject
 E. This is a consequence of first ordering all species according to a
 hierarchical clustering based on all subjects. A potential solution would be to
 cluster the species separately across subjects, trading off the ability to match
@@ -419,10 +418,10 @@ within subjects.
 Second, these global views of the data make it difficult to inspect individual
 species and sample identities. Potential solutions are (1) link necessary
 supplemental (e.g., taxonomic) information within the static view, through a
-shaded taxonomic-family stripe, for example, or (2) construct an interactive
-version of these plots, where hovering over a partition element provides focused
-information about that element (e.g., the species identities it contains), in
-the spirit of our \texttt{hclustvis} package.
+shaded taxonomic-family stripe, as in Figure \ref{fig:heatmap-euclidean} (2)
+construct an interactive version of these plots, where hovering over a partition
+element provides focused information about that element (e.g., the species
+identities it contains), in the spirit of our \texttt{centroidview} package.
 
 \begin{figure}
   \centering
