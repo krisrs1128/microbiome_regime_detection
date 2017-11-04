@@ -857,15 +857,15 @@ approaches, recursions like those used in the Kalman filter can be used to
 perform efficient sampling and estimation.
 
 To give an exaple, we review one method here, the scan sampler of
-\citep{de1997scan}. For simplicity, we will assume that $\tau$ is known and
+\cite{de1997scan}. For simplicity, we will assume that $\tau$ is known and
 equal to zero. The scan sampler iterates filter and smoother-type calculations
 for $x_t$, at each step sampling from a distribution with mean $\Earg{x_t \vert
   x_{-t}}$ and variance $\Covarg{x_t \vert x_{-t}}$. In the Gaussian case
 presented above, this provides the exact posterior, though \cite{de1997scan}
-suggest its utility for general exponential families.
+describe its utility for general exponential families.
 
 To initialize the scan sampler for the DTM, first set $x_t = y_t$ for all $t$,
-and perform a Kalman filter and smoother step. This gives estimates of the
+then perform a Kalman filter and smoother step. This gives estimates of the
 following quantities, using notation analogous to that in the previous section,
 \begin{align*}
   \mu_{t \vert t - 1}^{x} &= \Earg{x_t \vert x_{0:\left(t - 1\right)}} \\
@@ -880,29 +880,31 @@ The idea of the scan sampler is to iteratively compute $M_t$ and $u_t$ such that
   M_t^{-1}u_t &= x_t - \Earg{x_t \vert x_{-t}}
 \end{align*}
 so that sampling can cycle forwards and backwards through coordinates of
-$\left(x_t\right)$, drawing $x_t^{\prime} \sim \Gsn\left(x_t - M_t^{-1}u_t,
+$\left(x_t\right)$, drawing $x_t^{\prime} \sim \Gsn\left(\Earg{x_t \vert
+  x_{-t}}, \Covarg{x_t \vert x_{-t}}\right) = \Gsn\left(x_t - M_t^{-1}u_t,
 M_t^{-1}\right)$. Details of the derivation can be found in \citep{de1997scan},
-we simply describe the updates necessary to compute $M_t$ and $u_t$. In an
-initial backwards pass through the data, we compute
+we simply describe the updates necessary to compute $M_t$ and $u_t$, along with
+an example application. In an initial backwards pass through the data, we
+compute
 \begin{align*}
   u_t &= \left(\Sigma_{t \vert t - 1}^{x}\right)^{-1}\mu_{t \vert t - 1}^{x} - K_t^{T}r_t \\
-  M_t &= \left(\Sigma_{t \vert t - 1}^{x}\right)^{-1} + K_t^{T} N_t K_t
+  M_t &= \left(\Sigma_{t \vert t - 1}^{x}\right)^{-1} + K_t^{T} N_t K_t,
 \end{align*}
 where $K_t$ is the Kalman gain matrix at time $t$ and
 \begin{align*}
   r_t &= C^T u_{t + 1} + A^{T}r_{t + 1} \\
   N_t &= C^{T} \Sigma_{t + 1 \vert t}C + L_{t + 1}^{T}N_{t + 1}L_{t + 1}.
 \end{align*}
-Note that the $M_t$ remain fixed after this initial scan, and only sampling
-proceeds only by cycling through the $u_t$. During the forwards scan, $u_t$ is
-updated according to
+The $M_t$ remain fixed after this initial scan, and only sampling proceeds only
+by cycling through the $u_t$. During the forwards scan, $u_t$ is updated
+according to
 \begin{align*}
-  u_t &= u_t^{\text{prev}} - \left(\Sigma_{t \vert -t}^{x} C - K_t^{T}N_t\right) b_t \\
+  u_t \xleftarrow u_t - \left(\Sigma_{t \vert -t}^{x} C - K_t^{T}N_t\right) b_t \\
   b_{t + 1} &= L_{t} b_t - K_t M_t^{-1}u_t
 \end{align*}
 where $L_t = A - K_t C$, while for backwards scans, the analogous updates are
 \begin{align*}
-  u_t &= u_t - K_t^{T} b_t \\
+  u_t \xleftarrow u_t - K_t^{T} b_t \\
   b_{t - 1} &= L_t^T b_t - C_t^{T}M_t^{-1}u_t.
 \end{align*}
 Each time a $u_t$ is computed, it is used to update the unobserved $x_t$ by
@@ -928,13 +930,13 @@ whose results are provided in Figure \ref{fig:abt_scan}.
 \section{Temporal mixture models}
 \label{sec:temporal_mixture_models}
 
-In all the models considered so far, all time windows exhibit comparable
-behavior. In the problem description of section \ref{sec:problem_description}
-however, we would expect changes in the behavior of the system during different
-temporal regimes. In this section, we describe probabilistic models that
-generate this sort of behavior. The unifying probabilistic ``trick'' that helps
-accomplish this goal is the introduction of latent variables specying which
-regime the system is in at any given timepoint.
+In the models considered in Section \ref{sec:temporal_probabilistic_models}, all
+time windows exhibit comparable behavior. From the problem description of
+Section \ref{sec:problem_description} however, we would expect changes in the
+behavior of the system during different temporal regimes. In this section, we
+describe probabilistic models that generate this sort of behavior. The unifying
+probabilistic ``trick'' that helps accomplish this goal is the introduction of
+latent variables specying which regime the system is in at any given timepoint.
 
 \subsection{Hidden Markov Models}
 \label{subsec:hmms}
