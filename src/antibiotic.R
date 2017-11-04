@@ -13,6 +13,7 @@ library("vegan")
 library("ape")
 library("dendextend")
 library("viridis")
+library("scales")
 library("ggscaffold")
 source("data.R")
 theme_set(min_theme(
@@ -43,7 +44,7 @@ combined_heatmap <- function(mx, fill_type = "bw") {
       plot.margin = unit(c(0, 0, 0, 0), "null"),
       panel.border = element_blank(),
       panel.spacing.x = unit(0.1, "cm"),
-      panel.spacing.y = unit(0.9, "cm"),
+      panel.spacing.y = unit(0.3, "cm"),
       legend.position = "bottom",
       axis.title = element_blank(),
       axis.text = element_blank(),
@@ -55,7 +56,14 @@ combined_heatmap <- function(mx, fill_type = "bw") {
       scale_fill_viridis(
         option = "magma",
         direction = -1,
-        guide_colorbar(keyheight = 1, keywidth = 0.2, ticks = FALSE)
+        breaks = pretty_breaks(2)
+      ) +
+      guides(
+        fill = guide_colorbar(
+          barwidth = 3,
+          barheight = 0.2,
+          ticks = FALSE
+        )
       )
   } else if (fill_type == "gradient2"){
     p1 <- p1 +
