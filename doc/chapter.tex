@@ -593,8 +593,8 @@ fundamental starting point is the Linear-Gaussian dynamical system,
 \begin{align*}
   x_{t} &= C z_{t} + \eps_{t} \\
   z_{t} &= A z_{t - 1} + \delta_{t} \\
-  \eps_{t} &\sim \Gsn\left(0, R\right).
-  \delta_{t} &\sim \Gsn\left(0, Q\right) \\
+  \eps_{t} &\sim \Gsn\left(0, R\right) \\
+  \delta_{t} &\sim \Gsn\left(0, Q\right).
 \end{align*}
 The $z_{t}$'s are a Markov chain of latent states, while the $x_{t}$'s represent
 the observed emissions from it. $A$ and $Q$ govern the dynamics of the
@@ -629,35 +629,36 @@ problem context and constraints. Among the most common approaches are
     \node[latent] (z1) {$z_{1}$};
     \node[latent, left=of z1] (z0) {$z_{0}$};
     \node[obs, above=of z1] (x1) {$x_{1}$};
-    \node[latent, above=of x1] (delta1) {$\delta_{1}$};
-    \node[latent, below=of z1] (eps1) {$\eps_{1}$};
+    \node[latent, above=of x1] (eps1) {$\eps_{1}$};
+    \node[latent, below=of z1] (delta1) {$\delta_{1}$};
     \node[latent, right=of z1] (z2) {$z_{2}$};
     \node[obs, above=of z2] (x2) {$x_{2}$};
-    \node[latent, above=of x2] (delta2) {$\delta_{2}$};
-    \node[latent, below=of z2] (eps2) {$\eps_{2}$};
+    \node[latent, above=of x2] (eps2) {$\eps_{2}$};
+    \node[latent, below=of z2] (delta2) {$\delta_{2}$};
     \node[const, right=of z2] (zdots) {$\dots$};
     \node[latent, right=of zdots] (zT) {$z_{T}$};
-    \node[latent, below=of zT] (epsT) {$\eps_{T}$};
+    \node[latent, below=of zT] (deltaT) {$\delta_{T}$};
     \node[obs, above=of zT] (xT) {$x_{T}$};
-    \node[latent, above=of xT] (deltaT) {$\delta_{T}$};
+    \node[latent, above=of xT] (epsT) {$\eps_{T}$};
 
     % Connect the nodes
-    \edge {z1} {x1} ; %
-    \edge {z2} {x2} ; %
-    \edge {z0} {z1} ; %
-    \edge {z1} {z2} ; %
-    \edge {z2} {zT} ; %
-    \edge {z2} {zdots} ; %
-    \edge {zdots} {zT} ; %
-    \edge {zT} {xT} ; %
-    \edge {eps1} {z1} ; %
-    \edge {eps2} {z2} ; %
-    \edge {epsT} {zT} ; %
-    \edge {delta1} {x1} ; %
-    \edge {delta2} {x2} ; %
-    \edge {deltaT} {xT} ; %
+    \edge {z1} {x1} ;
+    \edge {z2} {x2} ;
+    \edge {z0} {z1} ;
+    \edge {z1} {z2} ;
+    \edge {z2} {zdots} ;
+    \edge {zdots} {zT} ;
+    \edge {zT} {xT} ;
+    \edge {eps1} {x1} ;
+    \edge {eps2} {x2} ;
+    \edge {epsT} {xT} ;
+    \edge {delta1} {z1} ;
+    \edge {delta2} {z2} ;
+    \edge {deltaT} {zT} ;
   \end{tikzpicture}
-  \caption{\label{fig:lds_graphical} }
+  \caption{Plate diagram corresponding to a Gaussian LDS. $z_{t}$ denotes the
+    underlying Markov state sequence, while $x_t$ are observed
+    emissions. \label{fig:lds_graphical} }
 \end{figure}
 
 We first describe inference in detail, before explaining how inference and
