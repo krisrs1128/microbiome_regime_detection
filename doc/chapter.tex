@@ -199,33 +199,34 @@ distance to the binarized version of the species counts.
 
 In general, we have no quantitative approach for comparing the clusterings
 obtained by different distances. Instead, we compare the resulting heatmaps,
-noting how different patterns are identified by different approaches.
-
-The heatmaps in Figures \ref{fig:heatmap-euclidean} through
+noting how different patterns are identified by different approaches. The
+heatmaps in Figures \ref{fig:heatmap-euclidean} through
 \ref{fig:heatmap-jaccard} describe which species have similar behaviors
-according to Euclidean and Jaccard distances. See Supplementary Figures
-\ref{fig:heatmap-mix} through \ref{fig:heatmap-innovations-bin} for variations
-on the distance and transformation.
-The three main column panels correspond to the three study subjects. Each row
-gives the time series of abundances for a single species, with time evolving
-from left to right and abundance indicated by heatmap shade intensity. The
-taxonomic identities of these species is provided by the multicolored bar on the
-left. The rowwise panels correspond to different subtrees of the hierachical
-clustering when choosing to cut at a particular height -- note that the clusters
-tend to have highly imbalanced sizes. The most important takeaways from these
-figures are that some groups of bacteria are more strongly affected by the
+according to Euclidean and Jaccard distances, respectively. See Supplementary
+Figures \ref{fig:heatmap-mix} through \ref{fig:heatmap-innovations-bin} for
+variations on the distance and transformation. The most important takeaways from
+these figures are that some groups of bacteria are more strongly affected by the
 antibiotic treatment, and there is variation in the time it takes to recover.
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/heatmap-euclidean}
-  \caption{\label{fig:heatmap-euclidean} }
+  \includegraphics[width=0.9\textwidth]{figure/heatmap-euclidean}
+  \caption{The three main row panels correspond to the three study subjects.
+    Each column gives the time series of abundances for a single species, with
+    time evolving from bottom to top and abundance indicated by heatmap shade
+    intensity. Species are grouped into boxes according to their taxonomic
+    family, and within boxes they are ordered according to their position on the
+    hierarchical clustering tree.
+    \label{fig:heatmap-euclidean} }
 \end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.8\textwidth]{figure/heatmap-jaccard}
-  \caption{\label{fig:heatmap-jaccard} }
+  \includegraphics[width=0.9\textwidth]{figure/heatmap-jaccard}
+  \caption{The analog of Figure \ref{fig:heatmap-euclidean} for the Jaccard
+    distance. Note that species with very different abundances may be grouped
+    together, as long as they have the same patterns of presence and absence.
+    \label{fig:heatmap-jaccard} }
 \end{figure}
 
 As expected, different distances group series according to the features that
@@ -233,11 +234,10 @@ define the distance. For example, the Jaccard distance, used in Figure
 \ref{fig:heatmap-jaccard}, groups series with similar zero patterns, even if
 their associated abundances are very different. On the other hand, the Euclidean
 distance tends to group series with similar averages, and there is less blocking
-by presence-absence structure. Notice that, according to the colored bar
-indicating taxonomic family identity, families are not scattered uniformly
-across rows, but they are not separated into completely disjoint blocks either.
-This suggests that while phylogeny certainly relates to patterns of abundance,
-variation occurs at levels of granularity more subtle than family level.
+by presence-absence structure. Note that patterns of response to antibiotics
+form subclusters within taxonomic families. This suggests that while phylogeny
+certainly relates to patterns of abundance, variation occurs at levels of
+granularity more subtle than family level.
 
 To summarize behavior within clusters, we display the centroids in Figures
 \ref{fig:centroid-euclidean-conditional} \ref{fig:centroid-euclidean-presence}.
