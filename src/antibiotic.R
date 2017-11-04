@@ -27,54 +27,35 @@ dir.create(figure_dir)
 ## --- utils ----
 combined_heatmap <- function(mx, fill_type = "bw") {
   p1 <- ggplot(mx) +
-    geom_tile(aes(y = sample, x = leaf_ix, fill = scaled)) +
-    facet_grid(ind ~ cluster, scales = "free", space = "free") +
-    scale_x_continuous(expand = c(0, 0)) +
-    scale_y_discrete(expand = c(0, 0)) +
+    geom_tile(aes(y = sample, x = as.factor(leaf_ix), fill = scaled)) +
+    geom_rect(
+      aes(
+        ymin = -Inf, xmin = -Inf, ymax = Inf, xmax = Inf, col = label
+      ),
+      fill = "transparent",
+      size = 0.9
+    ) +
+    facet_grid(ind ~ label, scales = "free", space = "free") +
+    scale_x_discrete(expand = ) +
+    scale_y_discrete() +
+    scale_color_brewer(palette = "Set2") +
     theme(
       plot.margin = unit(c(0, 0, 0, 0), "null"),
-      legend.position = "none",
-      axis.title = element_blank(),
-      axis.text = element_blank(),
-      strip.text.x = element_text(size = 4),
-    )
-
-  if (fill_type == "bw") {
-    p1 <- p1 + scale_fill_viridis(option = "magma", direction = -1)
-  } else if (fill_type == "gradient2"){
-    p1 <- p1 + scale_fill_gradient2(high = "#32835f", low = "#833256")
-  }
-
-  unique_mx <- mx %>%
-    filter(sample == mx$sample[1])
-  rep_ix <- rep(1:10, nrow(unique_mx))
-  inv_rep_ix <- rep(seq_len(nrow(unique_mx)), each = 10)
-  rsvs <- data_frame(
-    "leaf_ix" = unique_mx$leaf_ix[inv_rep_ix],
-    "cluster" = unique_mx$cluster[inv_rep_ix],
-    "y" = rep_ix,
-    "label" = unique_mx$label[inv_rep_ix]
-  )
-
-  p2 <- ggplot(rsvs) +
-    geom_tile(aes(x = leaf_ix, y = y, fill = label)) +
-    scale_fill_brewer(palette = "Set2", guide = guide_legend(ncol = 8)) +
-    scale_y_continuous(expand = c(0, 0)) +
-    facet_grid(. ~ cluster, scales = "free", space = "free") +
-    theme(
       panel.border = element_blank(),
+      panel.spacing.x = unit(0.1, "cm"),
       legend.position = "bottom",
       axis.title = element_blank(),
       axis.text = element_blank(),
-      strip.text = element_blank(),
-      panel.spacing.y = unit(0, "lines"),
-      plot.margin = unit(c(0, 0, 0, 0), "null")
+      strip.text.x = element_text(size = 4)
     )
 
-  g1 <- ggplotGrob(p1)
-  g2 <- ggplotGrob(p2)
-  rm_ix <- g1$layout$r[grep("strip-r", g1$layout$name)]
-  arrangeGrob(rbind(g1[, -rm_ix], g2))
+  if (fill_type == "bw") {
+    p1 <- p1 +
+      scale_fill_viridis(option = "magma", direction = -1)
+  } else if (fill_type == "gradient2"){
+    p1 <- p1 + scale_fill_gradient2(high = "#32835f", low = "#833256")
+  }
+  p1
 }
 
 centroid_plot <- function(mx) {
