@@ -1,4 +1,5 @@
 \documentclass[12pt]{extarticle}
+\pdfoutput=1
 %% \usepackage[a4paper, margin=0.2in]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath, amssymb, amsfonts}
@@ -1851,7 +1852,7 @@ intervals. Following the formulation of \citep{linderman2016recurrent},
   z_t \vert z_{t - 1} &\sim P_{z_{t - 1}}.
 \end{align*}
 $z_t \in \{1, \dots, K\}$ describes what regime the series is in at time $t$
-while $x_t$ describes underlying state dynamics. The collections $\\left(C_k,
+while $x_t$ describes underlying state dynamics. The collections $\left(C_k,
 R_k\right)_{k = 1}^{K}$ and $\left(A_k, Q_k\right)$ correspond to $K$ sets of
 emission and state evolution parameters, respectively. We will think of
 $\left(x_t\right)$ and $\left(z_t\right)$ as latent data, while $\Theta = \{P,
@@ -2377,7 +2378,7 @@ from the first.
   \caption{
     The analog of Figure \ref{fig:basic_heatmap} for the Bernoulli likelihood
     model applied to the presence-absence data. In contrast to Figure
-    \ref{fig:basic_heamtap}, most species have comparable estimated
+    \ref{fig:basic_heatmap}, most species have comparable estimated
     changepoints.
     \label{fig:basic_bern_heatmap}
   }
