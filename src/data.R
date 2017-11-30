@@ -26,6 +26,7 @@ taxa_labels <- function(taxa) {
 }
 
 join_sources <- function(x, taxa, samples, dendro, h = 0.5) {
+  rownames(x) <- samples$sample
   leaf_ix <- order.dendrogram(dendro)
   leaf_order <- labels(dendro)[leaf_ix]
   cluster <- data.frame("cluster" = cutree(dendro, h = h)) %>%
