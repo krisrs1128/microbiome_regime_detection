@@ -1,5 +1,6 @@
-\documentclass[14pt]{extarticle}
-\usepackage[a4paper, margin=0.2in]{geometry}
+\documentclass[12pt]{extarticle}
+\pdfoutput=1
+%% \usepackage[a4paper, margin=0.2in]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath, amssymb, amsfonts}
 \usepackage{natbib}
@@ -11,10 +12,10 @@
 \usepackage{algorithm}
 \usepackage[noend]{algorithmic}
 \input{preamble.tex}
-\linespread{2}
+%% \linespread{2}
 
-\title{Inference of Dynamic Regimes in the Microbiome}
-\author{Kris Sankaran}
+\title{Inference of Dynamic Regimes \\ in the Microbiome}
+\author{Kris Sankaran and Susan P. Holmes}
 \begin{document}
 \maketitle
 
@@ -53,6 +54,8 @@ structure that can be incorporated into studies of microbiome dynamics.
 \end{abstract}
 
 \tableofcontents
+
+\section{Introduction}
 
 Microbiome data describe the abundances of bacterial species across multiple
 samples. In previous chapters, we have studied latent structure across species
@@ -405,11 +408,9 @@ the second antibiotic time course among subject D, also for species near the
 bottom-left of the panel.
 
 Related views are given in Supplemental Figures \ref{fig:rpart_simple} through
-\ref{fig:rpart_conditional}. Supplemental Figures \ref {fig:rpart_simple}
-through \ref{fig:rpart_complex_3} give analogous fits for different complexity
-parameters $k$. Supplemental Figures \ref{fig:rpart_binary_simple} and
-\ref{fig:rpart_conditional} decompose the CART prediction problem into a binary
-part and a conditional-on-present component, using the hurdle heuristic.
+\ref{fig:rpart_conditional}. Supplemental Figures \ref{fig:rpart_binary_simple}
+and \ref{fig:rpart_conditional} decompose the CART prediction problem into a
+binary part and a conditional-on-present component, using the hurdle heuristic.
 
 Two limitations become clear in this example application. First, partitioning
 across species seems hard to obtain simultaneously across all subjects -- in
@@ -1851,7 +1852,7 @@ intervals. Following the formulation of \citep{linderman2016recurrent},
   z_t \vert z_{t - 1} &\sim P_{z_{t - 1}}.
 \end{align*}
 $z_t \in \{1, \dots, K\}$ describes what regime the series is in at time $t$
-while $x_t$ describes underlying state dynamics. The collections $\\left(C_k,
+while $x_t$ describes underlying state dynamics. The collections $\left(C_k,
 R_k\right)_{k = 1}^{K}$ and $\left(A_k, Q_k\right)$ correspond to $K$ sets of
 emission and state evolution parameters, respectively. We will think of
 $\left(x_t\right)$ and $\left(z_t\right)$ as latent data, while $\Theta = \{P,
@@ -2377,7 +2378,7 @@ from the first.
   \caption{
     The analog of Figure \ref{fig:basic_heatmap} for the Bernoulli likelihood
     model applied to the presence-absence data. In contrast to Figure
-    \ref{fig:basic_heamtap}, most species have comparable estimated
+    \ref{fig:basic_heatmap}, most species have comparable estimated
     changepoints.
     \label{fig:basic_bern_heatmap}
   }
@@ -2483,12 +2484,12 @@ scientific problems.
   \centering
   \includegraphics[width=0.9\textwidth]{figure/rpart_complex_2}
   \caption{
-    A version of Figure \ref{rpart_complex} with much more penalty on the
-    complexity of the learned partitions. While Supplementary Figure \ref{fig:rpart_simple}
-    displayed a very overfit tree, the tree here seems quite underfit, as only a
-    few leaves seem to have survived the pruning process. Between this figure
-    and the two mentioned before, we can get a sense of the degree to which
-    model tuning can affect visual interpretation.
+    A version of Figure \ref{fig:rpart_complex} with much more penalty on the
+    complexity of the learned partitions. While Supplementary Figure
+    \ref{fig:rpart_simple} displayed a very overfit tree, the tree here seems
+    quite underfit, as only a few leaves seem to have survived the pruning
+    process. Between this figure and the two mentioned before, we can get a
+    sense of the degree to which model tuning can affect visual interpretation.
     \label{fig:rpart_complex_2} }
 \end{figure}
 

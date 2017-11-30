@@ -1,7 +1,10 @@
 #! /usr/bin/env Rscript
 
 ## File description -------------------------------------------------------------
-## Some brainstorming with the antibiotics data.
+## Basic hierarchical clustering approach to the antibiotics data.
+##
+## author: sankaran.kris@gmail.com
+## date: 11/30/2017
 
 ## ---- libraries ----
 library("tidyverse")
@@ -14,14 +17,27 @@ library("ape")
 library("dendextend")
 library("viridis")
 library("scales")
-library("ggscaffold")
 source("data.R")
-theme_set(min_theme(
-  list(
-    "legend_position" = "right",
-    "border_size" = 0.2
-  )
-))
+
+scale_colour_discrete <- function(...)
+  scale_colour_brewer(..., palette="Set2")
+scale_fill_discrete <- function(...)
+  scale_fill_brewer(..., palette="Set2")
+
+theme_set(theme_bw())
+theme_update(
+  panel.border = element_rect(size = 0.5),
+  panel.grid = element_blank(),
+  axis.ticks = element_blank(),
+  legend.title = element_text(size = 8),
+  legend.text = element_text(size = 6),
+  axis.text = element_text(size = 6),
+  axis.title = element_text(size = 8),
+  strip.background = element_blank(),
+  strip.text = element_text(size = 8),
+  legend.key = element_blank()
+)
+
 figure_dir <- file.path("..", "doc", "figure")
 dir.create(figure_dir)
 
@@ -39,7 +55,7 @@ combined_heatmap <- function(mx, fill_type = "bw") {
     facet_grid(ind ~ label, scales = "free", space = "free") +
     scale_x_discrete(expand = ) +
     scale_y_discrete() +
-    scale_color_brewer(palette = "Set2") +
+    scale_color_brewer("Taxon ", palette = "Set2") +
     theme(
       plot.margin = unit(c(0, 0, 0, 0), "null"),
       panel.border = element_blank(),
@@ -54,23 +70,31 @@ combined_heatmap <- function(mx, fill_type = "bw") {
   if (fill_type == "bw") {
     p1 <- p1 +
       scale_fill_viridis(
+        "Abundance  ",
         option = "magma",
         direction = -1,
         breaks = pretty_breaks(2)
       ) +
       guides(
         fill = guide_colorbar(
-          barwidth = 3,
-          barheight = 0.2,
+          barwidth = 2,
+          barheight = 0.4,
           ticks = FALSE
         )
       )
   } else if (fill_type == "gradient2"){
     p1 <- p1 +
       scale_fill_gradient2(
+        "Abundance  ",
         high = "#32835f",
-        low = "#833256",
-        guide_colorbar(keyheight = 1, keywidth = 0.2, ticks = FALSE)
+        low = "#833256"
+      ) +
+      guides(
+        fill = guide_colorbar(
+          barheight = 0.4,
+          barwidth = 2,
+          ticks = FALSE
+        )
       )
   }
   p1
@@ -92,14 +116,17 @@ centroid_plot <- function(mx) {
     ) +
     geom_point(
       data = centroid_data,
-      aes(x = time, y = centroid), size = 0.7
+      aes(x = time, y = centroid), size = 0.3
     ) +
     geom_point(
       data = centroid_data,
-      aes(x = time, y = centroid, col = ind), size = 0.4
+      aes(x = time, y = centroid, col = ind), size = 0.25
     ) +
     scale_color_brewer(palette = "Set1") +
-    theme(axis.text.x = element_blank()) +
+    theme(
+      axis.text.x = element_blank(),
+      strip.text = element_text(size = 9)
+    ) +
     facet_wrap(~cluster, ncol = 10)
 
   p2 <- ggplot(mx) +
@@ -110,15 +137,18 @@ centroid_plot <- function(mx) {
     ) +
     geom_point(
       data = centroid_data,
-      aes(x = time, y = centroid_prob), size = 0.7
+      aes(x = time, y = centroid_prob), size = 0.3
     ) +
     geom_point(
       data = centroid_data,
-      aes(x = time, y = centroid_prob, col = ind), size = 0.4
+      aes(x = time, y = centroid_prob, col = ind), size = 0.25
     ) +
     scale_color_brewer(palette = "Set1") +
-    theme(axis.text.x = element_blank()) +
-    facet_wrap(~cluster, ncol = 10)
+    theme(
+      axis.text.x = element_blank(),
+      strip.text = element_text(size = 6)
+    ) +
+    facet_wrap(~cluster, ncol = 8)
 
   list(
     "conditional" = p1,
@@ -160,7 +190,10 @@ plot(mix_tree)
 ## ---- heatmap-mix ----
 samples <- sample_data(abt) %>%
   data.frame() %>%
-  rownames_to_column("sample")
+  mutate(
+    time_str = str_pad(time, 2, "left", "0"),
+    sample = paste0(ind, time_str)
+  )
 taxa <- abt %>%
   tax_table %>%
   taxa_labels
@@ -203,7 +236,7 @@ all_plots[["centroid-jaccard-presence"]] <- p$presence
 diff_x <- apply(x_scaled, 2, diff)
 tree <- hclust(dist(t(diff_x)))
 dendro <- reorder(as.dendrogram(tree), -var(diff_x))
-mx <- join_sources(diff_x, taxa, samples, dendro, h = 0.15)
+mx <- join_sources(diff_x, taxa, samples[-1, ], dendro, h = 0.15)
 sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 all_plots[["heatmap-innovations"]] <- combined_heatmap(mx, "gradient2")
 p <- centroid_plot(mx)
@@ -214,7 +247,7 @@ all_plots[["centroid-innovations-presence"]] <- p$presence
 diff_x <- apply(x_bin, 2, diff)
 tree <- hclust(dist(t(diff_x), method = "Jaccard"))
 dendro <- reorder(as.dendrogram(tree), -var(diff_x))
-mx <- join_sources(diff_x, taxa, samples, dendro, h = 0.985)
+mx <- join_sources(diff_x, taxa, samples[-1, ], dendro, h = 0.985)
 sort(table(mx$cluster), decreasing = TRUE) / nrow(mx)
 all_plots[["heatmap-innovations-bin"]] <- combined_heatmap(mx, "gradient2")
 p <- centroid_plot(mx)
@@ -271,15 +304,15 @@ for (i in seq_along(all_plots)) {
   cur_name <- paste0(names(all_plots)[i], ".png")
   height <- 2.5
   if (grepl("heatmap", cur_name)) {
-    height <- 3
+    height <- 4
   } else if (grepl("centroid", cur_name)) {
-    height <- 6.5
+    height <- 3
   }
 
   ggsave(
     file.path(figure_dir, cur_name),
     all_plots[[i]],
-    dpi = 600,
-    width = 5.5, height = height
+    dpi = 150,
+    width = 4.8, height = height
   )
 }
